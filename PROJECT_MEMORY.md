@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-20** (optional product flavors feature completed and verified).
+> Last updated: **2026-11-20** (optional product flavors feature completed; Git repository initialized and pushed).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -39,16 +39,17 @@ If a request is ambiguous, ask questions before planning. If an important issue 
 
 **Purpose:** StockFlow is a wholesale inventory/operations UI being built to match the supplied Stitch designs. It covers products, inventory, sales orders, customers, suppliers, and purchases with a MongoDB-backed Express API.
 
-**Root structure** (no root `package.json`, no README, no Git repo):
+**Root structure** (no root `package.json`, no root README):
 
 ```text
 inv_system/
+├── .gitignore     Root ignore rules; excludes "stich ui/" and OS/editor files
 ├── backend/       Express + MongoDB API
 ├── frontend/      Next.js App Router UI
 └── stich ui/      Stitch design references (folder name is misspelled; use exactly "stich ui")
 ```
 
-**Important:** The workspace is **not a Git repository**. There is no version history or rollback via Git.
+**Git:** The workspace is now a Git repository on branch `main`, tracking `https://github.com/yasiralatif123-spec/Ai-inven-system.git`. `backend/`, `frontend/`, and `PROJECT_MEMORY.md` are committed; `stich ui/` is intentionally ignored and not tracked.
 
 **Design reference:** `stich ui/` contains 18 folders. 17 have `code.html` + `screen.png`; `stockflow_operational_utilitarian/` contains `DESIGN.md` only. Design tokens from `DESIGN.md` are reflected in `frontend/app/globals.css`.
 
@@ -725,7 +726,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - All business APIs public; CORS allows no-Origin clients.
 - Real credentials present in `backend/.env` (gitignored, but present in workspace).
 - In-memory session store; no CSRF protection; no auth on frontend.
-- No Git repository: no history/rollback.
+- Git history is now available, but the initial commit contains the full existing codebase; future commits should stay small and reviewable.
 - Backend list limits can make dashboard aggregates partial.
 - Product delete leaves related `StockMovement` rows; product/customer/supplier deletes do not check dependencies.
 
@@ -767,7 +768,30 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: optional product flavors (completed 2026-11-20)
+### Latest task: Git repository initialization and push (completed 2026-11-20)
+
+- **User request:** Create/use the GitHub repository `https://github.com/yasiralatif123-spec/Ai-inven-system.git`, push `backend/`, `frontend/`, and `PROJECT_MEMORY.md`, and do not push `stich ui/`.
+- **Files created:**
+  - `.gitignore` at the workspace root, ignoring `/stich ui/`, `Thumbs.db`, `desktop.ini`, and `.DS_Store`.
+- **Repository setup:**
+  - `git init -b main`
+  - Remote added as `origin` → `https://github.com/yasiralatif123-spec/Ai-inven-system.git`
+  - Local commit identity set to `yasiralatif123-spec` / `yasiralatif123-spec@users.noreply.github.com` (local repo config only).
+  - Initial commit: `2f57071 Initial StockFlow backend and frontend import`
+  - 196 files committed and pushed to `origin/main`.
+- **Excluded from the push:**
+  - `stich ui/` via root `.gitignore`.
+  - `backend/.env` via existing `backend/.gitignore`.
+  - `frontend/node_modules`, `frontend/.next`, `frontend/.env*`, `*.tsbuildinfo`, and `next-env.d.ts` via existing `frontend/.gitignore`.
+  - `backend/node_modules` via existing `backend/.gitignore`.
+- **Verification:**
+  - `git status` clean after commit/push before this memory update.
+  - Staged file audit found no `stich ui/` or `.env` files.
+  - `git check-ignore -v backend/.env` confirmed the backend secrets file is ignored.
+  - `git push -u origin main` succeeded; branch tracks `origin/main`.
+- **Dependencies added:** none.
+
+### Previous task: optional product flavors (completed 2026-11-20)
 
 - **Approved plan:** optional `Product.flavors[]`, line-level `flavor` on sale/purchase items, and supplier default `productFlavors` map; descriptive only, no per-flavor stock.
 - **Files created:**
