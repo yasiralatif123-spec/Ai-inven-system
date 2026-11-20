@@ -17,6 +17,14 @@ Returns all stock movements, newest first.
 { "movements": [] }
 ```
 
+Each returned movement is a `StockMovement` document. In addition to the stock
+fields, it includes `partyName`: the counterparty captured when the movement was
+written — the supplier name for `type: "purchase"` (both AUTO-STOCK and GRN
+receipts) and the customer/buyer name for `type: "sale"` (create, edit, and
+delete). It defaults to `""` for adjustments, returns, write-offs, and older
+records created before this field existed. It is a denormalized snapshot because
+the ledger is immutable.
+
 ### `POST /api/products/:id/adjust-stock`
 
 Applies a stock adjustment and creates an immutable `StockMovement` ledger entry.

@@ -31,6 +31,10 @@ function phoneDigits(value: string): string {
 }
 
 export function customerMatchesOrder(customer: Customer, order: SalesOrder): boolean {
+  if (order.customerId && customer.id) {
+    return order.customerId === customer.id;
+  }
+
   const orderPhone = phoneDigits(order.phone || "");
   const customerPhone = phoneDigits(customer.phone || "");
   if (orderPhone && customerPhone && orderPhone === customerPhone) return true;

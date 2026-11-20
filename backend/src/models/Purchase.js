@@ -17,15 +17,17 @@ const purchaseReceiptSchema = new mongoose.Schema(
 );
 
 const purchaseItemSchema = new mongoose.Schema({
-  productId: { type: String, default: "", trim: true },
+  productId: { type: String, default: "", trim: true, index: true },
   name: { type: String, required: true, trim: true },
   sku: { type: String, default: "", trim: true },
-  flavor: { type: String, default: "", trim: true },
+  flavor: { type: [String], default: [], trim: true },
   quantity: { type: Number, required: true, min: 1 },
   availableStock: { type: Number, default: 0, min: 0 },
   receivedQuantity: { type: Number, default: 0, min: 0 },
   receipts: { type: [purchaseReceiptSchema], default: [] },
   unit: { type: String, default: "Carton", trim: true },
+  basePrice: { type: Number, default: 0, min: 0 },
+  flavorCount: { type: Number, default: 1, min: 0 },
   unitPrice: { type: Number, required: true, min: 0 },
   discount: { type: Number, default: 0, min: 0 },
   taxRate: { type: Number, default: 18, min: 0, max: 100 },
@@ -58,7 +60,7 @@ const purchaseSchema = new mongoose.Schema(
       index: true,
     },
     supplier: {
-      id: { type: String, default: "", trim: true },
+      id: { type: String, default: "", trim: true, index: true },
       code: { type: String, default: "", trim: true },
       name: { type: String, required: true, trim: true },
       contact: { type: String, default: "", trim: true },
@@ -68,7 +70,7 @@ const purchaseSchema = new mongoose.Schema(
       ntn: { type: String, default: "", trim: true },
       paymentTerms: { type: String, default: "", trim: true },
       productIds: { type: [String], default: [] },
-      productFlavors: { type: Map, of: String, default: () => ({}) },
+      productFlavors: { type: Map, of: [String], default: () => ({}) },
     },
     purchaseDate: { type: Date, required: true },
     expectedDelivery: { type: Date, required: true },

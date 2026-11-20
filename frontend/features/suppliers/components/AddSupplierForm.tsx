@@ -1,7 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   GRACE_DAY_OPTIONS,
   HUB_OPTIONS,
@@ -101,6 +108,8 @@ export function AddSupplierForm() {
     error: productsError,
   } = useSupplierProducts();
 
+  const shouldReset = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -118,6 +127,12 @@ export function AddSupplierForm() {
       cancelled = true;
     };
   }, []);
+
+  function resetForm() {
+    setForm({ ...EMPTY_FORM, productIds: [], productFlavors: {} });
+    setError(null);
+    setSuccess(null);
+  }
 
   function update<K extends keyof CreateSupplierInput>(key: K, value: CreateSupplierInput[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -137,10 +152,10 @@ export function AddSupplierForm() {
     setSuccess(null);
   }
 
-  function handleProductFlavorChange(productId: string, flavor: string) {
+  function handleProductFlavorChange(productId: string, flavors: string[]) {
     setForm((current) => {
       const productFlavors = { ...current.productFlavors };
-      if (flavor) productFlavors[productId] = flavor;
+      if (flavors.length > 0) productFlavors[productId] = flavors;
       else delete productFlavors[productId];
       return { ...current, productFlavors };
     });
@@ -155,11 +170,17 @@ export function AddSupplierForm() {
 
     try {
       const created = await createSupplier(form);
+      // Mark a successful submit so the Activity cleanup can clear stale messages
+      // when navigation hides this page.
+      shouldReset.current = true;
       if (addAnother) {
+        resetForm();
         setSuccess(`${created.name} registered as #${created.code}. Ready for the next supplier.`);
-        setForm({ ...EMPTY_FORM, productIds: [], productFlavors: {} });
         setNextCode(await fetchNextSupplierCode());
       } else {
+        // Reset before navigating so the hidden page is preserved with empty fields;
+        // reopening it from the list then shows a fresh form without a refresh.
+        resetForm();
         router.push("/suppliers");
       }
     } catch (submitError) {
@@ -177,6 +198,18 @@ export function AddSupplierForm() {
     event.preventDefault();
     void save(false);
   }
+
+  // Activity hides (rather than unmounts) this page on navigation, so a stale
+  // success/error message would otherwise reappear the next time it is opened.
+  useLayoutEffect(() => {
+    return () => {
+      if (shouldReset.current) {
+        shouldReset.current = false;
+        setError(null);
+        setSuccess(null);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-y-3">
@@ -254,6 +287,7 @@ export function AddSupplierForm() {
 
       <form
         onSubmit={handleSubmit}
+        autoComplete="off"
         className="mx-auto flex w-full max-w-4xl flex-col gap-6"
         id="add-supplier-form"
       >
@@ -425,7 +459,7 @@ export function AddSupplierForm() {
                 <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
               </>
             }
-            hint="Search and select products from the catalog that this supplier can fulfil. Choose a default flavor for any product that has flavors."
+            hint="Search and select products from the catalog that this supplier can fulfil. Choose default flavors for any product that has flavors."
           >
             <ProductMultiSelect
               selectedIds={form.productIds}

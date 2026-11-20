@@ -38,7 +38,14 @@ function exportPurchases(rows: Purchase[]) {
   const body = rows.map((row) => [
     row.id,
     row.date,
-    `${row.items} · ${row.reference}`,
+    [
+      row.items,
+      row.reference,
+      ...row.lines.map(
+        (line) =>
+          `${line.name}${line.sku ? ` (${line.sku})` : ""} · flavors ${line.flavors.join("/") || "none"} · qty ${line.quantity} ${line.unit} · ${line.basePrice}×${line.flavorCount}=${line.unitPrice} · total ${line.lineTotal} · received ${line.receivedQuantity}/${line.quantity} · ${line.date} · ${line.status}`
+      ),
+    ].join(" | "),
     String(row.orderedQuantity),
     String(row.receivedQuantity),
     String(row.total),
@@ -73,7 +80,13 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
       if (filter !== "all" && purchase.status !== filter) return false;
       if (!term) return true;
 
-      return [purchase.id, purchase.items, purchase.reference, purchase.date]
+      return [
+        purchase.id,
+        purchase.items,
+        purchase.reference,
+        purchase.date,
+        ...purchase.lines.flatMap((line) => [line.name, line.sku, ...line.flavors]),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(term);
@@ -199,6 +212,32 @@ function PurchaseRow({ purchase }: { purchase: Purchase }) {
         <div className="font-medium text-on-surface">{purchase.items}</div>
         <div className="font-mono-data-sm text-mono-data-sm text-secondary">
           {purchase.reference}
+        </div>
+        <div className="mt-1 flex flex-col gap-1">
+          {purchase.lines.map((line, index) => (
+            <div
+              key={`${line.purchaseId}-${line.sku || line.name}-${index}`}
+              className="rounded border border-outline-variant/70 bg-surface-container-low px-2 py-1"
+            >
+              <div className="font-body-dense text-body-dense font-medium text-on-surface">
+                {line.name}
+                {line.sku ? (
+                  <span className="ml-1 font-mono-data-sm text-mono-data-sm text-secondary">
+                    · {line.sku}
+                  </span>
+                ) : null}
+              </div>
+              <div className="font-mono-data-sm text-mono-data-sm text-secondary">
+                {line.flavors.length ? line.flavors.join(", ") : "No flavors"} · {line.quantity}{" "}
+                {line.unit} @ {formatRs(line.unitPrice)} = {formatRs(line.lineTotal)}
+              </div>
+              <div className="font-mono-data-sm text-mono-data-sm text-outline">
+                {formatRs(line.basePrice)} × {line.flavorCount} flavor
+                {line.flavorCount === 1 ? "" : "s"} · received {line.receivedQuantity}/
+                {line.quantity} · {line.date} · {line.status}
+              </div>
+            </div>
+          ))}
         </div>
       </td>
       <td className="px-3 py-2 text-right font-mono-data text-mono-data text-secondary">

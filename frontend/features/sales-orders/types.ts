@@ -14,10 +14,12 @@ export type OrderItem = {
   name: string;
   sku: string;
   productId?: string | null;
-  flavor?: string;
+  flavor?: string[];
   stockDeducted?: boolean;
   quantity: number;
   unitLabel: string;
+  basePrice?: number;
+  flavorCount?: number;
   unitPrice: number;
   available: number;
   lineTotal: number;
@@ -38,6 +40,7 @@ export type SalesOrder = {
   id: string;
   time: string;
   dateGroup: DateGroup;
+  customerId?: string | null;
   customer: string;
   location: string;
   phone: string;
@@ -65,13 +68,16 @@ export type HubFilter = "all" | string;
 export type DraftOrderItemInput = {
   name: string;
   sku: string;
-  flavor?: string;
+  flavor?: string[];
   quantity: number;
   unitLabel: string;
+  basePrice?: number;
+  flavorCount?: number;
   unitPrice: number;
 };
 
 export type DraftOrderInput = {
+  customerId?: string;
   customer: string;
   phone: string;
   location: string;
@@ -94,7 +100,7 @@ export type PaymentInput = {
 export type SaleOrderDto = {
   _id: string;
   orderNumber: string;
-  customer: { name: string; phone: string; location: string };
+  customer: { customerId?: string | null; name: string; phone: string; location: string };
   hub: string;
   paymentStatus: PaymentStatus;
   paymentLabel: string;

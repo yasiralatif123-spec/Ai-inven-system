@@ -46,6 +46,7 @@ function toSalesOrder(dto: SaleOrderDto): SalesOrder {
     id: dto.orderNumber,
     time: formatOrderTime(createdAt, dateGroup),
     dateGroup,
+    customerId: dto.customer.customerId || null,
     customer: dto.customer.name,
     location: dto.customer.location,
     phone: dto.customer.phone,
@@ -72,8 +73,9 @@ function toSalesOrder(dto: SaleOrderDto): SalesOrder {
   };
 }
 
-export async function fetchSaleOrders(): Promise<SalesOrder[]> {
-  const response = await apiFetch("/api/sale-orders");
+export async function fetchSaleOrders(customerId?: string): Promise<SalesOrder[]> {
+  const query = customerId ? `?customerId=${encodeURIComponent(customerId)}` : "";
+  const response = await apiFetch(`/api/sale-orders${query}`);
   const data = await readJson(response);
   assertOk(response, data, "Failed to load sale orders");
   return Array.isArray(data.orders) ? data.orders.map(toSalesOrder) : [];

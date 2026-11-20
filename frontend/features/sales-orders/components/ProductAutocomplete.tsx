@@ -8,6 +8,7 @@ type ProductAutocompleteProps = {
   value: string;
   onChange: (value: string) => void;
   onProductSelect: (product: Product) => void;
+  onCommit?: (value: string) => void;
   products: Product[];
   loading: boolean;
   error: string | null;
@@ -32,6 +33,7 @@ export function ProductAutocomplete({
   value,
   onChange,
   onProductSelect,
+  onCommit,
   products,
   loading,
   error,
@@ -131,7 +133,10 @@ export function ProductAutocomplete({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
+          onBlur={() => {
+            onCommit?.(value);
+            setOpen(false);
+          }}
           onKeyDown={handleKeyDown}
           placeholder="Item name"
           aria-label={ariaLabel}

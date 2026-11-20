@@ -24,16 +24,25 @@ export function useCustomerProfile(customerId: string) {
       setError(null);
 
       try {
-        const [customerData, allOrders] = await Promise.all([
+        const [customerData, linkedOrders, allOrders] = await Promise.all([
           fetchCustomer(customerId),
+          fetchSaleOrders(customerId),
           fetchSaleOrders(),
         ]);
 
         if (cancelled) return;
 
-        const customerOrders = allOrders.filter((order) =>
-          customerMatchesOrder(customerData, order)
+        // Linked orders come from the backend customerId filter. Include legacy
+        // orders that predate the link by matching phone or exact name.
+        const legacyOrders = allOrders.filter(
+          (order) => !order.customerId && customerMatchesOrder(customerData, order)
         );
+        const seen = new Set<string>();
+        const customerOrders = [...linkedOrders, ...legacyOrders].filter((order) => {
+          if (seen.has(order.id)) return false;
+          seen.add(order.id);
+          return true;
+        });
         const orderOutstanding = customerOrders.reduce(
           (sum, order) => sum + Math.max(order.financials.outstanding, 0),
           0

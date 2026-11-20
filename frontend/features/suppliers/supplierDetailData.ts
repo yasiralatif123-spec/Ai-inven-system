@@ -14,10 +14,27 @@ export type PurchaseDelivery = {
   grnSigned: string;
 };
 
+export type PurchaseLine = {
+  name: string;
+  sku: string;
+  flavors: string[];
+  quantity: number;
+  receivedQuantity: number;
+  basePrice: number;
+  flavorCount: number;
+  unitPrice: number;
+  lineTotal: number;
+  unit: string;
+  date: string;
+  status: PurchaseStatus;
+  purchaseId: string;
+};
+
 export type Purchase = {
   id: string;
   date: string;
   items: string;
+  lines: PurchaseLine[];
   reference: string;
   total: number;
   paid: number;

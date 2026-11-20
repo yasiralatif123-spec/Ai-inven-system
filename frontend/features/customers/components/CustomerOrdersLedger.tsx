@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { PaymentStatus, SalesOrder } from "../../sales-orders/types";
+import { formatFlavors } from "../../../app/lib/flavors";
 import { formatRs } from "../utils";
 import {
   formatProfileDate,
@@ -32,7 +33,10 @@ function exportOrders(orders: SalesOrder[]) {
       order.id,
       formatProfileDate(order.createdAt),
       `${order.unitCount} units (${order.items
-        .map((item) => `${item.name}${item.flavor ? ` · ${item.flavor}` : ""}`)
+        .map(
+          (item) =>
+            `${item.name}${formatFlavors(item.flavor) ? ` · ${formatFlavors(item.flavor)}` : ""} · ${item.quantity} × ${item.unitPrice} = ${item.lineTotal}`
+        )
         .join(", ")})`,
       String(order.amount),
       order.paymentStatus,
@@ -66,7 +70,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
       return [
         order.id,
         order.createdAt,
-        ...order.items.map((item) => `${item.name} ${item.sku} ${item.flavor || ""}`),
+        ...order.items.map((item) => `${item.name} ${item.sku} ${formatFlavors(item.flavor)}`),
       ]
         .join(" ")
         .toLowerCase()
@@ -168,12 +172,30 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
                       {formatProfileDate(order.createdAt)}
                     </td>
                     <td className="px-3 py-2.5">
-                      {order.unitCount} units (
-                      {order.items
-                        .map((item) => `${item.name}${item.flavor ? ` · ${item.flavor}` : ""}`)
-                        .slice(0, 2)
-                        .join(", ")}
-                      )
+                      <div className="font-mono-data-sm text-mono-data-sm text-secondary">
+                        {order.unitCount} units
+                      </div>
+                      <div className="mt-1 flex flex-col gap-1">
+                        {order.items.map((item, index) => (
+                          <div
+                            key={`${item.sku || item.name}-${index}`}
+                            className="rounded border border-outline-variant/70 bg-surface-container-low px-1.5 py-1"
+                          >
+                            <div className="font-body-dense text-body-dense font-medium text-on-surface">
+                              {item.name}
+                              {item.sku ? (
+                                <span className="ml-1 font-mono-data-sm text-mono-data-sm text-secondary">
+                                  · {item.sku}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="font-mono-data-sm text-mono-data-sm text-secondary">
+                              {formatFlavors(item.flavor) || "No flavors"} · {item.quantity} ×{" "}
+                              {formatRs(item.unitPrice)} = {formatRs(item.lineTotal)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </td>
                     <td className="px-3 py-2.5 text-right font-mono-data text-mono-data font-semibold tabular-nums">
                       {formatRs(order.amount)}

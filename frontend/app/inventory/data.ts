@@ -28,6 +28,8 @@ export type MovementEntry = {
   reason: string;
   user: string;
   time: string;
+  partyLabel?: string;
+  partyName?: string;
 };
 
 export type StockMovementDto = {
@@ -45,6 +47,7 @@ export type StockMovementDto = {
   reference?: string;
   notes?: string;
   performedBy?: string;
+  partyName?: string;
   createdAt: string;
   updatedAt?: string;
 };

@@ -13,24 +13,43 @@ const CHIP_CLASS =
 const INPUT_CLASS =
   "h-[34px] min-w-[180px] flex-1 rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container";
 
+function normalizeFlavor(raw: string) {
+  return raw.trim().replace(/\s+/g, " ").slice(0, 80);
+}
+
 export function FlavorInput({ value, onChange, id }: FlavorInputProps) {
   const [draft, setDraft] = useState("");
 
-  function addFlavor() {
-    const flavor = draft
-      .trim()
-      .replace(/\s+/g, " ")
-      .slice(0, 80);
+  function appendFlavors(flavors: string[]) {
+    if (flavors.length === 0) return;
+    const next = [...value];
+    for (const flavor of flavors) {
+      if (!next.some((item) => item.toLowerCase() === flavor.toLowerCase())) {
+        next.push(flavor);
+      }
+    }
+    onChange(next);
+  }
+
+  // Comma-separated text is committed as it is typed; only the trailing part
+  // still being typed stays in the input.
+  function handleChange(raw: string) {
+    const parts = raw.split(",");
+    const trailing = parts.pop() ?? "";
+    appendFlavors(parts.map(normalizeFlavor).filter(Boolean));
+    setDraft(trailing);
+  }
+
+  // Blur, Enter, and the button commit everything, including the trailing part.
+  function commitAll() {
+    appendFlavors(draft.split(",").map(normalizeFlavor).filter(Boolean));
     setDraft("");
-    if (!flavor) return;
-    if (value.some((item) => item.toLowerCase() === flavor.toLowerCase())) return;
-    onChange([...value, flavor]);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter" || event.key === ",") {
+    if (event.key === "Enter") {
       event.preventDefault();
-      addFlavor();
+      commitAll();
       return;
     }
     if (event.key === "Backspace" && !draft && value.length > 0) {
@@ -63,15 +82,16 @@ export function FlavorInput({ value, onChange, id }: FlavorInputProps) {
         <input
           id={id}
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onChange={(event) => handleChange(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="e.g. Plain, Chocolate, Strawberry"
+          onBlur={commitAll}
+          placeholder="e.g. chese, chili, salt"
           autoComplete="off"
           className={INPUT_CLASS}
         />
         <button
           type="button"
-          onClick={addFlavor}
+          onClick={commitAll}
           className="flex h-[34px] items-center gap-1 rounded border border-outline-variant bg-surface-container px-3 font-body-medium text-body-medium text-primary transition-colors hover:bg-surface-container-high"
         >
           <span className="material-symbols-outlined text-[16px]">add</span>
@@ -79,7 +99,7 @@ export function FlavorInput({ value, onChange, id }: FlavorInputProps) {
         </button>
       </div>
       <p className="font-mono-data-sm text-mono-data-sm text-secondary">
-        Optional. Press Enter to add each flavor. Inventory is tracked at product level, not per flavor.
+        Optional. Type flavors separated by commas — they are added automatically. Inventory is tracked at product level, not per flavor.
       </p>
     </div>
   );

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { FlavorMultiSelect } from "../../../app/components/FlavorMultiSelect";
 import type { Product } from "../../../app/products/types";
+import { toFlavorArray } from "../../../app/lib/flavors";
 import {
   HUB_OPTIONS,
   ORDER_STATUS_OPTIONS,
@@ -30,7 +32,7 @@ type OrderFormDialogProps = {
 type EditableItem = {
   name: string;
   sku: string;
-  flavor: string;
+  flavor: string[];
   quantity: string;
   unitLabel: string;
   unitPrice: string;
@@ -38,12 +40,12 @@ type EditableItem = {
 
 function toEditableItems(items: DraftOrderItemInput[]): EditableItem[] {
   if (items.length === 0) {
-    return [{ name: "", sku: "", flavor: "", quantity: "1", unitLabel: "pcs", unitPrice: "0" }];
+    return [{ name: "", sku: "", flavor: [], quantity: "1", unitLabel: "pcs", unitPrice: "0" }];
   }
   return items.map((item) => ({
     name: item.name,
     sku: item.sku,
-    flavor: item.flavor || "",
+    flavor: toFlavorArray(item.flavor),
     quantity: String(item.quantity),
     unitLabel: item.unitLabel,
     unitPrice: String(item.unitPrice),
@@ -51,7 +53,7 @@ function toEditableItems(items: DraftOrderItemInput[]): EditableItem[] {
 }
 
 function emptyItem(): EditableItem {
-  return { name: "", sku: "", flavor: "", quantity: "1", unitLabel: "pcs", unitPrice: "0" };
+  return { name: "", sku: "", flavor: [], quantity: "1", unitLabel: "pcs", unitPrice: "0" };
 }
 
 const NEW_ITEM_INPUT_CLASS =
@@ -59,21 +61,14 @@ const NEW_ITEM_INPUT_CLASS =
 const NEW_ITEM_TEXT_INPUT_CLASS =
   "h-8 w-full rounded border border-outline-variant bg-surface px-2 font-body-default text-body-dense text-on-surface focus:border-primary focus:outline-none";
 
-function defaultProductPrice(product: Product): string {
-  return String(product.wholesalePrice || product.retailPrice || product.purchasePrice || 0);
-}
-
-function wholesaleProductPrice(product: Product): string {
+function perFlavorPrice(product: Product): number {
   const value = Number(product.wholesalePrice);
-  return String(Number.isFinite(value) ? Math.max(value, 0) : 0);
+  return Number.isFinite(value) ? Math.max(value, 0) : 0;
 }
 
-function flavorOptions(item: EditableItem, product: Product | null): string[] {
-  const options = [...(product?.flavors || [])];
-  if (item.flavor && !options.some((option) => option.toLowerCase() === item.flavor.toLowerCase())) {
-    options.unshift(item.flavor);
-  }
-  return options;
+function flavorAdjustedUnitPrice(product: Product, flavors: string[]): string {
+  const multiplier = (product.flavors?.length || 0) > 0 ? toFlavorArray(flavors).length : 1;
+  return String(perFlavorPrice(product) * multiplier);
 }
 
 function FlavorSelect({
@@ -84,31 +79,35 @@ function FlavorSelect({
 }: {
   item: EditableItem;
   product: Product | null;
-  onChange: (flavor: string) => void;
+  onChange: (flavors: string[]) => void;
   ariaLabel: string;
 }) {
-  const options = flavorOptions(item, product);
-  if (options.length === 0) return null;
+  const options = product?.flavors || [];
+  const selected = toFlavorArray(item.flavor);
+  if (options.length === 0 && selected.length === 0) return null;
 
   return (
-    <label className="col-span-12 flex flex-col gap-1">
+    <div className="col-span-12 flex flex-col gap-1">
       <span className="font-label-caps text-label-caps uppercase text-secondary">
-        Flavor <span className="normal-case">(optional)</span>
+        Flavors <span className="normal-case">(required · select one or more)</span>
       </span>
-      <select
-        value={item.flavor}
-        onChange={(event) => onChange(event.target.value)}
-        aria-label={ariaLabel}
-        className="h-8 rounded border border-outline-variant bg-surface px-2 font-body-default text-body-dense text-on-surface focus:border-primary focus:outline-none"
-      >
-        <option value="">No flavor selected</option>
-        {options.map((flavor) => (
-          <option key={flavor} value={flavor}>
-            {flavor}
-          </option>
-        ))}
-      </select>
-    </label>
+      <FlavorMultiSelect
+        options={options}
+        value={selected}
+        onChange={onChange}
+        ariaLabel={ariaLabel}
+        compact
+      />
+      {product && options.length > 0 ? (
+        <div className="font-mono-data-sm text-mono-data-sm text-secondary">
+          {formatRs(perFlavorPrice(product))} / flavor × {selected.length} flavor
+          {selected.length === 1 ? "" : "s"} ={" "}
+          <span className="font-semibold tabular-nums text-primary">
+            {formatRs(Number(flavorAdjustedUnitPrice(product, selected)))} / unit
+          </span>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -121,6 +120,7 @@ export function OrderFormDialog({
 }: OrderFormDialogProps) {
   const isEdit = mode === "edit";
   const [customer, setCustomer] = useState(initialValues.customer);
+  const [customerId, setCustomerId] = useState(initialValues.customerId || "");
   const [phone, setPhone] = useState(initialValues.phone);
   const [location, setLocation] = useState(initialValues.location);
   const [hub, setHub] = useState<string>(initialValues.hub);
@@ -157,27 +157,55 @@ export function OrderFormDialog({
     return sku ? products.find((product) => product.sku === sku) || null : null;
   }
 
-  const itemsValid = items.every((item) => {
+  const validationIssues: string[] = [];
+  if (!customer.trim()) {
+    validationIssues.push("Enter a customer / shop name.");
+  }
+  if (items.length === 0) {
+    validationIssues.push("Add at least one order item.");
+  }
+
+  items.forEach((item, index) => {
+    const label = `Item ${index + 1}`;
     const product = productForItem(item);
+    const quantity = Number(item.quantity);
+    const unitPrice = Number(item.unitPrice);
     const available = product ? Number(product.openingStock) || 0 : null;
-    return (
-      item.name.trim().length > 0 &&
-      Number(item.quantity) > 0 &&
-      Number.isFinite(Number(item.quantity)) &&
-      Number.isFinite(Number(item.unitPrice)) &&
-      Number(item.unitPrice) >= 0 &&
-      (available === null || Number(item.quantity) <= available)
-    );
+
+    if (!item.name.trim()) {
+      validationIssues.push(`${label}: select a catalog product or type a product name.`);
+    }
+    if (product && (product.flavors?.length || 0) > 0 && toFlavorArray(item.flavor).length === 0) {
+      validationIssues.push(`${label}: select at least one flavor for ${product.title}.`);
+    }
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      validationIssues.push(`${label}: quantity must be greater than zero.`);
+    }
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+      validationIssues.push(`${label}: unit price cannot be negative.`);
+    }
+    if (available !== null && Number.isFinite(quantity) && quantity > available) {
+      validationIssues.push(
+        `${label}: only ${available} unit${available === 1 ? "" : "s"} available for ${product?.title || "this product"}.`
+      );
+    }
   });
+
   const hubValid = HUB_OPTIONS.includes(hub as (typeof HUB_OPTIONS)[number]) || hub.trim().length > 0;
-  const canSubmit =
-    customer.trim().length > 0 &&
-    items.length > 0 &&
-    itemsValid &&
-    hubValid &&
-    total > 0 &&
-    paid <= total &&
-    (paymentStatus !== "partial" || paid > 0);
+  if (!hubValid) {
+    validationIssues.push("Select a dispatch hub.");
+  }
+  if (total <= 0) {
+    validationIssues.push("Order total must be greater than zero — check item prices.");
+  }
+  if (paid > total) {
+    validationIssues.push("Amount received cannot exceed the order total.");
+  }
+  if (paymentStatus === "partial" && paid <= 0) {
+    validationIssues.push("Enter the amount received for partial payments.");
+  }
+
+  const canSubmit = validationIssues.length === 0;
 
   function updateItem(index: number, patch: Partial<EditableItem>) {
     setItems((current) =>
@@ -186,20 +214,37 @@ export function OrderFormDialog({
   }
 
   function selectProduct(index: number, product: Product) {
-    const currentFlavor = items[index]?.flavor || "";
-    const preservedFlavor = product.flavors?.some(
-      (flavor) => flavor.toLowerCase() === currentFlavor.toLowerCase()
-    )
-      ? currentFlavor
-      : "";
+    const currentFlavors = toFlavorArray(items[index]?.flavor);
+    const allowed = product.flavors || [];
+    const preservedFlavors = currentFlavors.filter((flavor) =>
+      allowed.some((option) => option.toLowerCase() === flavor.toLowerCase())
+    );
+    const nextFlavors =
+      preservedFlavors.length > 0
+        ? preservedFlavors
+        : allowed.length === 1
+          ? [allowed[0]]
+          : [];
+
     updateItem(index, {
       name: product.title,
       sku: product.sku,
-      flavor:
-        preservedFlavor || (product.flavors?.length === 1 ? product.flavors[0] : ""),
+      flavor: nextFlavors,
       unitLabel: product.uom?.trim() || "pcs",
-      unitPrice: isEdit ? defaultProductPrice(product) : wholesaleProductPrice(product),
+      unitPrice: flavorAdjustedUnitPrice(product, nextFlavors),
     });
+  }
+
+  function applyExactProductMatch(index: number, value: string) {
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return;
+
+    const exact = products.find(
+      (product) =>
+        product.title.trim().toLowerCase() === normalized ||
+        product.sku.trim().toLowerCase() === normalized
+    );
+    if (exact) selectProduct(index, exact);
   }
 
   function addItem() {
@@ -212,22 +257,33 @@ export function OrderFormDialog({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSubmit || submitting) return;
+    if (submitting) return;
+    if (!canSubmit) {
+      setError(validationIssues[0] ?? "Please complete the highlighted fields.");
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
 
-    const payloadItems: DraftOrderItemInput[] = items.map((item) => ({
-      name: item.name.trim(),
-      sku: item.sku.trim(),
-      flavor: item.flavor.trim(),
-      quantity: Number(item.quantity),
-      unitLabel: item.unitLabel.trim() || "pcs",
-      unitPrice: Number(item.unitPrice),
-    }));
+    const payloadItems: DraftOrderItemInput[] = items.map((item) => {
+      const product = productForItem(item);
+      const flavors = toFlavorArray(item.flavor);
+      return {
+        name: item.name.trim(),
+        sku: item.sku.trim(),
+        flavor: flavors,
+        quantity: Number(item.quantity),
+        unitLabel: item.unitLabel.trim() || "pcs",
+        basePrice: product ? perFlavorPrice(product) : Number(item.unitPrice),
+        flavorCount: product && (product.flavors?.length || 0) > 0 ? flavors.length : 1,
+        unitPrice: Number(item.unitPrice),
+      };
+    });
 
     try {
       await onSubmit({
+        customerId: customerId || undefined,
         customer: customer.trim(),
         phone: phone.trim(),
         location: location.trim() || hub,
@@ -282,6 +338,7 @@ export function OrderFormDialog({
         <div className="space-y-4 p-4">
           <CustomerAutocomplete
             customer={customer}
+            onCustomerIdChange={setCustomerId}
             phone={phone}
             location={location}
             onCustomerChange={setCustomer}
@@ -385,7 +442,15 @@ export function OrderFormDialog({
                     <FlavorSelect
                       item={item}
                       product={productForItem(item)}
-                      onChange={(flavor) => updateItem(index, { flavor })}
+                      onChange={(flavors) => {
+                        const selectedProduct = productForItem(item);
+                        updateItem(index, {
+                          flavor: flavors,
+                          ...(selectedProduct
+                            ? { unitPrice: flavorAdjustedUnitPrice(selectedProduct, flavors) }
+                            : {}),
+                        });
+                      }}
                       ariaLabel={`Item ${index + 1} flavor`}
                     />
                     {productForItem(item) ? (
@@ -444,6 +509,7 @@ export function OrderFormDialog({
                             value={item.name}
                             onChange={(value) => updateItem(index, { name: value })}
                             onProductSelect={(selected) => selectProduct(index, selected)}
+                            onCommit={(value) => applyExactProductMatch(index, value)}
                             products={products}
                             loading={productsLoading}
                             error={productsError}
@@ -475,7 +541,14 @@ export function OrderFormDialog({
                               const product = productForItem(item);
                               updateItem(index, {
                                 quantity,
-                                ...(product ? { unitPrice: wholesaleProductPrice(product) } : {}),
+                                ...(product
+                                  ? {
+                                      unitPrice: flavorAdjustedUnitPrice(
+                                        product,
+                                        toFlavorArray(item.flavor)
+                                      ),
+                                    }
+                                  : {}),
                               });
                             }}
                             type="number"
@@ -518,7 +591,14 @@ export function OrderFormDialog({
                       <FlavorSelect
                         item={item}
                         product={product}
-                        onChange={(flavor) => updateItem(index, { flavor })}
+                        onChange={(flavors) =>
+                          updateItem(index, {
+                            flavor: flavors,
+                            ...(product
+                              ? { unitPrice: flavorAdjustedUnitPrice(product, flavors) }
+                              : {}),
+                          })
+                        }
                         ariaLabel={`Item ${index + 1} flavor`}
                       />
 
@@ -657,27 +737,45 @@ export function OrderFormDialog({
           ) : null}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-outline-variant bg-surface-container-high/40 px-4 py-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={!canSubmit || submitting}
-            className="h-8 rounded bg-primary-container px-3.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary disabled:opacity-50"
-          >
-            {submitting
-              ? isEdit
-                ? "Saving..."
-                : "Creating..."
-              : isEdit
-                ? "Save Changes"
-                : "Create Sale Order"}
-          </button>
+        <div className="border-t border-outline-variant bg-surface-container-high/40 px-4 py-3">
+          {validationIssues.length > 0 && !submitting ? (
+            <div
+              role="alert"
+              className="mb-3 rounded border border-error-container bg-error-container/30 px-3 py-2"
+            >
+              <div className="font-body-medium text-body-dense text-error">
+                Before {isEdit ? "saving" : "creating"} the order:
+              </div>
+              <ul className="ml-4 mt-1 list-disc space-y-0.5 font-body-dense text-body-dense text-error">
+                {validationIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="h-8 rounded bg-primary-container px-3.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary disabled:opacity-50"
+            >
+              {submitting
+                ? isEdit
+                  ? "Saving..."
+                  : "Creating..."
+                : isEdit
+                  ? "Save Changes"
+                  : "Create Sale Order"}
+            </button>
+          </div>
         </div>
       </form>
     </div>

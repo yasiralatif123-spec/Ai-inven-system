@@ -96,6 +96,9 @@ export function movementToEntry(movement: StockMovementDto): MovementEntry {
   )} ${unit}`;
   const detail = movement.reason || movement.notes;
   const reference = movement.reference || "";
+  const partyName = movement.partyName || "";
+  const partyLabel =
+    movement.type === "purchase" ? "Supplier" : movement.type === "sale" ? "Buyer" : "";
 
   return {
     id: movement._id,
@@ -107,5 +110,7 @@ export function movementToEntry(movement: StockMovementDto): MovementEntry {
     reason: detail ? `${stockLine} • ${detail}` : `${stockLine} • No reason recorded`,
     user: movement.performedBy || "Admin",
     time: formatMovementTime(movement.createdAt),
+    partyLabel,
+    partyName,
   };
 }

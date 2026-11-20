@@ -9,13 +9,15 @@ import {
   type KeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
+import { FlavorMultiSelect } from "../../../app/components/FlavorMultiSelect";
+import { toFlavorArray } from "../../../app/lib/flavors";
 import type { Product } from "../../../app/products/types";
 
 type ProductMultiSelectProps = {
   selectedIds: string[];
-  selectedFlavors: Record<string, string>;
+  selectedFlavors: Record<string, string[]>;
   onChange: (ids: string[]) => void;
-  onFlavorChange: (productId: string, flavor: string) => void;
+  onFlavorChange: (productId: string, flavors: string[]) => void;
   products: Product[];
   loading: boolean;
   error?: string | null;
@@ -164,20 +166,19 @@ export function ProductMultiSelect({
           >
             <span className="truncate">{product.title}</span>
             {product.flavors && product.flavors.length > 0 ? (
-              <select
-                value={selectedFlavors[product._id] || ""}
-                onChange={(event) => onFlavorChange(product._id, event.target.value)}
+              <div
+                className="min-w-[120px] max-w-[220px]"
                 onMouseDown={(event) => event.stopPropagation()}
-                aria-label={`Default flavor for ${product.title}`}
-                className="h-6 max-w-[130px] rounded border border-outline-variant bg-surface-container-lowest px-1 font-body-dense text-body-dense text-on-surface focus:border-primary focus:outline-none"
+                onClick={(event) => event.stopPropagation()}
               >
-                <option value="">No default flavor</option>
-                {product.flavors.map((flavor) => (
-                  <option key={flavor} value={flavor}>
-                    {flavor}
-                  </option>
-                ))}
-              </select>
+                <FlavorMultiSelect
+                  options={product.flavors}
+                  value={toFlavorArray(selectedFlavors[product._id])}
+                  onChange={(flavors) => onFlavorChange(product._id, flavors)}
+                  ariaLabel={`Default flavors for ${product.title}`}
+                  compact
+                />
+              </div>
             ) : null}
             <button
               type="button"

@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-20** (optional product flavors feature completed; Git repository initialized and pushed).
+> Last updated: **2026-11-21** (purchase/sale flavor pricing snapshots, customer order links, receive-only purchase stock, and enriched supplier/customer product histories implemented and verified).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -113,6 +113,8 @@ inv_system/
 - `npm run lint` → **0 errors, 1 existing warning**: `app/layout.tsx:26` `@next/next/no-page-custom-font` for the Material Symbols Google Fonts `<link>`.
 - `npm run build` ✅ (Next.js 16.4.6, all app routes produced successfully).
 - Live API smoke test ✅ for flavor create/update, supplier default, purchase line, and sale line, with all test records deleted afterward.
+- Live multi-flavor smoke test ✅ on `http://localhost:5000`: sale order with `["chese","SALT","mystery"]` canonicalized to `["chese","salt","mystery"]`; supplier defaults `["chese","SALT","mystery"]` stored as `["chese","salt"]` (non-catalog value dropped); purchase line stored as `["chese","salt"]`. All smoke records deleted; LAYS stock was 50 then, and is 5 now after a separate real sale.
+- Live receive-only purchase + customer-link smoke test ✅ on `http://localhost:5000` (2026-11-21): purchase create with 2 flavors stored `basePrice=50`, `flavorCount=2`, `unitPrice=100`, `receivedQuantity=0`, no stock change; partial receive added only delta 1 and repeated receive was idempotent; sale with `customerId` stored the link and `?customerId=` filtered correctly; all smoke records deleted and LAYS stock returned to 5.
 - Live ports used previously: backend `http://localhost:5000`, frontend `http://localhost:3000`.
 
 ---
@@ -225,7 +227,8 @@ No model has custom virtuals or `.pre()/.post()` hooks. All use `{ timestamps: t
 - `direction`: `in | out`
 - `quantity` (min 1), `previousStock`, `newStock`
 - `unit`, `reason`, `reference`, `notes`, `performedBy` (default `"Admin"`)
-- Purchase movements use `type: "purchase"`, `direction: "in"`, reference `<PO> · AUTO-STOCK` or `<PO> · <GRN ref>`.
+- `partyName` (default `""`) — denormalized counterparty captured at movement time: supplier name for purchases, customer/buyer name for sales.
+- Purchase movements use `type: "purchase"`, `direction: "in"`, reference `<PO> · <GRN ref>` and are created only by Receive Goods (legacy `AUTO-STOCK` rows may still exist).
 - Sale movements use `type: "sale"`, reference `<SO> · SALE`.
 
 ### `Customer` (`backend/src/models/Customer.js`)
@@ -249,7 +252,7 @@ No model has custom virtuals or `.pre()/.post()` hooks. All use `{ timestamps: t
 - `paymentTerms`: `net-15 | net-30 | net-7 | cod | advance`
 - `openingBalance`, `graceDays`, `notes`
 - `productIds`: ObjectId refs to `Product`
-- `productFlavors`: `Map<String, String>` keyed by product ID for the supplier's default flavor; stale/product-less values are pruned on save
+- `productFlavors`: `Map<String, String[]>` keyed by product ID for the supplier's default flavors; values are canonicalized against the product's catalog flavors, and stale/product-less values are pruned on save
 - `status`: **`Active | On Hold | Inactive`** (different vocabulary from customers)
 - `totalPurchases`, `outstanding` — stored, not updated by purchases
 - `payableNote`, `payableTone`, `lastPurchaseAt`, `createdBy`
@@ -261,18 +264,19 @@ Embedded sub-schemas:
 
 - Receipt: `quantity`, `receivedQuantity`, `reference`, `notes`, `receivedAt`, `performedBy`
 - Item:
-  - `productId` is a **String**, not an ObjectId ref
-  - `name`, `sku`, `flavor` (optional descriptive string), `quantity`
+  - `productId` is an indexed **String** containing the actual product ID (not duplicated as an ObjectId ref)
+  - `name`, `sku`, `flavor` (`String[]`), `quantity`
   - `availableStock` — read-only snapshot at selection
-  - `receivedQuantity` — cumulative received
+  - `receivedQuantity` — cumulative received; starts at `0` on create
   - `receipts[]`
-  - `unit`, `unitPrice`, `discount`, `taxRate`, `taxAmount`, `lineTotal`
+  - `unit`, `basePrice`, `flavorCount`, `unitPrice`, `discount`, `taxRate`, `taxAmount`, `lineTotal`
+    - `basePrice` is the authoritative `Product.purchasePrice` snapshot; `flavorCount` is the number of selected flavors; `unitPrice = basePrice × flavorCount`
 - Payment: `amount`, `method`, `reference`, `paidAt`, `createdBy`
 
 Root:
 
 - `purchaseNumber` unique/indexed, generated from base 2041 → `PO-2042`
-- `supplier` embedded snapshot (`id`, `code`, `name`, `contact`, `phone`, `hub`, `address`, `ntn`, `paymentTerms`, `productIds[]`, `productFlavors` map)
+- `supplier` embedded snapshot (indexed `id`, `code`, `name`, `contact`, `phone`, `hub`, `address`, `ntn`, `paymentTerms`, `productIds[]`, `productFlavors` map of `String[]`)
 - `purchaseDate`, `expectedDelivery`, `invoiceNumber`
 - `items[]` (validator: at least one)
 - `financials` (`subtotal`, `discount`, `tax`, `freight`, `total`)
@@ -284,7 +288,8 @@ Root:
 
 Embedded sub-schemas:
 
-- Item: `name`, `sku`, `flavor` (optional descriptive string), `productId` ObjectId ref (nullable), `quantity`, `unitLabel`, `unitPrice`, `available`, `stockDeducted`, `lineTotal`
+- Item: `name`, `sku`, `flavor` (`String[]`), `productId` ObjectId ref (nullable), `quantity`, `unitLabel`, `basePrice`, `flavorCount`, `unitPrice`, `available`, `stockDeducted`, `lineTotal`
+  - `basePrice` is `Product.wholesalePrice`; `flavorCount` is the selected flavor count; `unitPrice = basePrice × flavorCount`
 - Credit: `accountName`, `ntn`, `creditLimit`, `currentDues`, `available` — legacy; new orders do not populate meaningfully
 - Warning: legacy exposure/approval fields; new orders default to `null`
 - Financials: `subtotal`, `discount`, `tax`, `freight`, `total`, `paid`, `outstanding`, `dueDate`
@@ -292,7 +297,7 @@ Embedded sub-schemas:
 Root:
 
 - `orderNumber` unique/indexed, generated from base 8824 → `SO-8825+`
-- `customer` embedded `{ name, phone, location }` — **no customerId reference**
+- `customer` embedded `{ customerId, name, phone, location }`; `customerId` is an indexed `ObjectId` ref `Customer` (nullable) and is used by `GET /api/sale-orders?customerId=<id>`
 - `hub`, `paymentLabel`, `paymentMethod`, `bay`
 - `paymentStatus`: `paid | partial | unpaid`
 - `status`: `Pending Approval | Processing | Packed | Dispatched | Delivered | Credit Hold`
@@ -331,7 +336,7 @@ Health: `GET /api/health` → `{ status: "ok", message: "API is running" }`.
 | DELETE | `/api/products/:id` | Deletes product + Cloudinary image; does not clean up related movements |
 | GET | `/api/inventory/movements` | `?limit` clamped 1..200, default 100 |
 | DELETE | `/api/inventory/movements/:id` | Only `type: "adjustment"` deletable; reverses stock |
-| GET | `/api/sale-orders` | Newest first, limit 200 |
+| GET | `/api/sale-orders` | Newest first, limit 200; optional `?customerId=<ObjectId>` |
 | POST | `/api/sale-orders` | Transactional; wholesale price for catalog items; deducts stock; writes sale movements |
 | PUT | `/api/sale-orders/:id` | Accepts ObjectId or order number; applies stock delta only |
 | PATCH | `/api/sale-orders/:id/status` | No stock effect |
@@ -352,8 +357,8 @@ Health: `GET /api/health` → `{ status: "ok", message: "API is running" }`.
 | GET | `/api/purchases/next-code` | `PO-2042` base |
 | GET | `/api/purchases` | Optional `?supplierId=<ObjectId>` filter |
 | GET | `/api/purchases/:id` | Accepts ObjectId or `purchaseNumber` |
-| POST | `/api/purchases` | Full target quantity → stock + AUTO-STOCK receipt/movement |
-| PUT | `/api/purchases/:id` | Recomputes purchase; **does not apply stock for newly added items (known bug)** |
+| POST | `/api/purchases` | Recomputes strict flavor pricing; saves `receivedQuantity=0`; no stock movement |
+| PUT | `/api/purchases/:id` | Recomputes purchase; never applies stock; receiving is a separate action |
 | PATCH | `/api/purchases/:id/status` | Rejects receiving statuses; **Cancelled does not reverse stock (known bug)** |
 | POST | `/api/purchases/:id/receive` | Cumulative received quantity; only delta added to stock; CAS conflict → 409 |
 | POST | `/api/purchases/:id/payment` | `0 < amount <= total - paidAmount` |
@@ -381,6 +386,7 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 | `new`, `order` | `/sales-orders` | Open new-order dialog, open edit dialog for order |
 | `edit` | `/suppliers`, `/purchases/create` | Open edit dialog / load purchase |
 | `supplierId` | `/purchases`, `/purchases/create` | Filter list / preselect supplier |
+| `customerId` | `GET /api/sale-orders`, customer profile hook | Backend-filter owned orders by linked customer |
 | `created`, `updated` | `/purchases` | Show success notice |
 
 `router.refresh()` is used only in `app/products/add/page.tsx` after save. Other views rely on local state/reload tokens.
@@ -435,9 +441,10 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 - No order-detail popup, no Delivered section, no Saved badge (by prior requirement).
 - Delivered is archived/hidden from selectable statuses and tabs; disabled option appears only when editing a Delivered order.
 - **Row click opens the matching saved customer profile**, not an order detail; edit/payment/etc. are in the 3-dot menu.
-- Customer↔order resolution is heuristic (phone/name/business matching) because `SaleOrder` has no `customerId`.
+- Customer↔order resolution uses `SaleOrder.customer.customerId` when present (autocomplete fills it from the saved customer), with phone/name/business fallback for legacy orders.
 - Manual orders without a saved customer show a notice.
-- New-order catalog prices come from `Product.wholesalePrice`; edit mode preserves saved/manual price.
+- New-order catalog prices come from `Product.wholesalePrice`; edit mode preserves saved/manual price unless flavors change.
+- Item snapshots store `basePrice` and `flavorCount`; sold-product tables show quantity, flavors, unit price, line total, order date, payment status, and order status.
 - Credit Account, NTN, Credit Limit, Current Dues, Credit Days removed from sale order form; no credit warnings.
 - Unpaid orders use `dueDate: "Due on receipt"` and `paymentLabel: "Unpaid (Due on receipt)"`; legacy DB fields remain hidden by frontend DTO.
 
@@ -446,12 +453,13 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 **Status:** Implemented, DB-backed, with derived profile data.
 
 - CRUD + next-code; search, filters, sort, pagination, CSV export, Cmd/Ctrl+K focus.
-- Customer profile loads customer plus sale orders, filters by heuristic match, and derives:
+- Customer profile loads the customer, backend-filtered orders via `?customerId=`, plus a legacy phone/name pass; it derives:
   - `orders` count
   - `totalPurchases`
   - `outstanding = openingBalance + sum(order.financials.outstanding)`
 - Profile actions: Edit, Record Payment, Create Sale prefilled, Delete, order `View` opens `?order=<id>` on Sales page.
 - Tabs: Orders/Invoices/Payments/Notes/Activity are real or derived from sale orders.
+- Orders tab shows each sold product with flavors, quantity, `unitPrice`, `lineTotal`, order date, payment status, and fulfillment status; CSV export includes the same pricing detail.
 - Invoices/Payments are derived from sale orders, not dedicated APIs.
 - Returns & Credit Notes is a static empty placeholder.
 - Section 3 removed from frontend (verified: no matching text in source).
@@ -467,6 +475,7 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 - Add/Edit forms use searchable product multi-select; supplier `productIds` validated/pruned on update.
 - Row opens `/suppliers/<id>`.
 - Profile loads supplier + purchases filtered by supplier; purchase history/invoices/payments derived from real purchase records.
+- Purchase History tab now renders every purchased line with flavors, ordered/received quantity, `basePrice × flavorCount = unitPrice`, line total, PO date, and status; repeated purchases appear as separate PO rows and are included in CSV export.
 - No hardcoded dummy bank details; no bank fields exist in schema.
 - Statuses: `Active | On Hold | Inactive`.
 - `Record Payment`, `Send Statement`, `Aging ledger view`, WHT download, Customize Columns, and AUTO-REFRESH label are not connected.
@@ -485,8 +494,9 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
   - PO preview/print,
   - clean redirect to `/purchases?created=...` after save.
 - List actions: View PO, Receipt History, Receive Goods (GRN), Record Payment, Edit, Cancel, Delete.
+- Purchase lines use strict `Product.purchasePrice`; `unitPrice = purchasePrice × selected flavor count`, and flavored products require at least one flavor.
+- Create/save does **not** add stock: new items start with `receivedQuantity=0` and no `AUTO-STOCK` receipt/movement.
 - Partial receiving uses cumulative `receivedQuantity`, adds only the new delta, prevents duplicate stock updates, idempotent repeat submissions, 409 on concurrent conflict.
-- On create, the full entered **Quantity (Target)** is added to product stock with an `AUTO-STOCK` receipt and `purchase` movement.
 - Delete reverses received stock and removes related purchase movements.
 - Saved purchase orders do not update supplier `totalPurchases`/`outstanding`.
 - `Upload Supplier Invoice is not connected yet.` notice remains.
@@ -504,9 +514,10 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 
 ### Sale order rules
 
-- New catalog item unit price is authoritatively `Product.wholesalePrice`; client `unitPrice` is ignored for a matched catalog item.
-- Manual items keep client-supplied price; edits preserve saved price.
-- `Item Total = Qty × Unit Price`; subtotal/total update with discount/freight.
+- One flavor/chip costs `Product.wholesalePrice` for sale orders; purchases use strict `Product.purchasePrice`.
+- For catalog products with flavors: `Unit Price = selected flavor count × wholesalePrice`, and at least one flavor is required. Products without flavors use the base wholesale price.
+- `Item Total = Qty × Unit Price`; quantity stays a separate multiplier; subtotal/total update with discount/freight.
+- Catalog prices are authoritative from the database on create, on newly added edit items, and whenever the flavor set changes. Both sale and purchase items store `basePrice`/`flavorCount` snapshots. Manual items keep client-supplied price; unchanged edits preserve the saved snapshot/price from the database record rather than trusting the request body.
 - Duplicate SKUs are aggregated before stock validation.
 - Insufficient stock → `400` with available/requested; no order saved.
 - Order create deducts stock; edit applies only the **delta**; delete restores full deducted quantity.
@@ -518,13 +529,15 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 ### Purchase rules
 
 - Quantity (Target) starts at `0` in the form for every new row/product selection/barcode scan.
-- `availableStock` is only a stored snapshot; it no longer reduces the stock increment.
-- On create, submitted `quantity` becomes `stockToAdd`, `receivedQuantity`, and an `AUTO-STOCK` receipt; the purchase is therefore fully received when saved.
-- Additional receiving via `/receive` uses **cumulative** `receivedQuantity`; only the positive delta is added to stock.
-- Editing cannot reduce `receivedQuantity` below what is already received or change a received item’s linked product.
+- `availableStock` is only a stored snapshot; it does not reduce the stock increment.
+- Catalog items must have a non-zero `Product.purchasePrice`; no fallback to wholesale/retail price. Flavored catalog items require at least one selected flavor.
+- `unitPrice = purchasePrice × selected flavor count`; prices are snapshotted as `basePrice`/`flavorCount`/`unitPrice` and cannot be overridden by the request body.
+- Create/save adds no stock and sets `receivedQuantity=0`; only `Receive Goods` adds stock.
+- Receiving via `/receive` uses **cumulative** `receivedQuantity`; only the positive delta is added to stock, and repeated submissions are idempotent.
+- Editing cannot reduce `receivedQuantity` below what is already received, increase it via PUT, or change a received item’s linked product.
 - Status is derived from `receivedQuantity` when receiving; Cancelled is preserved.
 - Purchase delete reverses stock by cumulative `receivedQuantity`, deletes matching `purchase` movements, and deletes the purchase atomically/compensated.
-- Known bugs: `PUT /api/purchases/:id` does not apply stock for newly added items; `PATCH .../status` to Cancelled does not reverse stock.
+- Known bug: `PATCH .../status` to Cancelled does not reverse stock.
 
 ### Customer/supplier rules
 
@@ -637,8 +650,8 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - Suppliers: real list/add/edit/delete/filter/export; product multi-select; row opens supplier profile; selected products render with black text.
 - Purchases: fully DB-backed create/edit/preview/print/receive/payment/delete/receipt/history; supplier autocomplete/auto-fill; clean post-save redirect.
 - Partial receiving with cumulative received quantity and idempotency/conflict handling.
-- Purchase target quantity starts at 0; full entered quantity added to product stock.
-- Purchase deletion reverses stock and removes purchase movements.
+- Purchase target quantity starts at 0; stock is added only through Receive Goods.
+- Purchase deletion reverses received stock and removes purchase movements.
 - Add Product page now forces a full reload on entry and starts with empty inputs.
 - Row action menus use `z-[9999]`; autocomplete dropdowns unchanged.
 - Status wording updated: customer `Blocked`, supplier `On Hold`.
@@ -646,10 +659,13 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - `OrderActionsPopup.tsx` deleted; `OrderActionsMenu.tsx` added.
 - Optional product flavors added end-to-end:
   - `Product.flavors[]` create/update via a chip editor in Add/Edit Product; displayed in product detail and product pickers.
-  - Sale order items carry an optional line `flavor`; selector appears in create/edit sale forms, including Customer Profile → Create Sale.
-  - Purchase line items carry an optional line `flavor`; selector appears in create/edit purchase form and values display in preview/detail/receive views.
-  - Suppliers can store a default flavor per linked product; the default is applied when that product is selected in purchases.
-  - Flavor remains descriptive only: no per-flavor stock, pricing, or stock-movement changes.
+  - Sale order items carry optional line `flavor[]`; multi-select appears in create/edit sale forms, including Customer Profile → Create Sale.
+  - Purchase line items carry optional line `flavor[]`; multi-select appears in create/edit purchase form and values display in preview/detail/receive views.
+  - Suppliers can store default `productFlavors: Record<string, string[]>` per linked product; defaults are applied when that product is selected in purchases.
+  - Flavor remains descriptive only: no per-flavor stock or stock-movement changes.
+- Sale order flavor-based pricing: catalog unit price is `selected flavor count × Product.wholesalePrice`; the UI shows the live formula, requires at least one flavor for flavored products, and recalculates on create/new items/flavor changes while preserving saved prices on unchanged edits.
+- Sale order create form now gives visible validation feedback instead of a silently greyed-out submit button; typing an exact catalog product name/SKU auto-fills SKU and wholesale-derived price; the dialog remounts fresh on every open under `cacheComponents`/`<Activity>`.
+- Purchase/sale flavor pricing snapshots and receive-only purchase stock are implemented; supplier/customer profile tables show detailed product history and sale orders carry actual customer IDs.
 
 ---
 
@@ -657,12 +673,11 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ### High priority / correctness
 
-1. Fix `PUT /api/purchases/:id` so newly added items add their quantity to stock (currently sets `AUTO-STOCK` receipt without `$inc`).
-2. Fix `PATCH /api/purchases/:id/status` Cancelled path so stock/movements are reversed if anything was received.
-3. Wire or intentionally document auth. Current `.env` lacks JWT/session secrets; login is broken.
-4. Decide whether to enforce auth on business APIs and build frontend login; this is a large change and must be approved first.
-5. Reconcile stored customer/supplier counters with live sale/purchase data, or remove the stale fields/columns.
-6. Fix sale-order tax/total inconsistency if tax is meant to be charged.
+1. Fix `PATCH /api/purchases/:id/status` Cancelled path so stock/movements are reversed if anything was received.
+2. Wire or intentionally document auth. Current `.env` lacks JWT/session secrets; login is broken.
+3. Decide whether to enforce auth on business APIs and build frontend login; this is a large change and must be approved first.
+4. Reconcile stored customer/supplier counters with live sale/purchase data, or remove the stale fields/columns.
+5. Fix sale-order tax/total inconsistency if tax is meant to be charged.
 
 ### Partial UI / placeholders
 
@@ -696,15 +711,14 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ### Verified backend bugs
 
-1. **Purchase PUT stock bug** — `buildPurchaseChanges()` sets `stockToAdd = quantity` for new items, but `updatePurchase()` does not apply `Product.$inc` or create a movement. Purchase can look received while stock is unchanged.
-2. **Purchase Cancelled status bug** — `PATCH /:id/status` sets Cancelled without reversing stock or deleting movements, unlike DELETE. It also allows received purchases to be moved back to Draft/Ordered.
-3. **Sale-order tax not charged** — `financials.tax` is stored but `total` excludes it.
-4. **Product edit drops 3 booleans** — `climateControlled`, `eligibleForReturn`, `halalPsqcaCertified` are not updated by PUT.
-5. **Login broken with current env** — JWT secrets absent.
-6. **Register has no validation** — missing fields can throw 500.
-7. **Mongoose ValidationError → 500** unless wrapped by controller.
-8. **next-code race** — concurrent callers can receive same code; creates retry on 11000.
-9. **`runWithSession()` calls `endSession()` without await**; transaction capability cached process-wide.
+1. **Purchase Cancelled status bug** — `PATCH /:id/status` sets Cancelled without reversing stock or deleting movements, unlike DELETE. It also allows received purchases to be moved back to Draft/Ordered.
+2. **Sale-order tax not charged** — `financials.tax` is stored but `total` excludes it.
+3. **Product edit drops 3 booleans** — `climateControlled`, `eligibleForReturn`, `halalPsqcaCertified` are not updated by PUT.
+4. **Login broken with current env** — JWT secrets absent.
+5. **Register has no validation** — missing fields can throw 500.
+6. **Mongoose ValidationError → 500** unless wrapped by controller.
+7. **next-code race** — concurrent callers can receive same code; creates retry on 11000.
+8. **`runWithSession()` calls `endSession()` without await**; transaction capability cached process-wide.
 
 ### Verified frontend issues
 
@@ -740,8 +754,8 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - Negative stock blocked with guarded `$inc`; standalone Mongo uses compensating rollbacks via `runWithSession`.
 - GRN stock movements use `type: "purchase"`, `direction: "in"`; movement deletion remains limited to `type: "adjustment"`.
 - Partial receiving uses cumulative `receivedQuantity`; repeated cumulative submissions are idempotent; concurrent losers get `409`.
-- Purchase creation stores `availableStock` but adds the full submitted `quantity` to stock.
-- Editing/re-saving a purchase does not re-add stock (except the known PUT bug for newly added items).
+- Purchase creation stores `availableStock` and `receivedQuantity=0`, but adds **no** stock; every unit must go through Receive Goods.
+- Editing/re-saving a purchase never adds stock; newly added items also need Receive Goods.
 - Supplier update prunes stale saved `productIds`; new unknown product IDs still fail validation.
 - Purchase row click navigates to `/suppliers/<supplier _id>`; `View PO` remains in the 3-dot menu.
 - Bank fields not stored; supplier profile shows saved supplier data only.
@@ -755,20 +769,207 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - Earlier retail/wholesale qty-based pricing superseded: catalog items always use `Product.wholesalePrice` on create; manual items keep client `unitPrice`; edits preserve saved price.
 - QTY/UNITPRICE uppercase label/tag tweak was reverted; labels remain `Qty` / `Unit Price`.
 - Customer profile totals derived live from saved sale orders instead of stale DB counters; `total = subtotal - discount + freight`.
-- Order↔customer resolution uses phone/name matching because `SaleOrder` has no `customerId`.
+- Order↔customer resolution prefers the actual `SaleOrder.customer.customerId`; legacy orders without it still use exact phone/name/business matching.
+- Purchase pricing uses strict `Product.purchasePrice` with no fallback; sales use `Product.wholesalePrice`.
+- Both purchases and sales require at least one flavor for products that declare flavors; both store `basePrice` and `flavorCount` snapshots and multiply them for `unitPrice`.
+- Supplier Purchase History and Customer Orders tabs were enriched in place; no duplicate tabs or collections were added.
 - Returns & Credit Notes tab remains empty because no returns model/API/records exist.
 - Add Product links use plain `<a>` to force full page reload; Add Product form also keyed by pathname with `blankForm()` and `autoComplete="off"`.
+- Add Supplier/Add Customer forms reset their state in the submit handler before redirect (Next.js `<Activity>` state preservation); no refresh and no `bfcacheId` used.
 - Flavors are **descriptive only**: stock, pricing, and stock movements remain product-level; `openingStock` is never split by flavor.
 - Product flavors are normalized server-side: comma/newline/array input accepted, trimmed, de-duplicated case-insensitively, max 24 values and 80 chars each.
-- Sale/purchase line flavor is a plain optional string (max 120 chars); a case-insensitive match to a catalog flavor is canonicalized to the catalog spelling.
-- Supplier default flavors are stored as `productFlavors` keyed by product ID and pruned to products currently linked to that supplier.
+- Flavor inputs on Add/Edit Product auto-split comma-separated text as it is typed and commit the trailing value on blur; Enter and "Add flavor" remain optional.
+- Sale/purchase line flavor is an optional `String[]` (each value max 120 chars, max 24 values); values may also arrive as a comma/newline-separated string and are split server-side. Case-insensitive matches to catalog flavors are canonicalized to the catalog spelling; non-catalog values are preserved on sale/purchase lines but dropped from supplier defaults.
+- Supplier default flavors are stored as `productFlavors: Map<String, String[]>` keyed by product ID and pruned to products currently linked to that supplier.
 - Purchase supplier snapshots now include the supplier's `productFlavors` map so edit forms can restore defaults historically; live supplier flavors are preferred when available.
+- `StockMovement.partyName` is a denormalized snapshot taken when the movement is written (supplier for purchases, buyer for sales); the ledger is immutable and older movements are not backfilled.
 
 ---
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Git repository initialization and push (completed 2026-11-20)
+### Latest task: Supplier/customer product histories, flavor pricing snapshots, and receive-only purchases (completed 2026-11-21)
+
+- **User request:** Show complete purchased/sold product histories on supplier/customer profiles (quantity, prices, flavors, dates, status); price purchases and sales by `Base Price × selected flavors × quantity`; make purchases add stock only when goods are received; keep backend authoritative and avoid duplicate stock records.
+- **Clarified decisions:**
+  - Purchase base price is strictly `Product.purchasePrice` (no wholesale/retail fallback); sale base remains `Product.wholesalePrice`.
+  - Products with flavors require at least one selected flavor on both purchase and sale lines; flavorless products use 1× pricing.
+  - Both `Purchase.items[]` and `SaleOrder.items[]` store `basePrice`, `flavorCount`, and computed `unitPrice` snapshots.
+  - Existing IDs are canonical: `Purchase.supplier.id`, `Purchase.items[].productId` strings, and new `SaleOrder.customer.customerId` ObjectId ref; no parallel reference fields.
+  - Backend resolves saved customers by submitted `customerId`, then exact phone/name; frontend autocomplete now submits the actual ID and profiles keep a legacy fallback.
+  - Purchase create/save adds no stock; only Receive Goods adds cumulative stock.
+  - Supplier Purchase History and Customer Orders tabs were enriched in place; no new tabs/collections.
+- **Files modified:**
+  - Backend:
+    - `backend/src/models/Purchase.js` — indexed `supplier.id`/`items[].productId`, `productFlavors` map of `String[]`, added `basePrice`/`flavorCount`.
+    - `backend/src/models/SaleOrder.js` — added indexed `customer.customerId` ref and item `basePrice`/`flavorCount`.
+    - `backend/src/controllers/purchase.controller.js` — product lookup by actual ID/SKU, strict purchase-price validation, flavor count pricing, snapshot fields, ignored client unit-price overrides, removed create-time stock/movement generation.
+    - `backend/src/controllers/sale-order.controller.js` — customer auto-resolution/`customerId`, snapshot fields, authoritative pricing from stored values on unchanged edits, and `?customerId=` filtering.
+  - Frontend:
+    - `frontend/features/purchases/types.ts`, `utils.ts`, `components/CreatePurchaseView.tsx`, `components/PurchaseItemsTable.tsx` — strict purchase price helpers, recalculation, formula display, validation, payload snapshots, receive-only copy.
+    - `frontend/features/sales-orders/types.ts`, `utils.ts`, `services/sale-order.service.ts`, `components/OrderFormDialog.tsx`, `components/CustomerAutocomplete.tsx` — customer ID capture/filter, item snapshots, payload mapping.
+    - `frontend/features/customers/hooks/useCustomerProfile.ts`, `utils.ts`, `components/CustomerOrdersLedger.tsx` — linked-order filtering with legacy fallback and detailed sold-product rows/CSV.
+    - `frontend/features/suppliers/supplierDetailData.ts`, `supplierProfile.ts`, `components/SupplierPurchaseLedger.tsx` — detailed purchase line mapping and richer history table/CSV.
+    - `PROJECT_MEMORY.md` — updated throughout.
+- **No new dependencies, no auth changes, no duplicate collections/tabs.**
+- **Verification:**
+  - `node --check` on all four changed backend files ✅.
+  - `npx tsc --noEmit` ✅.
+  - `npm run lint` ✅ — 0 errors, 1 pre-existing layout font warning.
+  - `npm run build` ✅ — all 16 app routes generated.
+  - Live API smoke tests on `http://localhost:5000` with LAYS (`purchasePrice=50`, `wholesalePrice=70`, flavors `chese,salt,chili,neem`) ✅:
+    - Purchase create with 2 flavors and submitted `unitPrice=999` stored `basePrice=50`, `flavorCount=2`, `unitPrice=100`, `receivedQuantity=0`; stock stayed 5.
+    - Zero-flavor purchase rejected with `Select at least one flavor for LAYS`.
+    - Partial receive 1/2 added exactly 1 stock (5→6); repeated same receive was idempotent (stock stayed 6).
+    - Sale with customer ID stored `customerId`, `basePrice=70`, `flavorCount=2`, `unitPrice=140`; `?customerId=` returned only that customer's order.
+    - All smoke records deleted; LAYS stock restored to 5.
+- **Side effects/risks:** Existing purchase/sale records are not retroactively repriced; unchanged edits preserve stored snapshot prices rather than current catalog prices. Legacy purchase snapshots without `basePrice` fall back to stored `unitPrice` in profile tables.
+
+### Previous task: Flavor-based pricing for sale orders (completed 2026-11-21)
+
+- **User request:** In Sales & Orders, the product's stored price is the price of one flavor/chip. Selecting multiple flavors must multiply the item's unit price by the number of selected flavors, with subtotal/final total updating automatically. Quantity must remain a separate multiplier.
+- **Clarified decisions:**
+  - Per-flavor price for selling is `Product.wholesalePrice`; purchasing continues to use `Product.purchasePrice` and was not changed.
+  - A product that has flavors requires at least one selected flavor; zero selected flavors is blocked.
+  - On edit, saved/manual price is preserved if the flavor set is unchanged; it is recomputed from the database when flavors change or a new item is added.
+  - `Unit Price = flavor count × per-flavor price`; `Line Total = Qty × Unit Price`.
+- **Files modified:**
+  - `frontend/features/sales-orders/components/OrderFormDialog.tsx`
+    - Added `perFlavorPrice()` and `flavorAdjustedUnitPrice()` based on `wholesalePrice`.
+    - `selectProduct()`, both flavor-selection handlers, and the create-mode quantity handler now recompute the unit price from the product's DB price and current flavor count.
+    - `FlavorSelect` shows `Rs. X / flavor × N flavors = Rs. Y / unit` and is labelled required.
+    - Validation adds “select at least one flavor” for flavored products with an empty selection.
+    - Removed the obsolete `defaultProductPrice()`/`wholesaleProductPrice()` helpers.
+  - `backend/src/controllers/sale-order.controller.js`
+    - Added `perFlavorPrice()` and `sameFlavorSet()` helpers.
+    - `buildOrderChanges()` now normalizes flavors first, rejects empty flavor selection for flavored products, and sets `effectiveUnitPrice` from DB price × normalized flavor count on create/new items/changed flavors; unchanged edits keep the submitted price.
+    - Existing `lineTotal`, subtotal, discount, freight, and total logic consumes the adjusted price unchanged.
+- **No DB schema/migration, no new dependencies, no purchase/API-route/auth changes.**
+- **Verification:**
+  - `node --check backend/src/controllers/sale-order.controller.js` ✅.
+  - `npx tsc --noEmit` ✅.
+  - `npm run lint` ✅ — 0 errors, 1 pre-existing layout font warning.
+  - `npm run build` ✅ — all 16 app routes generated.
+  - Live API smoke test on `http://localhost:5000` with LAYS (`wholesalePrice=70`, flavors `chese,salt,chili,neem`) ✅:
+    - 1 flavor → `unitPrice=70`, line/subtotal/total `70`.
+    - 2 flavors → `unitPrice=140`, line/subtotal/total `140`.
+    - 3 flavors → `unitPrice=210`, line/subtotal/total `210`.
+    - 0 flavors → rejected: `Select at least one flavor for LAYS`.
+    - Edit unchanged with submitted `unitPrice=999` → preserved `999`.
+    - Edit changed to 3 flavors with submitted `unitPrice=999` → recomputed `210`.
+    - All 3 smoke orders deleted; stock returned to its pre-test value of `5` (a real order `SO-8827` for qty 45 had already reduced stock from 50 to 5).
+- **Side effects/risks:** Existing orders are not retroactively repriced. A manual catalog-item price is overwritten only when its flavors change (approved). Products with `wholesalePrice=0` and flavors now block saving because the computed unit price is zero.
+
+### Previous task: Sale order create button silently disabled (fixed 2026-11-21)
+
+- **User report:** On `/sales-orders`, clicking `+ New Sale Order` opened the popup, but the user could not save; the `Create Sale Order` button was greyed out with no explanation.
+- **Root cause:** `OrderFormDialog.tsx` computed a `canSubmit` boolean and disabled the submit button whenever customer, item, price, total, hub, payment, or stock checks failed. The silent `if (!canSubmit) return;` in `handleSubmit` meant no feedback was shown when the user clicked it.
+- **Approved plan:** Make validation reasons explicit, keep the button clickable so every click gives feedback, auto-fill catalog price/SKU when a typed name matches a product, and reset the dialog state on each open for Next 16 `cacheComponents`/`<Activity>`.
+- **Files modified:**
+  - `frontend/features/sales-orders/components/OrderFormDialog.tsx`
+    - Replaced the single `canSubmit`/`itemsValid` calculation with a `validationIssues: string[]` list covering customer, items, quantity, unit price, stock availability, hub, total, and partial-payment rules.
+    - `canSubmit` is now `validationIssues.length === 0`; the issues are rendered in a `role="alert"` block above the footer buttons.
+    - Submit button is disabled only while submitting. `handleSubmit` still blocks invalid payloads, but now shows the first issue via the existing error area.
+    - Added `applyExactProductMatch()` and wired it as `onCommit` on the create-form product autocomplete: typing an exact catalog title or SKU and blurring fills SKU, unit label, and authoritative wholesale price through the existing `selectProduct()` path.
+  - `frontend/features/sales-orders/components/ProductAutocomplete.tsx`
+    - Added optional `onCommit?: (value: string) => void`; invoked on input blur before closing the dropdown. Existing behavior is unchanged when the prop is omitted (edit form still uses it without auto-fill).
+  - `frontend/features/sales-orders/components/SalesOrdersView.tsx`
+    - Added `newOrderDialogKey` state. Both the `+ New Sale Order` button and the `?new=1` dashboard link increment the key before opening, and `NewOrderDialog` receives `key={newOrderDialogKey}` so its state always starts fresh under `<Activity>`.
+- **No backend/API/DB changes:** `POST /api/sale-orders` validation is already authoritative (customer/items/positive quantity/non-negative price/subtotal > 0/partial payment/stock). Backend still rejects malformed payloads and returns messages that the form displays.
+- **Next.js docs consulted before coding (per `AGENTS.md`):** `node_modules/next/dist/docs/01-app/02-guides/forms.md`, `.../02-guides/preserving-ui-state.md`, and `.../03-api-reference/05-config/01-next-config-js/cacheComponents.md`.
+- **Verification:**
+  - `npx tsc --noEmit` ✅.
+  - `npm run lint` ✅ — 0 errors, 1 pre-existing `app/layout.tsx` custom-font warning.
+  - `npm run build` ✅ — all 16 app routes generated.
+  - Live API smoke test on `http://localhost:5000` ✅ — created `SO-8825` with `flavor: ["chese","salt"]` and deleted it; stock restored.
+- **Side effects/risks:** The submit button can now be clicked with an incomplete form, but `handleSubmit` still prevents the API call and shows the reason. Exact-name auto-fill overwrites manually typed unit price for catalog products on blur, which matches the backend's authoritative wholesale price on create. No dependencies added.
+
+### Previous task: Multiple flavors per sale/purchase line and supplier default (completed 2026-11-20)
+
+- **User request:** One product/item line should be able to carry multiple flavors in purchases and sales, and suppliers should be able to define multiple default flavors per supplied product.
+- **Approved plan:** Change line-level `flavor` and supplier `productFlavors` values from a single string to arrays, keep flavor descriptive-only, normalize/canonicalize every value server-side, and replace single-value selects with a reusable multi-select.
+- **Backend files modified:**
+  - `backend/src/models/SaleOrder.js` — item `flavor` changed from `String` to `[String]` (legacy strings auto-cast by Mongoose).
+  - `backend/src/models/Purchase.js` — item `flavor` changed from `String` to `[String]`.
+  - `backend/src/models/Supplier.js` — `productFlavors` map values changed from `String` to `[String]`.
+  - `backend/src/controllers/sale-order.controller.js` — replaced `normalizeOptionalLabel()` with `normalizeFlavorValues(value, allowedFlavors)`; splits comma/newline/array input, trims, de-duplicates case-insensitively, caps 24 values × 120 chars, canonicalizes to catalog spelling, and stores `flavor: flavors`.
+  - `backend/src/controllers/purchase.controller.js` — same array normalization for line flavors (no catalog canonicalization; purchase lines may keep custom labels).
+  - `backend/src/controllers/supplier.controller.js` — `normalizeSupplierProducts()` now accepts string or array defaults, splits comma/newline values, canonicalizes against the product's catalog flavors, de-duplicates, and stores only valid arrays.
+- **Frontend files created:**
+  - `frontend/app/lib/flavors.ts` — `toFlavorArray()` (tolerant of string/array/undefined) and `formatFlavors()` for display.
+  - `frontend/app/components/FlavorMultiSelect.tsx` — reusable portal-based checkbox dropdown for options from the selected product's catalog flavors; supports compact table/inline use and closes on outside click.
+- **Frontend files modified:**
+  - `frontend/features/sales-orders/types.ts`, `utils.ts` — `flavor?: string[]`, array defaults and edit mapping.
+  - `frontend/features/sales-orders/components/OrderFormDialog.tsx` — editable item flavors are arrays; `FlavorSelect` now wraps `FlavorMultiSelect`; product selection preserves previously chosen catalog flavors or auto-selects a sole flavor; submit sends arrays.
+  - `frontend/features/purchases/types.ts`, `utils.ts` — item/snapshot `flavor?: string[]` and supplier snapshot `productFlavors?: Record<string, string[]>`; CSV/summary rendering joins arrays.
+  - `frontend/features/purchases/components/CreatePurchaseView.tsx` — `createRow()` uses `[]`; `defaultFlavorsFor()` returns arrays; edit load, supplier change, and payload all use arrays.
+  - `frontend/features/purchases/components/PurchaseItemsTable.tsx` — flavor cell uses `FlavorMultiSelect`.
+  - `frontend/features/purchases/components/PurchasePreviewDialog.tsx`, `PurchaseDetailDialog.tsx`, `ReceivePurchaseDialog.tsx` — join flavor arrays for display (legacy strings still handled).
+  - `frontend/features/suppliers/types.ts`, `services/supplier.service.ts` — supplier `productFlavors` is `Record<string, string[]>`; DTO mapping normalizes legacy string values.
+  - `frontend/features/suppliers/components/ProductMultiSelect.tsx`, `AddSupplierForm.tsx`, `EditSupplierDialog.tsx` — per-product flavor chips are now `FlavorMultiSelect`; handlers accept arrays and prune empty entries.
+  - `frontend/features/customers/components/CustomerOrdersLedger.tsx`, `CustomerInvoices.tsx` — sale order summaries display joined flavor arrays.
+- **Verification:**
+  - `node --check` on all changed backend files ✅.
+  - `npx tsc --noEmit` ✅.
+  - `npm run lint` ✅ — 0 errors, 1 pre-existing layout font warning.
+  - `npm run build` ✅ — all 16 app routes generated.
+  - Live API smoke test on `http://localhost:5000` ✅ — sale order with `["chese","SALT","mystery"]` stored as `["chese","salt","mystery"]`; supplier defaults stored as `["chese","salt"]` with the non-catalog value dropped; purchase line stored as `["chese","salt"]`. All smoke records were deleted and LAYS stock restored to 50.
+- **Side effects/risks:** existing sale/purchase/supplier records with string flavors remain readable (frontend `toFlavorArray()` and Mongoose array casting handle them); new writes always use arrays. Non-catalog flavors are intentionally kept on sale/purchase lines but ignored for supplier defaults because defaults must be valid catalog values.
+- **Dependencies added:** none.
+
+### Previous task: Comma-typed flavors on Add/Edit Product (completed 2026-11-20)
+
+- **User request:** On `/products/add`, users should be able to type `chese, chili, salt` and have every value saved as a flavor without needing to press Enter. Enter and the "Add flavor" button remain available as optional conveniences.
+- **Root cause:** `FlavorInput.tsx` kept typed text in a local `draft` that was not part of the form. Only Enter, comma keydown, or the button moved it into `form.flavors`, so a final value without a trailing comma was lost on Save.
+- **File modified:** `frontend/app/products/components/FlavorInput.tsx`
+  - Added `normalizeFlavor()` (trim, collapse whitespace, max 80 chars) and `appendFlavors()` (case-insensitive de-duplication).
+  - `onChange` now splits on commas, commits each completed part immediately as a chip, and keeps only the trailing part in the input.
+  - Added `onBlur={commitAll}` so the final typed value is committed when the user clicks Save or elsewhere.
+  - Enter still commits (and prevents form submit) and the "Add flavor" button still commits; both now use `commitAll()`, so a pasted `chese, chili, salt` is split correctly rather than saved as one value.
+  - Placeholder changed to `e.g. chese, chili, salt`; helper text now says flavors are added automatically by typing commas.
+  - Edit Product uses the same component, so it gets identical behavior.
+- **No backend/API changes:** the submitted `form.flavors` array shape and server normalization are unchanged.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (all 16 routes generated).
+- **Dependencies added:** none.
+
+### Previous task: Supplier/buyer names in Live Stock Movements Ledger (completed 2026-11-20)
+
+- **User request:** Show the supplier on purchase movements and the buyer/customer on sale movements as a row in the Inventory page's "Live Stock Movements Ledger", without a page refresh.
+- **Approach:** Capture the counterparty as a denormalized `partyName` snapshot on the `StockMovement` at creation time. The ledger is immutable, so no joins or extra list queries are needed. Historical movements are not backfilled (they only carry PO/SO references, no party name).
+- **Backend files modified:**
+  - `backend/src/models/StockMovement.js` — added `partyName: { type: String, default: "" }`.
+  - `backend/src/controllers/purchase.controller.js` — set `partyName` from `created.supplier.name` on AUTO-STOCK create movements and `purchase.supplier.name` on GRN receipt movements.
+  - `backend/src/controllers/sale-order.controller.js` — added `partyName` to `applyStockAdjustments()` and passed the order customer name at create (`created.customer.name`), update (`changes.customer.name || order.customer.name`), and delete (`order.customer.name`) call sites.
+- **Frontend files modified:**
+  - `frontend/app/inventory/data.ts` — `partyName?` on `StockMovementDto`; `partyLabel?`/`partyName?` on `MovementEntry`.
+  - `frontend/app/inventory/utils.ts` — `movementToEntry()` copies `partyName` and sets `partyLabel` from type (`purchase → "Supplier"`, `sale → "Buyer"`).
+  - `frontend/app/inventory/components/MovementsLedger.tsx` — renders a `Supplier:` / `Buyer:` line in each row when present (with `local_shipping` / `person` icon) and a matching "Party" row in the delete-confirmation grid.
+- **Docs modified:** `backend/docs/inventory-api.md` — documented `partyName` in the movements response.
+- **UI behavior:** Each new purchase row shows "Supplier: <name>" and each new sale row shows "Buyer: <name>". Adjustment/return/write-off rows and older movements show no party line. Buyer name is the customer name saved on the sale order (typically the business name; orders have no `customerId`).
+- **Verification:**
+  - `node --check` on the 3 changed backend files ✅
+  - `npx tsc --noEmit` ✅
+  - `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning)
+  - `npm run build` ✅ (all 16 routes generated)
+  - Live API smoke test ✅: created a purchase and sale against the running backend; `GET /api/inventory/movements` returned `partyName: "YasirWholsaler"` for the purchase and `"SMOKE Buyer"` for the sale; both test records deleted in `finally` (counts and product stock restored).
+- **Dependencies added:** none.
+
+### Previous task: Reset Add Supplier/Add Customer forms after successful save (completed 2026-11-20)
+
+- **User request:** After clicking Save on `/suppliers/add` or `/customers/add`, returning to the Add page via the list's Add button (or browser Back) must show an empty form without a browser refresh.
+- **Root cause:** `cacheComponents: true` in `frontend/next.config.ts` makes the App Router keep routes mounted with React `<Activity>`, preserving client state and DOM input values across navigation. Both Add forms only initialized from `EMPTY_FORM` on mount and never reset after a successful save (`AddSupplierForm` reset only for "Save & Add Another"; `AddCustomerForm` had no reset).
+- **Approach used:** Followed the bundled Next.js guide `node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md` ("Resetting form state on submit", "Resetting stale status messages"). No full reload, no `bfcacheId`, no new dependencies.
+- **Frontend files modified:**
+  - `frontend/features/suppliers/components/AddSupplierForm.tsx` — added `resetForm()` (fresh `form` with new `productIds: []` / `productFlavors: {}`, clears `error`/`success`); called after successful `createSupplier` in both "Save & Add Another" and normal Save branches (normal branch resets before `router.push("/suppliers")`); added `shouldReset` ref + `useLayoutEffect` cleanup to clear stale messages when Activity hides the page; added `autoComplete="off"` to the form.
+  - `frontend/features/customers/components/AddCustomerForm.tsx` — added matching `resetForm()`; called after successful `createCustomer` before `router.push("/customers")`; same `shouldReset`/`useLayoutEffect` cleanup; `autoComplete="off"`.
+- **UI behavior:** Save → redirect to list → click Add again (no refresh) now renders empty fields and no stale status message. Unsaved drafts are still preserved if the user leaves without submitting (matches Next.js guidance).
+- **Verification:**
+  - `npx tsc --noEmit` ✅
+  - `npm run lint` ✅ (0 errors, 1 pre-existing `app/layout.tsx` custom-font warning)
+  - `npm run build` ✅ (Next.js 16.4.6, all 16 routes generated)
+- **Dependencies added:** none.
+
+### Previous task: Git repository initialization and push (completed 2026-11-20)
 
 - **User request:** Create/use the GitHub repository `https://github.com/yasiralatif123-spec/Ai-inven-system.git`, push `backend/`, `frontend/`, and `PROJECT_MEMORY.md`, and do not push `stich ui/`.
 - **Files created:**
@@ -838,7 +1039,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 Verified present in code:
 
-1. Purchase `Quantity (Target)` starts at `0`; full entered quantity adds to product stock on create; `availableStock` is a snapshot.
+1. Purchase `Quantity (Target)` starts at `0`; stock is added only by Receive Goods; `availableStock` is a snapshot.
 2. Purchase delete reverses stock and removes matching purchase movements.
 3. Add Product links are plain `<a href="/products/add">` in products/inventory/dashboard so the page loads fresh.
 4. Add Product page uses `AddProductForm key={pathname}`, `blankForm()`, and `<form autoComplete="off">`.

@@ -123,20 +123,33 @@ async function normalizeSupplierProducts(value, existingIds = [], flavorValues =
         : {};
   const productFlavors = {};
 
-  for (const [productId, rawFlavor] of Object.entries(rawFlavors)) {
+  for (const [productId, rawFlavorEntry] of Object.entries(rawFlavors)) {
     if (!productIds.includes(productId)) continue;
-    const flavor = cleanString(rawFlavor)
-      .replace(/\s+/g, " ")
-      .slice(0, 120);
-    if (!flavor) continue;
-
+    const rawFlavorsForProduct = Array.isArray(rawFlavorEntry)
+      ? rawFlavorEntry
+      : rawFlavorEntry === undefined || rawFlavorEntry === null || rawFlavorEntry === ""
+        ? []
+        : [rawFlavorEntry];
     const allowedFlavors = Array.isArray(foundById.get(productId)?.flavors)
       ? foundById.get(productId).flavors
       : [];
-    const canonical = allowedFlavors.find(
-      (candidate) => cleanString(candidate).toLowerCase() === flavor.toLowerCase()
-    );
-    if (canonical) productFlavors[productId] = cleanString(canonical);
+    const canonicalFlavors = [];
+
+    for (const entry of rawFlavorsForProduct) {
+      for (const part of String(entry).split(/[\n,]/)) {
+        const flavor = cleanString(part).replace(/\s+/g, " ").slice(0, 120);
+        if (!flavor) continue;
+        const canonical = allowedFlavors.find(
+          (candidate) => cleanString(candidate).toLowerCase() === flavor.toLowerCase()
+        );
+        const value = canonical ? cleanString(canonical) : "";
+        if (value && !canonicalFlavors.some((item) => item.toLowerCase() === value.toLowerCase())) {
+          canonicalFlavors.push(value);
+        }
+      }
+    }
+
+    if (canonicalFlavors.length > 0) productFlavors[productId] = canonicalFlavors;
   }
 
   return { productIds, productFlavors };

@@ -1,3 +1,5 @@
+import { toFlavorArray } from "../../app/lib/flavors";
+import type { Product } from "../../app/products/types";
 import type {
   HubKey,
   PaymentTerms,
@@ -83,6 +85,17 @@ export function roundAmount(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+export function purchaseBasePrice(product: Product): number {
+  const value = Number(product.purchasePrice);
+  return Number.isFinite(value) ? Math.max(value, 0) : 0;
+}
+
+export function flavorAdjustedPurchasePrice(product: Product, flavors: string[]): number {
+  const count = toFlavorArray(flavors).length;
+  const multiplier = (product.flavors?.length || 0) > 0 ? count : 1;
+  return purchaseBasePrice(product) * multiplier;
+}
+
 export function calculateLineTotal(item: PurchaseLineItem): number {
   const subtotal = roundAmount(Math.max(Number(item.quantity) || 0, 0) * (Number(item.unitPrice) || 0));
   const discount = Math.min(Math.max(Number(item.discount) || 0, 0), subtotal);
@@ -146,9 +159,19 @@ export function purchaseItemsSummary(dto: PurchaseDto): string {
     .map((item) => {
       const ordered = Number(item.quantity) || 0;
       const received = Number(item.receivedQuantity) || 0;
-      return `${item.name}${item.flavor ? ` · ${item.flavor}` : ""} (${received}/${
-        ordered
-      } ${item.unit || "units"}) · ${formatRs(item.unitPrice)}`;
+      const flavors = toFlavorArray(item.flavor);
+      const flavorSuffix = flavors.length
+        ? ` · ${flavors.join(", ")} (${Number(item.flavorCount) || flavors.length} flavor${
+            (Number(item.flavorCount) || flavors.length) === 1 ? "" : "s"
+          })`
+        : "";
+      const baseNote =
+        flavors.length && Number(item.basePrice) > 0
+          ? ` [${formatRs(Number(item.basePrice))}/flavor]`
+          : "";
+      return `${item.name}${flavorSuffix} (${received}/${ordered} ${item.unit || "units"}) · ${formatRs(
+        item.unitPrice
+      )}${baseNote}`;
     })
     .join("; ");
 }
@@ -243,7 +266,11 @@ export function purchaseSupplierToSupplier(dto: PurchaseDto): Supplier {
       : [],
     productFlavors:
       dto.supplier?.productFlavors && typeof dto.supplier.productFlavors === "object"
-        ? { ...dto.supplier.productFlavors }
+        ? Object.fromEntries(
+            Object.entries(dto.supplier.productFlavors)
+              .map(([productId, flavors]) => [productId, toFlavorArray(flavors)] as const)
+              .filter(([, flavors]) => flavors.length > 0)
+          )
         : {},
   };
 }

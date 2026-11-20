@@ -1,7 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   CITY_OPTIONS,
   CUSTOMER_TYPE_OPTIONS,
@@ -101,6 +108,7 @@ export function AddCustomerForm() {
   const [nextCode, setNextCode] = useState("C-410");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const shouldReset = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +127,11 @@ export function AddCustomerForm() {
       cancelled = true;
     };
   }, []);
+
+  function resetForm() {
+    setForm({ ...EMPTY_FORM });
+    setError(null);
+  }
 
   function update<K extends keyof CreateCustomerInput>(key: K, value: CreateCustomerInput[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -166,6 +179,10 @@ export function AddCustomerForm() {
     setSaving(true);
     try {
       await createCustomer(payload);
+      // Reset before navigating so the hidden page is preserved with empty fields;
+      // reopening it from the list then shows a fresh form without a refresh.
+      resetForm();
+      shouldReset.current = true;
       router.push("/customers");
     } catch (submitError) {
       setError(
@@ -177,6 +194,17 @@ export function AddCustomerForm() {
       setSaving(false);
     }
   }
+
+  // Activity hides (rather than unmounts) this page on navigation, so a stale
+  // error message would otherwise reappear the next time it is opened.
+  useLayoutEffect(() => {
+    return () => {
+      if (shouldReset.current) {
+        shouldReset.current = false;
+        setError(null);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex flex-col gap-4 pb-24">
@@ -239,7 +267,7 @@ export function AddCustomerForm() {
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} id="add-customer-form" className="mx-auto flex w-full max-w-5xl flex-col gap-8" noValidate>
+      <form onSubmit={handleSubmit} autoComplete="off" id="add-customer-form" className="mx-auto flex w-full max-w-5xl flex-col gap-8" noValidate>
         <SectionCard
           number="1"
           title="Basic Information"

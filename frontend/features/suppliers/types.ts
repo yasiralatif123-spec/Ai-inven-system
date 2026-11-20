@@ -38,7 +38,7 @@ export type Supplier = {
   createdAt: string;
   status: SupplierStatus;
   productIds: string[];
-  productFlavors: Record<string, string>;
+  productFlavors: Record<string, string[]>;
   aging?: boolean;
 };
 
@@ -85,7 +85,7 @@ export type CreateSupplierInput = {
   graceDays: number;
   notes: string;
   productIds: string[];
-  productFlavors: Record<string, string>;
+  productFlavors: Record<string, string[]>;
 };
 
 export type UpdateSupplierInput = Omit<CreateSupplierInput, "openingBalance">;
@@ -113,7 +113,7 @@ export type SupplierDto = {
   payableTone: PayableTone;
   lastPurchaseAt: string | null;
   productIds: string[];
-  productFlavors?: Record<string, string>;
+  productFlavors?: Record<string, string[]>;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

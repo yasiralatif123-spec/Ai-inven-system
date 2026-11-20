@@ -43,7 +43,7 @@ export function createEmptyDraftOrder(): DraftOrderInput {
     amountReceived: 0,
     discount: 0,
     freight: 0,
-    items: [{ name: "", sku: "", flavor: "", quantity: 1, unitLabel: "pcs", unitPrice: 0 }],
+    items: [{ name: "", sku: "", flavor: [], quantity: 1, unitLabel: "pcs", unitPrice: 0 }],
   };
 }
 
@@ -51,13 +51,16 @@ export function draftOrderFromSalesOrder(order: SalesOrder): DraftOrderInput {
   const items: DraftOrderItemInput[] = order.items.map((item) => ({
     name: item.name,
     sku: item.sku,
-    flavor: item.flavor || "",
+    flavor: Array.isArray(item.flavor) ? item.flavor : item.flavor ? [item.flavor] : [],
     quantity: item.quantity,
     unitLabel: item.unitLabel,
+    basePrice: item.basePrice,
+    flavorCount: item.flavorCount,
     unitPrice: item.unitPrice,
   }));
 
   return {
+    customerId: order.customerId || undefined,
     customer: order.customer,
     phone: order.phone,
     location: order.location,

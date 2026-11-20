@@ -154,6 +154,15 @@ export function MovementsLedger({
                     <p className="mt-0.5 font-body-dense text-body-dense text-secondary">
                       {entry.reason}
                     </p>
+                    {entry.partyName ? (
+                      <p className="mt-0.5 flex items-center gap-1 font-body-dense text-body-dense text-secondary">
+                        <span className="material-symbols-outlined text-[13px] text-primary">
+                          {entry.kind === "purchase" ? "local_shipping" : "person"}
+                        </span>
+                        <span className="font-medium text-on-surface">{entry.partyLabel}:</span>{" "}
+                        {entry.partyName}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
@@ -223,6 +232,14 @@ export function MovementsLedger({
                 <span className="text-right font-medium text-on-surface">{pendingDelete.sku}</span>
                 <span className="text-secondary">Reference</span>
                 <span className="text-right font-medium text-on-surface">{pendingDelete.ref}</span>
+                {pendingDelete.partyName ? (
+                  <>
+                    <span className="text-secondary">{pendingDelete.partyLabel}</span>
+                    <span className="text-right font-medium text-on-surface">
+                      {pendingDelete.partyName}
+                    </span>
+                  </>
+                ) : null}
                 <span className="text-secondary">Recorded by</span>
                 <span className="text-right font-medium text-on-surface">{pendingDelete.user}</span>
                 <span className="text-secondary">Recorded at</span>

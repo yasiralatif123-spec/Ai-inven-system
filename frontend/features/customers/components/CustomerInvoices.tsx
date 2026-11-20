@@ -1,5 +1,6 @@
 "use client";
 
+import { formatFlavors } from "../../../app/lib/flavors";
 import type { SalesOrder } from "../../sales-orders/types";
 import { formatRs } from "../utils";
 import { formatProfileDate, getPaymentBadgeClasses } from "../profile";
@@ -47,7 +48,7 @@ export function CustomerInvoices({ orders, onViewOrder, onPay }: CustomerInvoice
                   </span>
                   <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
                     {order.items
-                      .map((item) => `${item.name}${item.flavor ? ` · ${item.flavor}` : ""}`)
+                      .map((item) => `${item.name}${formatFlavors(item.flavor) ? ` · ${formatFlavors(item.flavor)}` : ""}`)
                       .slice(0, 2)
                       .join(", ")}
                   </div>

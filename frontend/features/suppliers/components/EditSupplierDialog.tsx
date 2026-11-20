@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { toFlavorArray } from "../../../app/lib/flavors";
 import {
   GRACE_DAY_OPTIONS,
   HUB_OPTIONS,
@@ -47,9 +48,10 @@ function toInput(supplier: Supplier): UpdateSupplierInput {
     notes: supplier.notes,
     productIds,
     productFlavors: Object.fromEntries(
-      Object.entries(supplier.productFlavors || {}).filter(([productId]) =>
-        productIds.includes(productId)
-      )
+      Object.entries(supplier.productFlavors || {})
+        .filter(([productId]) => productIds.includes(productId))
+        .map(([productId, flavors]) => [productId, toFlavorArray(flavors)])
+        .filter(([, flavors]) => flavors.length > 0)
     ),
   };
 }
@@ -110,10 +112,10 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
     setError(null);
   }
 
-  function handleProductFlavorChange(productId: string, flavor: string) {
+  function handleProductFlavorChange(productId: string, flavors: string[]) {
     setForm((current) => {
       const productFlavors = { ...current.productFlavors };
-      if (flavor) productFlavors[productId] = flavor;
+      if (flavors.length > 0) productFlavors[productId] = flavors;
       else delete productFlavors[productId];
       return { ...current, productFlavors };
     });
@@ -155,9 +157,10 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
         ...form,
         productIds: selectedProductIds,
         productFlavors: Object.fromEntries(
-          Object.entries(form.productFlavors).filter(([productId]) =>
-            selectedProductIds.includes(productId)
-          )
+          Object.entries(form.productFlavors)
+            .filter(([productId]) => selectedProductIds.includes(productId))
+            .map(([productId, flavors]) => [productId, toFlavorArray(flavors)])
+            .filter(([, flavors]) => flavors.length > 0)
         ),
         name: form.name.trim(),
         contactPerson: form.contactPerson.trim(),

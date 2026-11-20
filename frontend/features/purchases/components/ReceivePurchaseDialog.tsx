@@ -185,7 +185,13 @@ export function ReceivePurchaseDialog({
                         </span>
                         <span className="font-mono-data-sm text-mono-data-sm text-secondary">
                           {item.sku || "Manual item"}
-                          {item.flavor ? ` · ${item.flavor}` : ""}
+                          {Array.isArray(item.flavor)
+                            ? item.flavor.length
+                              ? ` · ${item.flavor.join(", ")}`
+                              : ""
+                            : item.flavor
+                              ? ` · ${item.flavor}`
+                              : ""}
                           {item.productId ? "" : " · no linked product"}
                         </span>
                       </td>

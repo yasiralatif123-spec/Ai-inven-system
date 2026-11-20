@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toFlavorArray } from "../../../app/lib/flavors";
 import type { Product } from "../../../app/products/types";
 import type { Supplier } from "../../suppliers/types";
 import { DEFAULT_TAX_RATE } from "../constants";
@@ -16,6 +17,8 @@ import type { CreatePurchaseStatus, PurchaseDto, PurchaseLineItem } from "../typ
 import {
   addDays,
   calculatePurchaseTotals,
+  flavorAdjustedPurchasePrice,
+  purchaseBasePrice,
   purchaseSupplierToSupplier,
   taxRateFromBracket,
   toIsoDate,
@@ -38,9 +41,11 @@ function createRow(): PurchaseLineItem {
     productId: "",
     name: "",
     sku: "",
-    flavor: "",
+    flavor: [],
     quantity: 0,
     unit: "Carton",
+    basePrice: 0,
+    flavorCount: 1,
     unitPrice: 0,
     discount: 0,
     taxRate: DEFAULT_TAX_RATE,
@@ -51,17 +56,17 @@ function availableStock(product: Product): number {
   return Math.max(Number(product.openingStock) || 0, 0);
 }
 
-function defaultFlavorFor(product: Product, supplier: Supplier | null): string {
-  const saved = supplier?.productFlavors?.[product._id] || "";
-  if (!saved || !product.flavors?.length) return "";
-  return (
-    product.flavors.find((flavor) => flavor.toLowerCase() === saved.toLowerCase()) || ""
+function defaultFlavorsFor(product: Product, supplier: Supplier | null): string[] {
+  const saved = toFlavorArray(supplier?.productFlavors?.[product._id]);
+  if (saved.length === 0 || !product.flavors?.length) return [];
+  return saved.filter((flavor) =>
+    product.flavors?.some((option) => option.toLowerCase() === flavor.toLowerCase())
   );
 }
 
 function sameFlavorMap(
-  left: Record<string, string> | undefined,
-  right: Record<string, string> | undefined
+  left: Record<string, string[]> | undefined,
+  right: Record<string, string[]> | undefined
 ): boolean {
   const a = left || {};
   const b = right || {};
@@ -69,7 +74,11 @@ function sameFlavorMap(
   const bKeys = Object.keys(b);
   return (
     aKeys.length === bKeys.length &&
-    aKeys.every((key) => Object.prototype.hasOwnProperty.call(b, key) && a[key] === b[key])
+    aKeys.every(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(b, key) &&
+        toFlavorArray(a[key]).join("\u0000") === toFlavorArray(b[key]).join("\u0000")
+    )
   );
 }
 
@@ -190,11 +199,13 @@ export function CreatePurchaseView() {
               productId: item.productId || "",
               name: item.name,
               sku: item.sku || "",
-              flavor: item.flavor || "",
+              flavor: toFlavorArray(item.flavor),
               quantity: item.quantity,
               availableStock: Number(item.availableStock) || 0,
               receivedQuantity: Number(item.receivedQuantity) || 0,
               unit: item.unit,
+              basePrice: item.basePrice,
+              flavorCount: item.flavorCount,
               unitPrice: item.unitPrice,
               discount: item.discount || 0,
               taxRate: item.taxRate,
@@ -268,22 +279,41 @@ export function CreatePurchaseView() {
 
   function updateItem(rowId: string, patch: Partial<PurchaseLineItem>) {
     setItems((current) =>
-      current.map((item) => (item.rowId === rowId ? { ...item, ...patch } : item))
+      current.map((item) => {
+        if (item.rowId !== rowId) return item;
+        const next = { ...item, ...patch };
+        const shouldRecalculate =
+          Object.prototype.hasOwnProperty.call(patch, "flavor") ||
+          Object.prototype.hasOwnProperty.call(patch, "quantity");
+        if (!shouldRecalculate || !next.productId) return next;
+
+        const product = products.find((candidate) => candidate._id === next.productId);
+        if (!product) return next;
+        const flavors = toFlavorArray(next.flavor);
+
+        return {
+          ...next,
+          basePrice: purchaseBasePrice(product),
+          flavorCount: (product.flavors?.length || 0) > 0 ? flavors.length : 1,
+          unitPrice: flavorAdjustedPurchasePrice(product, flavors),
+        };
+      })
     );
   }
 
   function addProductRow(product?: Product) {
     const row = createRow();
     if (product) {
+      const flavors = defaultFlavorsFor(product, activeSupplier);
       row.productId = product._id;
       row.name = product.title;
       row.sku = product.sku;
-      row.flavor = defaultFlavorFor(product, activeSupplier);
+      row.flavor = flavors;
       row.availableStock = availableStock(product);
       row.quantity = 0;
-      row.unitPrice = Number(
-        product.purchasePrice || product.wholesalePrice || product.retailPrice || 0
-      );
+      row.basePrice = purchaseBasePrice(product);
+      row.flavorCount = (product.flavors?.length || 0) > 0 ? flavors.length : 1;
+      row.unitPrice = flavorAdjustedPurchasePrice(product, flavors);
       row.unit = product.uom || "Carton";
       row.taxRate = taxRateFromBracket(product.taxBracket);
     }
@@ -295,12 +325,10 @@ export function CreatePurchaseView() {
       productId: product._id,
       name: product.title,
       sku: product.sku,
-      flavor: defaultFlavorFor(product, activeSupplier),
+      flavor: defaultFlavorsFor(product, activeSupplier),
       availableStock: availableStock(product),
       quantity: 0,
-      unitPrice: Number(
-        product.purchasePrice || product.wholesalePrice || product.retailPrice || 0
-      ),
+      basePrice: purchaseBasePrice(product),
       unit: product.uom || "Carton",
       taxRate: taxRateFromBracket(product.taxBracket),
     });
@@ -350,7 +378,9 @@ export function CreatePurchaseView() {
             productId: "",
             name: "",
             sku: "",
-            flavor: "",
+            flavor: [],
+            basePrice: 0,
+            flavorCount: 1,
             availableStock: 0,
             quantity: 0,
             unitPrice: 0,
@@ -358,9 +388,16 @@ export function CreatePurchaseView() {
             taxRate: DEFAULT_TAX_RATE,
           };
         }
+
+        const product = products.find((candidate) => candidate._id === item.productId);
+        if (!product) return item;
+        const flavors = defaultFlavorsFor(product, supplier);
         return {
           ...item,
-          flavor: supplier?.productFlavors?.[item.productId] || "",
+          flavor: flavors,
+          basePrice: purchaseBasePrice(product),
+          flavorCount: (product.flavors?.length || 0) > 0 ? flavors.length : 1,
+          unitPrice: flavorAdjustedPurchasePrice(product, flavors),
         };
       })
     );
@@ -402,6 +439,19 @@ export function CreatePurchaseView() {
     if (items.some((item) => item.quantity <= 0)) {
       return "Every line item needs a quantity greater than 0.";
     }
+
+    for (const item of items) {
+      if (!item.productId) continue;
+      const product = products.find((candidate) => candidate._id === item.productId);
+      if (!product) continue;
+      if (purchaseBasePrice(product) <= 0) {
+        return `Set a purchase price for ${product.title} before saving.`;
+      }
+      if ((product.flavors?.length || 0) > 0 && toFlavorArray(item.flavor).length === 0) {
+        return `Select at least one flavor for ${product.title}.`;
+      }
+    }
+
     if (totals.total <= 0) {
       return "Purchase total must be greater than 0.";
     }
@@ -435,11 +485,13 @@ export function CreatePurchaseView() {
           productId: item.productId,
           name: item.name,
           sku: item.sku,
-          flavor: item.flavor || "",
+          flavor: toFlavorArray(item.flavor),
           quantity: item.quantity,
           availableStock: item.availableStock || 0,
-          receivedQuantity: item.receivedQuantity || 0,
+          receivedQuantity: editingPurchase ? item.receivedQuantity || 0 : 0,
           unit: item.unit,
+          basePrice: item.basePrice ?? 0,
+          flavorCount: item.flavorCount ?? 1,
           unitPrice: item.unitPrice,
           discount: item.discount,
           taxRate: item.taxRate,

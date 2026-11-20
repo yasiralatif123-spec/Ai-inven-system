@@ -48,6 +48,7 @@ export function SalesOrdersView() {
   const [hubFilter, setHubFilter] = useState<HubFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All Orders");
   const [newOrderOpen, setNewOrderOpen] = useState(false);
+  const [newOrderDialogKey, setNewOrderDialogKey] = useState(0);
   const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<SalesOrder | null>(null);
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
@@ -98,7 +99,10 @@ export function SalesOrdersView() {
     // Dashboard "Create Sale" links here with ?new=1.
     if (new URLSearchParams(window.location.search).get("new") !== "1") return;
 
-    const timeout = window.setTimeout(() => setNewOrderOpen(true), 0);
+    const timeout = window.setTimeout(() => {
+      setNewOrderDialogKey((key) => key + 1);
+      setNewOrderOpen(true);
+    }, 0);
     return () => window.clearTimeout(timeout);
   }, []);
 
@@ -136,6 +140,11 @@ export function SalesOrdersView() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  function openNewOrder() {
+    setNewOrderDialogKey((key) => key + 1);
+    setNewOrderOpen(true);
+  }
 
   function handleOpenCustomer(order: SalesOrder) {
     const customer = findCustomerForOrder(customers, order);
@@ -191,7 +200,7 @@ export function SalesOrdersView() {
 
   return (
     <div className="flex flex-col gap-4">
-      <SalesOrdersHeader onExport={handleExport} onNewOrder={() => setNewOrderOpen(true)} />
+      <SalesOrdersHeader onExport={handleExport} onNewOrder={openNewOrder} />
       <SalesKpis data={kpis} />
 
       {error ? (
@@ -243,7 +252,11 @@ export function SalesOrdersView() {
       )}
 
       {newOrderOpen ? (
-        <NewOrderDialog onClose={() => setNewOrderOpen(false)} onSubmit={handleCreateOrder} />
+        <NewOrderDialog
+          key={newOrderDialogKey}
+          onClose={() => setNewOrderOpen(false)}
+          onSubmit={handleCreateOrder}
+        />
       ) : null}
       {editingOrder ? (
         <EditOrderDialog

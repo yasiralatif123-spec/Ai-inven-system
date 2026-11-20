@@ -34,12 +34,27 @@ function cleanString(value) {
   return value === undefined || value === null ? "" : String(value).trim();
 }
 
-function normalizeOptionalLabel(value, maxLength = 120, fieldName = "Flavor") {
-  const label = cleanString(value).replace(/\s+/g, " ");
-  if (label.length > maxLength) {
-    throw new ValidationError(`${fieldName} cannot exceed ${maxLength} characters`);
+function normalizeFlavorValues(value) {
+  const raw = Array.isArray(value)
+    ? value
+    : value === undefined || value === null || value === ""
+      ? []
+      : [value];
+  const result = [];
+  for (const entry of raw) {
+    for (const part of String(entry).split(/[\n,]/)) {
+      const label = cleanString(part).replace(/\s+/g, " ");
+      if (!label) continue;
+      if (label.length > 120) {
+        throw new ValidationError("Flavor cannot exceed 120 characters");
+      }
+      if (!result.some((existing) => existing.toLowerCase() === label.toLowerCase())) {
+        result.push(label);
+      }
+      if (result.length >= 24) return result;
+    }
   }
-  return label;
+  return result;
 }
 
 function toPlainMap(value) {
@@ -57,6 +72,38 @@ function toNumber(value, fallback = 0) {
 function toWholeNumber(value) {
   const numeric = Math.floor(toNumber(value, NaN));
   return Number.isFinite(numeric) ? numeric : null;
+}
+
+async function findProductForPurchaseItem(item) {
+  const productId = cleanString(item?.productId);
+  if (productId && mongoose.isValidObjectId(productId)) {
+    const byId = await Product.findById(productId)
+      .select("title sku purchasePrice flavors uom")
+      .lean();
+    if (byId) return byId;
+  }
+
+  const sku = cleanString(item?.sku);
+  if (!sku) return null;
+  return Product.findOne({ sku }).select("title sku purchasePrice flavors uom").lean();
+}
+
+function basePurchasePrice(product) {
+  return Math.max(toNumber(product?.purchasePrice), 0);
+}
+
+function sameFlavorSet(left, right) {
+  const normalize = (values) =>
+    (Array.isArray(values) ? values : [])
+      .map((value) => cleanString(value).toLowerCase())
+      .filter(Boolean)
+      .sort();
+
+  const first = normalize(left);
+  const second = normalize(right);
+  return (
+    first.length === second.length && first.every((value, index) => value === second[index])
+  );
 }
 
 function round(value) {
@@ -142,20 +189,49 @@ async function buildPurchaseChanges(body, existingPurchase = null) {
   }
 
   const existingItems = Array.isArray(existingPurchase?.items) ? existingPurchase.items : [];
-  const items = body.items.map((rawItem, index) => {
+  const items = [];
+
+  for (const [index, rawItem] of body.items.entries()) {
     const name = cleanString(rawItem?.name);
     const quantity = Math.floor(toNumber(rawItem?.quantity));
-    const unitPrice = toNumber(rawItem?.unitPrice);
+    const submittedUnitPrice = toNumber(rawItem?.unitPrice);
     const productId = cleanString(rawItem?.productId);
-    const flavor = normalizeOptionalLabel(rawItem?.flavor);
+    const sku = cleanString(rawItem?.sku);
+    const flavors = normalizeFlavorValues(rawItem?.flavor);
 
-    if (!name || quantity <= 0 || unitPrice < 0) {
+    if (!name || quantity <= 0 || submittedUnitPrice < 0) {
       throw new ValidationError(
         `Item ${index + 1} needs a name, a positive quantity, and a non-negative unit price`
       );
     }
 
+    const product = await findProductForPurchaseItem({ productId, sku });
+    const productHasFlavors = Boolean(
+      product && Array.isArray(product.flavors) && product.flavors.length > 0
+    );
+
+    if (product && basePurchasePrice(product) <= 0) {
+      throw new ValidationError(`Set a purchase price for ${product.title} before purchasing`);
+    }
+    if (productHasFlavors && flavors.length === 0) {
+      throw new ValidationError(`Select at least one flavor for ${product.title}`);
+    }
+
     const existingItem = findExistingItem(rawItem, index, existingItems);
+    const previousFlavors = existingItem ? normalizeFlavorValues(existingItem.flavor) : [];
+    const flavorsChanged = !existingItem || !sameFlavorSet(previousFlavors, flavors);
+    const flavorCount = productHasFlavors ? flavors.length : 1;
+    const basePrice = product
+      ? !existingPurchase || flavorsChanged
+        ? basePurchasePrice(product)
+        : Number(existingItem?.basePrice) || basePurchasePrice(product)
+      : submittedUnitPrice;
+    const unitPrice = product
+      ? !existingPurchase || flavorsChanged
+        ? basePrice * flavorCount
+        : Number(existingItem?.unitPrice) || submittedUnitPrice
+      : submittedUnitPrice;
+
     const previousReceived = Math.max(0, Number(existingItem?.receivedQuantity) || 0);
     const availableStock = Math.max(
       0,
@@ -165,26 +241,10 @@ async function buildPurchaseChanges(body, existingPurchase = null) {
           : rawItem?.availableStock
       ) || 0
     );
-    let receivedQuantity = toWholeNumber(rawItem?.receivedQuantity);
-    let receipts = existingItem ? existingItem.receipts || [] : [];
-    let stockToAdd = 0;
+    let receivedQuantity = existingItem ? toWholeNumber(rawItem?.receivedQuantity) : 0;
+    const receipts = existingItem ? existingItem.receipts || [] : [];
 
-    if (!existingItem) {
-      // Quantity (Target) is the number of units being added to current stock.
-      // It starts at 0 in the form and the entered amount is added on create.
-      stockToAdd = quantity;
-      receivedQuantity = quantity;
-      receipts = [
-        {
-          quantity,
-          receivedQuantity: quantity,
-          reference: "AUTO-STOCK",
-          notes: "Added to stock from purchase quantity",
-          receivedAt: now,
-          performedBy: cleanString(body.createdBy) || DEFAULT_RECEIVED_BY,
-        },
-      ];
-    } else {
+    if (existingItem) {
       if (receivedQuantity === null || receivedQuantity < 0) {
         receivedQuantity = previousReceived;
       }
@@ -217,24 +277,25 @@ async function buildPurchaseChanges(body, existingPurchase = null) {
     const taxAmount = round(((itemSubtotal - discount) * taxRate) / 100);
     const lineTotal = round(itemSubtotal - discount + taxAmount);
 
-    return {
-      productId,
+    items.push({
+      productId: product?._id ? String(product._id) : productId,
       name,
-      sku: cleanString(rawItem?.sku),
-      flavor,
+      sku,
+      flavor: flavors,
       quantity,
       availableStock,
       receivedQuantity,
       receipts,
-      stockToAdd,
       unit: cleanString(rawItem?.unit) || "Carton",
+      basePrice,
+      flavorCount,
       unitPrice,
       discount,
       taxRate,
       taxAmount,
       lineTotal,
-    };
-  });
+    });
+  }
 
   const subtotal = round(items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
   const discount = round(items.reduce((sum, item) => sum + item.discount, 0));
@@ -369,10 +430,8 @@ async function getPurchases(req, res, next) {
 async function createPurchase(req, res, next) {
   try {
     const changes = await buildPurchaseChanges(req.body || {});
-    const purchase = await runWithSession(async (session, useTransaction) => {
+    const purchase = await runWithSession(async (session) => {
       let created;
-      const compensations = [];
-
       try {
         for (let attempt = 0; attempt < 5; attempt += 1) {
           try {
@@ -393,70 +452,10 @@ async function createPurchase(req, res, next) {
           }
         }
 
-        for (const item of changes.items) {
-          const stockToAdd = Math.max(0, Number(item.stockToAdd) || 0);
-          if (stockToAdd === 0 || !mongoose.isValidObjectId(item.productId)) continue;
-
-          const product = await Product.findOneAndUpdate(
-            { _id: item.productId },
-            { $inc: { openingStock: stockToAdd } },
-            { new: true, runValidators: true, session }
-          );
-          if (!product) {
-            throw new ValidationError(`The product linked to ${item.name} no longer exists`);
-          }
-
-          compensations.push(async () => {
-            await Product.findByIdAndUpdate(
-              item.productId,
-              { $inc: { openingStock: -stockToAdd } },
-              { session }
-            );
-          });
-
-          const newStock = Number(product.openingStock) || 0;
-          const [movement] = await StockMovement.create(
-            [
-              {
-                product: product._id,
-                sku: product.sku,
-                productTitle: product.title,
-                type: "purchase",
-                direction: "in",
-                quantity: stockToAdd,
-                previousStock: newStock - stockToAdd,
-                newStock,
-                unit: product.uom || item.unit || "",
-                reason: "Purchase stock sync",
-                reference: `${created.purchaseNumber} · AUTO-STOCK`,
-                notes: "Added to stock from purchase quantity",
-                performedBy: changes.createdBy,
-              },
-            ],
-            { session }
-          );
-
-          compensations.push(async () => {
-            await StockMovement.deleteOne({ _id: movement._id }, { session });
-          });
-        }
-
         return created;
       } catch (error) {
-        if (!useTransaction) {
-          for (const compensate of compensations.reverse()) {
-            try {
-              await compensate();
-            } catch (compensationError) {
-              console.error(
-                "Failed to compensate purchase stock sync:",
-                compensationError.message
-              );
-            }
-          }
-          if (created) {
-            await Purchase.deleteOne({ _id: created._id }, { session }).catch(() => {});
-          }
+        if (created) {
+          await Purchase.deleteOne({ _id: created._id }, { session }).catch(() => {});
         }
         throw error;
       }
@@ -742,6 +741,7 @@ async function receivePurchase(req, res, next) {
                 reference: `${purchase.purchaseNumber} · ${receiptReference}`,
                 notes: receiptNotes,
                 performedBy,
+                partyName: cleanString(purchase.supplier?.name),
               },
             ],
             { session }

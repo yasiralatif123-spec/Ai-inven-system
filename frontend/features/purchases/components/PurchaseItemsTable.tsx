@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { FlavorMultiSelect } from "../../../app/components/FlavorMultiSelect";
+import { toFlavorArray } from "../../../app/lib/flavors";
 import type { Product } from "../../../app/products/types";
 import { UNIT_OPTIONS } from "../constants";
 import type { PurchaseLineItem } from "../types";
@@ -114,13 +116,7 @@ export function PurchaseItemsTable({
               const lineTotal = calculateLineTotal(item);
               const product = products.find((candidate) => candidate._id === item.productId) || null;
               const flavorOptions = [...(product?.flavors || [])];
-              const savedFlavor = item.flavor || "";
-              if (
-                savedFlavor &&
-                !flavorOptions.some((option) => option.toLowerCase() === savedFlavor.toLowerCase())
-              ) {
-                flavorOptions.unshift(savedFlavor);
-              }
+              const savedFlavors = toFlavorArray(item.flavor);
 
               return (
                 <tr
@@ -138,7 +134,7 @@ export function PurchaseItemsTable({
                             name: value,
                             productId: "",
                             sku: "",
-                            flavor: "",
+                            flavor: [],
                           })
                         }
                         onProductSelect={(product) => onProductSelect(item.rowId, product)}
@@ -152,29 +148,21 @@ export function PurchaseItemsTable({
                       </span>
                       {item.availableStock !== undefined && item.productId ? (
                         <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                          Available {item.availableStock} · adds{" "}
-                          {Math.max(item.quantity, 0)}
+                          Available {item.availableStock} · ordered {Math.max(item.quantity, 0)} ·
+                          received {Math.max(item.receivedQuantity || 0, 0)}
                         </span>
                       ) : null}
                     </div>
                   </td>
                   <td className="px-2 py-2.5">
-                    {flavorOptions.length > 0 ? (
-                      <select
-                        value={savedFlavor}
-                        onChange={(event) =>
-                          onItemChange(item.rowId, { flavor: event.target.value })
-                        }
-                        aria-label={`Flavor for line ${index + 1}`}
-                        className="h-8 w-full rounded bg-surface-container-lowest px-2 font-body-dense text-body-dense text-on-surface outline-none focus:ring-1 focus:ring-primary-container"
-                      >
-                        <option value="">No flavor</option>
-                        {flavorOptions.map((flavor) => (
-                          <option key={flavor} value={flavor}>
-                            {flavor}
-                          </option>
-                        ))}
-                      </select>
+                    {flavorOptions.length > 0 || savedFlavors.length > 0 ? (
+                      <FlavorMultiSelect
+                        options={flavorOptions}
+                        value={savedFlavors}
+                        onChange={(flavors) => onItemChange(item.rowId, { flavor: flavors })}
+                        ariaLabel={`Flavors for line ${index + 1}`}
+                        compact
+                      />
                     ) : (
                       <span className="font-body-dense text-body-dense text-outline">—</span>
                     )}
@@ -217,19 +205,31 @@ export function PurchaseItemsTable({
                     </select>
                   </td>
                   <td className="px-2 py-2.5">
-                    <input
-                      type="number"
-                      min={0}
-                      step="1"
-                      value={item.unitPrice}
-                      onChange={(event) =>
-                        onItemChange(item.rowId, {
-                          unitPrice: Math.max(Number(event.target.value) || 0, 0),
-                        })
-                      }
-                      aria-label={`Unit price for line ${index + 1}`}
-                      className={CELL_INPUT_CLASS}
-                    />
+                    {item.productId ? (
+                      <div className="flex flex-col items-end">
+                        <span className="font-mono-data text-mono-data text-on-surface">
+                          {item.unitPrice.toLocaleString("en-PK")}
+                        </span>
+                        <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                          {Number(item.basePrice) || 0} × {Number(item.flavorCount) || 1} flavor
+                          {(Number(item.flavorCount) || 1) === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        min={0}
+                        step="1"
+                        value={item.unitPrice}
+                        onChange={(event) =>
+                          onItemChange(item.rowId, {
+                            unitPrice: Math.max(Number(event.target.value) || 0, 0),
+                          })
+                        }
+                        aria-label={`Unit price for line ${index + 1}`}
+                        className={CELL_INPUT_CLASS}
+                      />
+                    )}
                   </td>
                   <td className="px-2 py-2.5">
                     <input

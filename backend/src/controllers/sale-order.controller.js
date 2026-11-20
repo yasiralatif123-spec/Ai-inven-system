@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const SaleOrder = require("../models/SaleOrder");
 const Product = require("../models/Product");
+const Customer = require("../models/Customer");
 const StockMovement = require("../models/StockMovement");
 const { runWithSession } = require("../utils/db");
 
@@ -39,18 +40,104 @@ function cleanString(value) {
   return value === undefined || value === null ? "" : String(value).trim();
 }
 
-function normalizeOptionalLabel(value, maxLength = 120) {
-  const label = cleanString(value).replace(/\s+/g, " ");
-  if (label.length > maxLength) {
-    throw new ValidationError(`Flavor cannot exceed ${maxLength} characters`);
+function normalizeFlavorValues(value, allowedFlavors = []) {
+  const raw = Array.isArray(value)
+    ? value
+    : value === undefined || value === null || value === ""
+      ? []
+      : [value];
+  const allowed = Array.isArray(allowedFlavors) ? allowedFlavors : [];
+  const result = [];
+
+  for (const entry of raw) {
+    for (const part of String(entry).split(/[\n,]/)) {
+      const label = cleanString(part).replace(/\s+/g, " ");
+      if (!label) continue;
+      if (label.length > 120) {
+        throw new ValidationError("Flavor cannot exceed 120 characters");
+      }
+      const canonical =
+        allowed.find((candidate) => cleanString(candidate).toLowerCase() === label.toLowerCase()) ||
+        label;
+      if (!result.some((existing) => existing.toLowerCase() === canonical.toLowerCase())) {
+        result.push(canonical);
+      }
+      if (result.length >= 24) return result;
+    }
   }
-  return label;
+  return result;
 }
 
 function toNumber(value, fallback = 0) {
   if (value === undefined || value === null || value === "") return fallback;
   const numeric = Number(String(value).replace(/,/g, ""));
   return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function perFlavorPrice(product) {
+  return Math.max(toNumber(product?.wholesalePrice), 0);
+}
+
+function sameFlavorSet(left = [], right = []) {
+  const normalize = (values) =>
+    (Array.isArray(values) ? values : [])
+      .map((value) => cleanString(value).toLowerCase())
+      .filter(Boolean)
+      .sort();
+
+  const first = normalize(left);
+  const second = normalize(right);
+  return (
+    first.length === second.length && first.every((value, index) => value === second[index])
+  );
+}
+
+async function resolveCustomer(body, session = null) {
+  const customerInput = body?.customer;
+  const customerIsObject = customerInput && typeof customerInput === "object";
+  const explicitId = cleanString(
+    body?.customerId ?? (customerIsObject ? customerInput.customerId : "")
+  );
+
+  if (explicitId && mongoose.isValidObjectId(explicitId)) {
+    const byIdQuery = Customer.findById(explicitId)
+      .select("_id name businessName phone")
+      .lean();
+    if (session) byIdQuery.session(session);
+    const byId = await byIdQuery;
+    if (byId) return byId;
+  }
+
+  const name = cleanString(
+    customerIsObject ? customerInput.name : customerIsObject ? "" : customerInput
+  );
+  const phone = cleanString(
+    customerIsObject ? customerInput.phone ?? body?.phone : body?.phone
+  );
+
+  const candidatesQuery = Customer.find().select("_id name businessName phone").lean();
+  if (session) candidatesQuery.session(session);
+  const candidates = await candidatesQuery;
+
+  const phoneDigits = cleanString(phone).replace(/\D/g, "");
+  if (phoneDigits.length >= 10) {
+    const byPhone = candidates.find(
+      (candidate) => cleanString(candidate.phone).replace(/\D/g, "") === phoneDigits
+    );
+    if (byPhone) return byPhone;
+  }
+
+  if (name) {
+    const lowered = name.toLowerCase();
+    const byName = candidates.find((candidate) =>
+      [candidate.name, candidate.businessName]
+        .filter(Boolean)
+        .some((value) => cleanString(value).toLowerCase() === lowered)
+    );
+    if (byName) return byName;
+  }
+
+  return null;
 }
 
 function toWholeNumber(value, fallback = 0) {
@@ -157,6 +244,7 @@ async function buildOrderChanges(body, existingOrder = null, session = null) {
   const location = cleanString(
     typeof customer === "string" ? body.location : customer?.location ?? body.location
   );
+  const matchedCustomer = await resolveCustomer(body, session);
 
   if (!customerName) {
     throw new ValidationError("Customer name is required");
@@ -182,7 +270,6 @@ async function buildOrderChanges(body, existingOrder = null, session = null) {
     const sku = cleanString(rawItem?.sku);
     const quantity = toWholeNumber(rawItem?.quantity);
     const unitPrice = toNumber(rawItem?.unitPrice);
-    const submittedFlavor = normalizeOptionalLabel(rawItem?.flavor);
 
     if (!name || quantity <= 0 || unitPrice < 0) {
       throw new ValidationError(
@@ -201,20 +288,39 @@ async function buildOrderChanges(body, existingOrder = null, session = null) {
       session
     );
 
-    const effectiveUnitPrice =
-      product && !existingOrder ? Math.max(toNumber(product.wholesalePrice), 0) : unitPrice;
-    const canonicalFlavor =
-      product?.flavors?.find(
-        (candidate) => cleanString(candidate).toLowerCase() === submittedFlavor.toLowerCase()
-      ) || submittedFlavor;
+    const flavors = normalizeFlavorValues(rawItem?.flavor, product?.flavors);
+    const productHasFlavors = Boolean(
+      product && Array.isArray(product.flavors) && product.flavors.length > 0
+    );
+
+    if (productHasFlavors && flavors.length === 0) {
+      throw new ValidationError(`Select at least one flavor for ${product.title}`);
+    }
+
+    const previousFlavors = previousItem
+      ? normalizeFlavorValues(previousItem.flavor, product?.flavors)
+      : [];
+    const flavorsChanged = !previousItem || !sameFlavorSet(previousFlavors, flavors);
+    const multiplier = productHasFlavors ? flavors.length : 1;
+    const effectiveUnitPrice = product
+      ? !existingOrder || flavorsChanged
+        ? perFlavorPrice(product) * multiplier
+        : Number(previousItem?.unitPrice) || unitPrice
+      : unitPrice;
 
     items.push({
       name,
       sku,
-      flavor: canonicalFlavor,
+      flavor: flavors,
       productId: product?._id || null,
       quantity,
       unitLabel: cleanString(rawItem?.unitLabel) || "pcs",
+      basePrice: product
+        ? !existingOrder || flavorsChanged
+          ? perFlavorPrice(product)
+          : Number(previousItem?.basePrice) || perFlavorPrice(product)
+        : unitPrice,
+      flavorCount: multiplier,
       unitPrice: effectiveUnitPrice,
       available: product ? toNumber(product.openingStock) : 0,
       stockDeducted: Boolean(product),
@@ -248,7 +354,12 @@ async function buildOrderChanges(body, existingOrder = null, session = null) {
   const dueDate = outstanding > 0 ? "Due on receipt" : "Settled in full";
 
   return {
-    customer: { name: customerName, phone, location },
+    customer: {
+      customerId: matchedCustomer?._id || null,
+      name: customerName,
+      phone,
+      location,
+    },
     hub: cleanString(body.hub),
     paymentStatus,
     paymentLabel,
@@ -283,6 +394,7 @@ async function applyStockAdjustments({
   previousItems = [],
   nextItems = [],
   performedBy = "Tariq M. (Owner)",
+  partyName = "",
   mode = "update",
   session,
   compensations = [],
@@ -353,6 +465,7 @@ async function applyStockAdjustments({
           reference: `${orderNumber} · SALE`,
           notes: `${mode === "delete" ? "Stock restored after sale order deletion" : "Stock synced from sale order"}`,
           performedBy,
+          partyName: cleanString(partyName),
         },
       ],
       { session }
@@ -412,6 +525,7 @@ async function createSaleOrder(req, res, next) {
           previousItems: [],
           nextItems: created.items,
           performedBy: created.createdBy,
+          partyName: created.customer?.name,
           mode: "create",
           session,
           compensations,
@@ -457,6 +571,7 @@ async function updateSaleOrder(req, res, next) {
           previousItems: order.items,
           nextItems: changes.items,
           performedBy: changes.createdBy,
+          partyName: changes.customer?.name || order.customer?.name,
           mode: "update",
           session,
           compensations,
@@ -479,7 +594,13 @@ async function updateSaleOrder(req, res, next) {
 
 async function getSaleOrders(req, res, next) {
   try {
-    const orders = await SaleOrder.find().sort({ createdAt: -1 }).limit(200).lean();
+    const customerId = cleanString(req.query?.customerId);
+    if (customerId && !mongoose.isValidObjectId(customerId)) {
+      return res.status(400).json({ message: "Invalid customerId" });
+    }
+
+    const filter = customerId ? { "customer.customerId": customerId } : {};
+    const orders = await SaleOrder.find(filter).sort({ createdAt: -1 }).limit(200).lean();
     return res.status(200).json({ orders });
   } catch (error) {
     return next(error);
@@ -562,6 +683,7 @@ async function deleteSaleOrder(req, res, next) {
           previousItems: order.items,
           nextItems: [],
           performedBy: order.createdBy,
+          partyName: order.customer?.name,
           mode: "delete",
           session,
           compensations,

@@ -9,6 +9,7 @@ type CustomerAutocompleteProps = {
   phone: string;
   location: string;
   onCustomerChange: (value: string) => void;
+  onCustomerIdChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
   onLocationChange: (value: string) => void;
 };
@@ -21,6 +22,7 @@ export function CustomerAutocomplete({
   phone,
   location,
   onCustomerChange,
+  onCustomerIdChange,
   onPhoneChange,
   onLocationChange,
 }: CustomerAutocompleteProps) {
@@ -45,6 +47,7 @@ export function CustomerAutocomplete({
 
   function selectCustomer(item: Customer) {
     onCustomerChange(item.business || item.name);
+    onCustomerIdChange(item.id);
     onPhoneChange(item.phone);
     onLocationChange(item.cityLabel || item.routeLabel || item.city);
     setOpen(false);
@@ -92,6 +95,7 @@ export function CustomerAutocomplete({
             value={customer}
             onChange={(event) => {
               onCustomerChange(event.target.value);
+              onCustomerIdChange("");
               setActiveIndex(-1);
               setOpen(true);
             }}
