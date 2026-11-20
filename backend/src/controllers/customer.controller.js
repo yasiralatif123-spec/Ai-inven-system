@@ -1,0 +1,299 @@
+const mongoose = require("mongoose");
+const Customer = require("../models/Customer");
+
+const CITIES = {
+  Lahore: "Lahore (Central Punjab Hub)",
+  Karachi: "Karachi (Sindh Port Operations)",
+  Rawalpindi: "Rawalpindi / Islamabad (Capital Territory)",
+  Faisalabad: "Faisalabad (Textile Grid)",
+  Multan: "Multan (South Punjab Zone)",
+  Peshawar: "Peshawar (KP Northern Hub)",
+  Quetta: "Quetta (Balochistan Distribution)",
+  Gujranwala: "Gujranwala (Industrial Belt)",
+  Sialkot: "Sialkot (Export Processing)",
+};
+
+const ROUTES = {
+  "lahore-central": "Lahore Central · Shah Alam & Brandreth Route",
+  "lahore-north": "Lahore North · Badami Bagh & Ravi Belt",
+  "lahore-south": "Lahore South · Kot Lakhpat & Ferozepur Sector",
+  "multan-road": "Lahore West · Multan Road Logistics Strip",
+  "intercity-gt": "Intercity Trunk · GT Road Rawalpindi Cargo",
+  unassigned: "Unassigned Direct Counter Customer",
+};
+
+const CUSTOMER_TYPES = ["Wholesale", "Retailer", "Distributor", "Other"];
+const STATUSES = ["Active", "Inactive", "Blocked"];
+const PAYMENT_TERMS = ["cod", "7days", "15days", "30days", "45days"];
+const GRACE_PERIODS = ["none", "3days", "5days", "7days"];
+
+class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+function cleanString(value) {
+  return value === undefined || value === null ? "" : String(value).trim();
+}
+
+function parseNumber(value, { message, fallback }) {
+  if (value === undefined || value === null || String(value).trim() === "") {
+    if (message) throw new ValidationError(message);
+    return fallback;
+  }
+
+  const numeric = Number(String(value).replace(/,/g, ""));
+  if (!Number.isFinite(numeric)) {
+    throw new ValidationError(message || "Enter a valid number");
+  }
+  return numeric;
+}
+
+function normalizePhone(value, label = "Primary phone number") {
+  const raw = cleanString(value);
+  if (!raw) throw new ValidationError(`${label} is required`);
+
+  let digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("92")) digits = digits.slice(2);
+  else if (digits.startsWith("0")) digits = digits.slice(1);
+
+  if (digits.length !== 10) {
+    throw new ValidationError("Enter a valid 11-digit mobile or PTCL number");
+  }
+
+  return `+92 ${digits.slice(0, 3)} ${digits.slice(3)}`;
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+async function generateLedgerCode() {
+  const customers = await Customer.find({ ledgerCode: /^C-\d+$/ })
+    .select("ledgerCode")
+    .lean();
+
+  const highest = customers.reduce((max, customer) => {
+    const value = Number(cleanString(customer.ledgerCode).replace("C-", ""));
+    return Number.isFinite(value) ? Math.max(max, value) : max;
+  }, 409);
+
+  return `C-${highest + 1}`;
+}
+
+function buildCustomerChanges(body) {
+  const name = cleanString(body.name);
+  if (!name) throw new ValidationError("Full name is required");
+
+  const businessName = cleanString(body.businessName);
+  if (!businessName) throw new ValidationError("Business / trade title is required");
+
+  const phone = normalizePhone(body.phone);
+
+  const city = cleanString(body.city);
+  if (!city) throw new ValidationError("Commercial hub / city is required");
+  if (!CITIES[city]) throw new ValidationError("Invalid commercial hub / city");
+
+  const address = cleanString(body.address);
+  if (!address) throw new ValidationError("Physical dispatch address is required");
+  if (address.length > 300) {
+    throw new ValidationError("Physical dispatch address cannot exceed 300 characters");
+  }
+
+  const customerType = cleanString(body.customerType);
+  if (!customerType) throw new ValidationError("Customer classification is required");
+  if (!CUSTOMER_TYPES.includes(customerType)) {
+    throw new ValidationError("Invalid customer classification");
+  }
+
+  const status = cleanString(body.status) || "Active";
+  if (!STATUSES.includes(status)) throw new ValidationError("Invalid account status");
+
+  const route = cleanString(body.route) || "unassigned";
+  if (!ROUTES[route]) throw new ValidationError("Invalid distribution route");
+
+  const paymentTerms = cleanString(body.paymentTerms);
+  if (!paymentTerms) throw new ValidationError("Payment terms is required");
+  if (!PAYMENT_TERMS.includes(paymentTerms)) throw new ValidationError("Invalid payment terms");
+
+  const creditLimit = parseNumber(body.creditLimit, {
+    message: "Trade credit limit is required",
+  });
+  if (creditLimit < 0) throw new ValidationError("Trade credit limit cannot be negative");
+
+  const openingBalance = parseNumber(body.openingBalance, { fallback: 0 });
+  if (openingBalance < 0) throw new ValidationError("Opening balance cannot be negative");
+
+  const gracePeriod = cleanString(body.gracePeriod) || "none";
+  if (!GRACE_PERIODS.includes(gracePeriod)) throw new ValidationError("Invalid grace period");
+
+  const email = cleanString(body.email);
+  if (email && !isValidEmail(email)) throw new ValidationError("Enter a valid email address");
+
+  const altPhone = cleanString(body.altPhone)
+    ? normalizePhone(body.altPhone, "Alternate phone number")
+    : "";
+
+  const notes = cleanString(body.notes);
+  if (notes.length > 500) throw new ValidationError("Internal notes cannot exceed 500 characters");
+
+  return {
+    name,
+    businessName,
+    phone,
+    altPhone,
+    email,
+    city,
+    cityLabel: CITIES[city],
+    address,
+    customerType,
+    status,
+    route,
+    routeLabel: ROUTES[route],
+    ntn: cleanString(body.ntn),
+    creditLimit,
+    paymentTerms,
+    openingBalance,
+    gracePeriod,
+    notes,
+    orders: 0,
+    totalPurchases: 0,
+    outstanding: openingBalance,
+    createdBy: cleanString(body.createdBy) || "Tariq M. (Owner)",
+  };
+}
+
+function handleControllerError(error, res, next) {
+  if (error instanceof ValidationError) {
+    return res.status(400).json({ message: error.message });
+  }
+  return next(error);
+}
+
+async function getNextCustomerCode(req, res, next) {
+  try {
+    return res.status(200).json({ code: await generateLedgerCode() });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getCustomers(req, res, next) {
+  try {
+    const customers = await Customer.find().sort({ createdAt: -1 }).lean();
+    return res.status(200).json({ customers });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getCustomerById(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const customer = await Customer.findById(id).lean();
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    return res.status(200).json({ customer });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function createCustomer(req, res, next) {
+  try {
+    const changes = buildCustomerChanges(req.body || {});
+    let customer;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        customer = await Customer.create({
+          ledgerCode: await generateLedgerCode(),
+          ...changes,
+        });
+        break;
+      } catch (error) {
+        if (error?.code === 11000 && attempt < 4) continue;
+        throw error;
+      }
+    }
+
+    return res.status(201).json({ message: "Customer created", customer });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
+async function updateCustomer(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const existing = await Customer.findById(id).lean();
+    if (!existing) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const merged = {
+      ...existing,
+      ...(req.body || {}),
+      ledgerCode: existing.ledgerCode,
+      creditLimit: existing.creditLimit,
+      paymentTerms: existing.paymentTerms,
+      openingBalance: existing.openingBalance,
+      gracePeriod: existing.gracePeriod,
+      createdBy: existing.createdBy,
+    };
+
+    const changes = buildCustomerChanges(merged);
+    delete changes.orders;
+    delete changes.totalPurchases;
+    delete changes.outstanding;
+    delete changes.createdBy;
+
+    const customer = await Customer.findByIdAndUpdate(id, changes, {
+      new: true,
+      runValidators: true,
+    });
+
+    return res.status(200).json({ message: "Customer updated", customer });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
+async function deleteCustomer(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const customer = await Customer.findByIdAndDelete(id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    return res.status(200).json({ message: "Customer deleted" });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = {
+  getNextCustomerCode,
+  getCustomers,
+  getCustomerById,
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+};

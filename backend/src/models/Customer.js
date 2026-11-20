@@ -1,0 +1,61 @@
+const mongoose = require("mongoose");
+
+const customerSchema = new mongoose.Schema(
+  {
+    ledgerCode: {
+      type: String,
+      required: true,
+      trim: true,
+      unique: true,
+      index: true,
+    },
+    name: { type: String, required: true, trim: true },
+    businessName: { type: String, required: true, trim: true },
+    phone: { type: String, required: true, trim: true },
+    altPhone: { type: String, default: "", trim: true },
+    email: { type: String, default: "", trim: true },
+    city: { type: String, required: true, trim: true, index: true },
+    cityLabel: { type: String, default: "", trim: true },
+    address: { type: String, required: true, trim: true, maxlength: 300 },
+    customerType: {
+      type: String,
+      required: true,
+      enum: ["Wholesale", "Retailer", "Distributor", "Other"],
+      index: true,
+    },
+    status: {
+      type: String,
+      required: true,
+      enum: ["Active", "Inactive", "Blocked"],
+      default: "Active",
+      index: true,
+    },
+    route: { type: String, default: "unassigned", trim: true, index: true },
+    routeLabel: { type: String, default: "", trim: true },
+    ntn: { type: String, default: "", trim: true },
+    creditLimit: { type: Number, required: true, min: 0 },
+    paymentTerms: {
+      type: String,
+      required: true,
+      enum: ["cod", "7days", "15days", "30days", "45days"],
+    },
+    openingBalance: { type: Number, default: 0, min: 0 },
+    gracePeriod: {
+      type: String,
+      default: "none",
+      enum: ["none", "3days", "5days", "7days"],
+    },
+    notes: { type: String, default: "", trim: true, maxlength: 500 },
+    orders: { type: Number, default: 0, min: 0 },
+    totalPurchases: { type: Number, default: 0, min: 0 },
+    outstanding: { type: Number, default: 0, min: 0 },
+    createdBy: {
+      type: String,
+      default: "Tariq M. (Owner)",
+      trim: true,
+    },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Customer", customerSchema);

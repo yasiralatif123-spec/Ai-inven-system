@@ -1,0 +1,101 @@
+const mongoose = require("mongoose");
+
+const saleOrderItemSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    sku: { type: String, default: "", trim: true },
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      default: null,
+    },
+    flavor: { type: String, default: "", trim: true },
+    quantity: { type: Number, required: true, min: 1 },
+    unitLabel: { type: String, default: "pcs", trim: true },
+    unitPrice: { type: Number, required: true, min: 0 },
+    available: { type: Number, default: 0, min: 0 },
+    stockDeducted: { type: Boolean, default: false },
+    lineTotal: { type: Number, required: true, min: 0 },
+  },
+  { _id: false }
+);
+
+const saleOrderCreditSchema = new mongoose.Schema(
+  {
+    accountName: { type: String, default: "", trim: true },
+    ntn: { type: String, default: "", trim: true },
+    creditLimit: { type: Number, default: 0, min: 0 },
+    currentDues: { type: Number, default: 0, min: 0 },
+    available: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
+const saleOrderWarningSchema = new mongoose.Schema(
+  {
+    exposure: { type: Number, default: 0 },
+    overBy: { type: Number, default: 0 },
+    approvedBy: { type: String, default: "", trim: true },
+    reasons: { type: [String], default: [] },
+    defaultReason: { type: String, default: "", trim: true },
+    defaultNote: { type: String, default: "", trim: true },
+  },
+  { _id: false }
+);
+
+const saleOrderFinancialsSchema = new mongoose.Schema(
+  {
+    subtotal: { type: Number, default: 0, min: 0 },
+    discount: { type: Number, default: 0, min: 0 },
+    tax: { type: Number, default: 0, min: 0 },
+    freight: { type: Number, default: 0, min: 0 },
+    total: { type: Number, required: true, min: 0 },
+    paid: { type: Number, default: 0, min: 0 },
+    outstanding: { type: Number, default: 0, min: 0 },
+    dueDate: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
+const saleOrderSchema = new mongoose.Schema(
+  {
+    orderNumber: {
+      type: String,
+      required: true,
+      trim: true,
+      unique: true,
+      index: true,
+    },
+    customer: {
+      name: { type: String, required: true, trim: true },
+      phone: { type: String, default: "", trim: true },
+      location: { type: String, default: "", trim: true },
+    },
+    hub: { type: String, default: "", trim: true },
+    paymentStatus: {
+      type: String,
+      enum: ["paid", "partial", "unpaid"],
+      default: "unpaid",
+    },
+    paymentLabel: { type: String, default: "" },
+    paymentMethod: { type: String, default: "", trim: true },
+    status: {
+      type: String,
+      enum: ["Pending Approval", "Processing", "Packed", "Dispatched", "Delivered", "Credit Hold"],
+      default: "Pending Approval",
+      index: true,
+    },
+    createdBy: { type: String, default: "Tariq M. (Owner)", trim: true },
+    bay: { type: String, default: "Counter", trim: true },
+    items: { type: [saleOrderItemSchema], default: [] },
+    skuCount: { type: Number, default: 0, min: 0 },
+    unitCount: { type: Number, default: 0, min: 0 },
+    amount: { type: Number, default: 0, min: 0 },
+    credit: { type: saleOrderCreditSchema, default: () => ({}) },
+    warning: { type: saleOrderWarningSchema, default: null },
+    financials: { type: saleOrderFinancialsSchema, required: true },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("SaleOrder", saleOrderSchema);

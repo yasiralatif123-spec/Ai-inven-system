@@ -1,0 +1,7 @@
+# Design reference folder — intentionally excluded from the repository
+/stich ui/
+
+# OS/editor files
+Thumbs.db
+desktop.ini
+.DS_Store

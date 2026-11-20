@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #005645;
+  --color-on-primary-fixed: #002019;
+  --color-on-tertiary-fixed: #2a1800;
+  --color-surface-container: #f1eee6;
+  --color-surface-variant: #e5e2db;
+  --color-surface: #fcf9f2;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-primary-fixed-variant: #005141;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-on-primary-container: #a3efd7;
+  --color-background: #fcf9f2;
+  --color-on-primary: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-outline-variant: #bec9c4;
+  --color-primary-container: #1f6f5c;
+  --color-tertiary-fixed: #ffddb6;
+  --color-secondary-fixed-dim: #bfc9c6;
+  --color-surface-container-highest: #e5e2db;
+  --color-secondary-container: #d8e2df;
+  --color-on-tertiary-fixed-variant: #643f00;
+  --color-surface-container-low: #f7f3ec;
+  --color-surface-tint: #186a57;
+  --color-on-tertiary-container: #ffd9ad;
+  --color-on-secondary-fixed-variant: #3f4947;
+  --color-on-tertiary: #ffffff;
+  --color-primary-fixed: #a5f2d9;
+  --color-inverse-on-surface: #f4f0e9;
+  --color-on-error-container: #93000a;
+  --color-tertiary-fixed-dim: #ffb958;
+  --color-inverse-primary: #8ad5be;
+  --color-inverse-surface: #31312c;
+  --color-on-secondary: #ffffff;
+  --color-surface-bright: #fcf9f2;
+  --color-on-secondary-container: #5b6562;
+  --color-on-background: #1c1c18;
+  --color-on-surface: #1c1c18;
+  --color-on-surface-variant: #3f4945;
+  --color-primary-fixed-dim: #8ad5be;
+  --color-tertiary-container: #8a5800;
+  --color-on-secondary-fixed: #141d1c;
+  --color-tertiary: #6a4300;
+  --color-secondary-fixed: #dbe5e2;
+  --color-outline: #6f7975;
+  --color-surface-dim: #dddad3;
+  --color-surface-container-high: #ebe8e1;
+  --color-secondary: #57605e;
+
+  --font-sans: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
+
+  --radius: 0.125rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.5rem;
+  --radius-full: 0.75rem;
+
+  --spacing-space-lg: 1rem;
+  --spacing-margin-md: 1.5rem;
+  --spacing-space-xl: 1.5rem;
+  --spacing-gutter: 0.75rem;
+  --spacing-space-xs: 0.25rem;
+  --spacing-margin: 1rem;
+  --spacing-gutter-md: 1rem;
+  --spacing-space-md: 0.625rem;
+  --spacing-space-sm: 0.375rem;
+
+  --text-mono-data-sm: 11px;
+  --text-mono-data-sm--line-height: 14px;
+  --text-mono-data-sm--letter-spacing: 0em;
+  --text-mono-data-sm--font-weight: 400;
+  --text-mono-data: 12px;
+  --text-mono-data--line-height: 16px;
+  --text-mono-data--letter-spacing: -0.01em;
+  --text-mono-data--font-weight: 400;
+  --text-body-dense: 12px;
+  --text-body-dense--line-height: 16px;
+  --text-body-dense--letter-spacing: 0em;
+  --text-body-dense--font-weight: 400;
+  --text-headline-md: 16px;
+  --text-headline-md--line-height: 22px;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 600;
+  --text-headline-xl: 26px;
+  --text-headline-xl--line-height: 32px;
+  --text-headline-xl--letter-spacing: -0.02em;
+  --text-headline-xl--font-weight: 600;
+  --text-body-medium: 13px;
+  --text-body-medium--line-height: 18px;
+  --text-body-medium--letter-spacing: -0.005em;
+  --text-body-medium--font-weight: 500;
+  --text-metric-display: 26px;
+  --text-metric-display--line-height: 30px;
+  --text-metric-display--letter-spacing: -0.02em;
+  --text-metric-display--font-weight: 600;
+  --text-body-default: 13px;
+  --text-body-default--line-height: 18px;
+  --text-body-default--letter-spacing: -0.005em;
+  --text-body-default--font-weight: 400;
+  --text-headline-lg: 20px;
+  --text-headline-lg--line-height: 26px;
+  --text-headline-lg--letter-spacing: -0.015em;
+  --text-headline-lg--font-weight: 600;
+  --text-label-caps: 11px;
+  --text-label-caps--line-height: 14px;
+  --text-label-caps--letter-spacing: 0.06em;
+  --text-label-caps--font-weight: 600;
+}
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    overscroll-behavior: none;
+  }
+  main > :first-child {
+    margin-top: 0 !important;
+  }
+  main > :last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+}
+
+.font-mono-data,
+.font-mono-data-sm {
+  font-family: var(--font-mono);
+}

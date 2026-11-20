@@ -1,0 +1,380 @@
+"use client";
+
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
+import {
+  GRACE_DAY_OPTIONS,
+  HUB_OPTIONS,
+  PAYMENT_TERM_OPTIONS,
+  TAX_STATUS_OPTIONS,
+} from "../constants";
+import { updateSupplier } from "../services/supplier.service";
+import { useSupplierProducts } from "../hooks/useSupplierProducts";
+import { ProductMultiSelect } from "./ProductMultiSelect";
+import type {
+  HubKey,
+  PaymentTerms,
+  Supplier,
+  TaxStatus,
+  UpdateSupplierInput,
+} from "../types";
+import { formatRs } from "../utils";
+
+type EditSupplierDialogProps = {
+  supplier: Supplier;
+  onClose: () => void;
+  onSaved: (supplier: Supplier) => void;
+};
+
+const INPUT_CLASS =
+  "h-9 w-full rounded border border-outline-variant bg-surface px-2.5 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary focus:outline-none";
+const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-8`;
+const TEXTAREA_CLASS =
+  "w-full resize-none rounded border border-outline-variant bg-surface px-2.5 py-2 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary focus:outline-none";
+
+function toInput(supplier: Supplier): UpdateSupplierInput {
+  const productIds = supplier.productIds || [];
+  return {
+    name: supplier.name,
+    contactPerson: supplier.contact,
+    phone: supplier.phone,
+    email: supplier.email,
+    hub: supplier.hubKey,
+    taxStatus: supplier.taxStatus,
+    address: supplier.address,
+    ntn: supplier.ntn,
+    paymentTerms: supplier.paymentTerms,
+    graceDays: supplier.graceDays,
+    notes: supplier.notes,
+    productIds,
+    productFlavors: Object.fromEntries(
+      Object.entries(supplier.productFlavors || {}).filter(([productId]) =>
+        productIds.includes(productId)
+      )
+    ),
+  };
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="font-label-caps text-label-caps uppercase text-secondary">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function SelectShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="relative">
+      {children}
+      <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-2 text-[18px] text-outline">
+        expand_more
+      </span>
+    </div>
+  );
+}
+
+export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierDialogProps) {
+  const [form, setForm] = useState<UpdateSupplierInput>(() => toInput(supplier));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const {
+    products,
+    loading: productsLoading,
+    error: productsError,
+  } = useSupplierProducts();
+
+  const catalogIds = useMemo(
+    () => new Set(products.map((product) => product._id)),
+    [products]
+  );
+  const selectedProductIds = useMemo(() => {
+    if (products.length === 0) return form.productIds;
+    return form.productIds.filter((id) => catalogIds.has(id));
+  }, [catalogIds, form.productIds, products.length]);
+  const staleProductCount = form.productIds.length - selectedProductIds.length;
+
+  function update<K extends keyof UpdateSupplierInput>(key: K, value: UpdateSupplierInput[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+    setError(null);
+  }
+
+  function handleProductIdsChange(ids: string[]) {
+    setForm((current) => ({
+      ...current,
+      productIds: ids,
+      productFlavors: Object.fromEntries(
+        Object.entries(current.productFlavors).filter(([productId]) => ids.includes(productId))
+      ),
+    }));
+    setError(null);
+  }
+
+  function handleProductFlavorChange(productId: string, flavor: string) {
+    setForm((current) => {
+      const productFlavors = { ...current.productFlavors };
+      if (flavor) productFlavors[productId] = flavor;
+      else delete productFlavors[productId];
+      return { ...current, productFlavors };
+    });
+    setError(null);
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    if (!form.name.trim()) {
+      setError("Supplier name is required");
+      return;
+    }
+    if (!form.contactPerson.trim()) {
+      setError("Contact person is required");
+      return;
+    }
+    if (form.phone.replace(/\D/g, "").length < 10) {
+      setError("Enter a valid phone number with at least 10 digits");
+      return;
+    }
+    if (!form.address.trim()) {
+      setError("Warehouse address is required");
+      return;
+    }
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setError("Enter a valid email address");
+      return;
+    }
+    if (!form.paymentTerms) {
+      setError("Payment terms is required");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updated = await updateSupplier(supplier.id, {
+        ...form,
+        productIds: selectedProductIds,
+        productFlavors: Object.fromEntries(
+          Object.entries(form.productFlavors).filter(([productId]) =>
+            selectedProductIds.includes(productId)
+          )
+        ),
+        name: form.name.trim(),
+        contactPerson: form.contactPerson.trim(),
+        email: form.email.trim(),
+        address: form.address.trim(),
+        ntn: form.ntn.trim(),
+        notes: form.notes.trim(),
+      });
+      onSaved(updated);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Failed to update supplier. Please try again."
+      );
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/30 p-4">
+      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
+      <form
+        onSubmit={handleSubmit}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-supplier-title"
+        className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded border border-outline-variant bg-surface-container-lowest shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-outline-variant bg-surface-container-high/40 px-4 py-3">
+          <div>
+            <h2 id="edit-supplier-title" className="font-headline-md text-headline-md text-on-surface">
+              Edit Supplier
+            </h2>
+            <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
+              #{supplier.code} · opening balance {formatRs(supplier.openingBalance)} and payable
+              totals are preserved
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close edit supplier form"
+            className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        <div className="space-y-4 p-4">
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Supplier / Company Name">
+              <input
+                className={INPUT_CLASS}
+                value={form.name}
+                onChange={(event) => update("name", event.target.value)}
+              />
+            </Field>
+            <Field label="Contact Person">
+              <input
+                className={INPUT_CLASS}
+                value={form.contactPerson}
+                onChange={(event) => update("contactPerson", event.target.value)}
+              />
+            </Field>
+            <Field label="Phone (+92)">
+              <input
+                className={`${INPUT_CLASS} font-mono-data`}
+                value={form.phone}
+                onChange={(event) => update("phone", event.target.value)}
+              />
+            </Field>
+            <Field label="Dispatch Email">
+              <input
+                className={INPUT_CLASS}
+                value={form.email}
+                onChange={(event) => update("email", event.target.value)}
+              />
+            </Field>
+            <Field label="Primary Supply Hub">
+              <SelectShell>
+                <select
+                  className={SELECT_CLASS}
+                  value={form.hub}
+                  onChange={(event) => update("hub", event.target.value as HubKey)}
+                >
+                  {HUB_OPTIONS.map((option) => (
+                    <option key={option.value || "none"} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </SelectShell>
+            </Field>
+            <Field label="FBR Tax Status">
+              <SelectShell>
+                <select
+                  className={SELECT_CLASS}
+                  value={form.taxStatus}
+                  onChange={(event) => update("taxStatus", event.target.value as TaxStatus)}
+                >
+                  {TAX_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </SelectShell>
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Warehouse / Dispatch Address">
+                <textarea
+                  className={TEXTAREA_CLASS}
+                  value={form.address}
+                  onChange={(event) => update("address", event.target.value)}
+                  rows={2}
+                />
+              </Field>
+            </div>
+            <Field label="NTN / STRN">
+              <input
+                className={`${INPUT_CLASS} font-mono-data uppercase`}
+                value={form.ntn}
+                onChange={(event) => update("ntn", event.target.value)}
+              />
+            </Field>
+          </section>
+
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field label="Payment Terms">
+              <SelectShell>
+                <select
+                  className={SELECT_CLASS}
+                  value={form.paymentTerms}
+                  onChange={(event) => update("paymentTerms", event.target.value as PaymentTerms)}
+                >
+                  {PAYMENT_TERM_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </SelectShell>
+            </Field>
+            <Field label="Grace Days">
+              <SelectShell>
+                <select
+                  className={SELECT_CLASS}
+                  value={form.graceDays}
+                  onChange={(event) => update("graceDays", Number(event.target.value))}
+                >
+                  {GRACE_DAY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </SelectShell>
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Procurement Notes">
+                <textarea
+                  className={TEXTAREA_CLASS}
+                  value={form.notes}
+                  onChange={(event) => update("notes", event.target.value.slice(0, 500))}
+                  rows={2}
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-2">
+              <Field label="Supplied Products">
+                <div className="flex flex-col gap-1">
+                  <ProductMultiSelect
+                    selectedIds={selectedProductIds}
+                    selectedFlavors={form.productFlavors}
+                    onChange={handleProductIdsChange}
+                    onFlavorChange={handleProductFlavorChange}
+                    products={products}
+                    loading={productsLoading}
+                    error={productsError}
+                  />
+                  {staleProductCount > 0 ? (
+                    <span className="font-body-dense text-body-dense text-secondary">
+                      {staleProductCount} product link
+                      {staleProductCount === 1 ? "" : "s"} no longer in the catalog will be removed
+                      when you save.
+                    </span>
+                  ) : null}
+                </div>
+              </Field>
+            </div>
+          </section>
+
+          {error ? (
+            <div className="rounded border border-error-container bg-error-container/40 px-3 py-2 font-body-dense text-body-dense text-error">
+              {error}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-outline-variant bg-surface-container-high/40 px-4 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="h-8 rounded bg-primary-container px-3.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
