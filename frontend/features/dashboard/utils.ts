@@ -40,8 +40,9 @@ function isSameDay(a: Date, b: Date): boolean {
   return a.toDateString() === b.toDateString();
 }
 
+/** Date buckets use an exclusive upper bound so adjacent buckets never overlap. */
 function inRange(date: Date, from: Date, to: Date): boolean {
-  return date >= from && date <= to;
+  return date >= from && date < to;
 }
 
 function percentChange(current: number, previous: number): number {
@@ -56,6 +57,11 @@ function safeAmount(value: unknown): number {
 
 function shortDate(value: Date): string {
   return value.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function localDateKey(value: Date): string {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
 }
 
 function parseOrders(orders: SalesOrder[]) {
@@ -86,7 +92,7 @@ export function getSalesBuckets(
       const date = addDays(today, -offset);
       const prior = addDays(date, -7);
       buckets.push({
-        key: date.toISOString().slice(0, 10),
+        key: localDateKey(date),
         label: date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }),
         shortLabel: date.toLocaleDateString("en-GB", { weekday: "short" }),
         amount: sumOn(points, date),
@@ -101,12 +107,13 @@ export function getSalesBuckets(
     const currentWeek = startOfWeek(now);
     for (let offset = 5; offset >= 0; offset -= 1) {
       const from = addDays(currentWeek, -7 * offset);
-      const to = addDays(from, 6);
+      const to = addDays(from, 7);
+      const displayTo = addDays(to, -1);
       const priorFrom = addDays(from, -7);
-      const priorTo = addDays(priorFrom, 6);
+      const priorTo = from;
       buckets.push({
-        key: `week-${from.toISOString().slice(0, 10)}`,
-        label: `${shortDate(from)} – ${shortDate(to)}`,
+        key: `week-${localDateKey(from)}`,
+        label: `${shortDate(from)} – ${shortDate(displayTo)}`,
         shortLabel: shortDate(from),
         amount: sumBetween(points, from, to),
         priorAmount: sumBetween(points, priorFrom, priorTo),
@@ -137,14 +144,16 @@ export function getSalesBuckets(
 
   const today = startOfDay(now);
   const blockSize = 5;
+  const currentEnd = addDays(today, 1);
   for (let offset = 5; offset >= 0; offset -= 1) {
-    const to = addDays(today, -blockSize * offset);
-    const from = addDays(to, -(blockSize - 1));
+    const to = addDays(currentEnd, -blockSize * offset);
+    const from = addDays(to, -blockSize);
+    const displayTo = addDays(to, -1);
     const priorTo = addDays(to, -30);
-    const priorFrom = addDays(priorTo, -(blockSize - 1));
+    const priorFrom = addDays(priorTo, -blockSize);
     buckets.push({
-      key: `custom-${from.toISOString().slice(0, 10)}`,
-      label: `${shortDate(from)} – ${shortDate(to)}`,
+      key: `custom-${localDateKey(from)}`,
+      label: `${shortDate(from)} – ${shortDate(displayTo)}`,
       shortLabel: shortDate(from),
       amount: sumBetween(points, from, to),
       priorAmount: sumBetween(points, priorFrom, priorTo),

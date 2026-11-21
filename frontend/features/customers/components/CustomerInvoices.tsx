@@ -31,6 +31,7 @@ export function CustomerInvoices({ orders, onViewOrder, onPay }: CustomerInvoice
           <thead>
             <tr className="h-8 border-b border-outline-variant bg-surface-container-low font-label-caps text-label-caps uppercase tracking-wider text-secondary">
               <th className="px-3 py-2">Invoice / Order</th>
+              <th className="px-3 py-2">Flavor</th>
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2 text-right">Total</th>
               <th className="px-3 py-2 text-right">Paid</th>
@@ -48,10 +49,16 @@ export function CustomerInvoices({ orders, onViewOrder, onPay }: CustomerInvoice
                   </span>
                   <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
                     {order.items
-                      .map((item) => `${item.name}${formatFlavors(item.flavor) ? ` · ${formatFlavors(item.flavor)}` : ""}`)
                       .slice(0, 2)
+                      .map((item) => item.name)
                       .join(", ")}
                   </div>
+                </td>
+                <td className="px-3 py-2.5 font-mono-data-sm text-mono-data-sm text-primary">
+                  {order.items
+                    .slice(0, 2)
+                    .map((item) => formatFlavors(item.flavor) || "—")
+                    .join(" | ")}
                 </td>
                 <td className="px-3 py-2.5 font-mono-data-sm text-mono-data-sm text-secondary">
                   {formatProfileDate(order.createdAt)}

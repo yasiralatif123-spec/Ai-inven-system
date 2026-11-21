@@ -28,6 +28,7 @@ function exportPurchases(rows: Purchase[]) {
     "Purchase ID",
     "Date",
     "Purchased Products",
+    "Flavors",
     "Ordered Quantity",
     "Received Quantity",
     "Total Amount",
@@ -43,9 +44,10 @@ function exportPurchases(rows: Purchase[]) {
       row.reference,
       ...row.lines.map(
         (line) =>
-          `${line.name}${line.sku ? ` (${line.sku})` : ""} · flavors ${line.flavors.join("/") || "none"} · qty ${line.quantity} ${line.unit} · ${line.basePrice}×${line.flavorCount}=${line.unitPrice} · total ${line.lineTotal} · received ${line.receivedQuantity}/${line.quantity} · ${line.date} · ${line.status}`
+          `${line.name}${line.sku ? ` (${line.sku})` : ""} · qty ${line.quantity} ${line.unit} · ${line.basePrice}×${line.flavorCount}=${line.unitPrice} · total ${line.lineTotal} · received ${line.receivedQuantity}/${line.quantity} · ${line.date} · ${line.status}`
       ),
     ].join(" | "),
+    row.lines.map((line) => line.flavors.join(", ") || "—").join(" | "),
     String(row.orderedQuantity),
     String(row.receivedQuantity),
     String(row.total),
@@ -150,6 +152,7 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
                 <th className="w-28 px-3">Purchase ID</th>
                 <th className="w-24 px-3">Date</th>
                 <th className="px-3">Purchased Products</th>
+                <th className="px-3">Flavor</th>
                 <th className="w-24 px-3 text-right">Ordered</th>
                 <th className="w-24 px-3 text-right">Received</th>
                 <th className="w-28 px-3 text-right">Total Amount</th>
@@ -161,7 +164,7 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
             <tbody className="divide-y divide-outline-variant font-body-default text-body-dense text-on-surface">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-10 text-center">
+                  <td colSpan={10} className="px-3 py-10 text-center">
                     <div className="font-body-medium text-body-medium text-on-surface">
                       No purchases match this filter
                     </div>
@@ -198,6 +201,11 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
 }
 
 function PurchaseRow({ purchase }: { purchase: Purchase }) {
+  const hasReference = Boolean(
+    purchase.reference && purchase.reference !== "No invoice reference"
+  );
+  const showLineReceipt = purchase.status === "Partially Received";
+
   return (
     <tr
       className={`bg-surface-container-lowest transition-colors hover:bg-[#FAF9F7] ${
@@ -209,11 +217,12 @@ function PurchaseRow({ purchase }: { purchase: Purchase }) {
         {purchase.date}
       </td>
       <td className="px-3 py-2">
-        <div className="font-medium text-on-surface">{purchase.items}</div>
-        <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-          {purchase.reference}
-        </div>
-        <div className="mt-1 flex flex-col gap-1">
+        {hasReference ? (
+          <div className="font-mono-data-sm text-mono-data-sm text-secondary">
+            {purchase.reference}
+          </div>
+        ) : null}
+        <div className={`flex flex-col gap-1 ${hasReference ? "mt-1" : ""}`}>
           {purchase.lines.map((line, index) => (
             <div
               key={`${line.purchaseId}-${line.sku || line.name}-${index}`}
@@ -228,14 +237,28 @@ function PurchaseRow({ purchase }: { purchase: Purchase }) {
                 ) : null}
               </div>
               <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-                {line.flavors.length ? line.flavors.join(", ") : "No flavors"} · {line.quantity}{" "}
-                {line.unit} @ {formatRs(line.unitPrice)} = {formatRs(line.lineTotal)}
+                {line.quantity} {line.unit} @ {formatRs(line.unitPrice)} = {formatRs(line.lineTotal)}
               </div>
-              <div className="font-mono-data-sm text-mono-data-sm text-outline">
-                {formatRs(line.basePrice)} × {line.flavorCount} flavor
-                {line.flavorCount === 1 ? "" : "s"} · received {line.receivedQuantity}/
-                {line.quantity} · {line.date} · {line.status}
-              </div>
+              {showLineReceipt ? (
+                <div className="font-mono-data-sm text-mono-data-sm text-outline">
+                  received {line.receivedQuantity}/{line.quantity} {line.unit}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </td>
+      <td className="px-3 py-2">
+        {hasReference ? (
+          <div className="font-mono-data-sm text-mono-data-sm text-secondary">&nbsp;</div>
+        ) : null}
+        <div className={`flex flex-col gap-1 ${hasReference ? "mt-1" : ""}`}>
+          {purchase.lines.map((line, index) => (
+            <div
+              key={`flavor-${line.purchaseId}-${line.sku || line.name}-${index}`}
+              className="rounded border border-outline-variant/70 bg-surface-container-low px-2 py-1 font-mono-data-sm text-mono-data-sm text-primary"
+            >
+              {line.flavors.length ? line.flavors.join(", ") : "—"}
             </div>
           ))}
         </div>

@@ -28,16 +28,14 @@ const PAGE_SIZE = 8;
 
 function exportOrders(orders: SalesOrder[]) {
   const rows = [
-    ["Order ID", "Booking Date", "Manifest Items", "Order Amount", "Payment", "Fulfillment"],
+    ["Order ID", "Booking Date", "Manifest Items", "Flavors", "Order Amount", "Payment", "Fulfillment"],
     ...orders.map((order) => [
       order.id,
       formatProfileDate(order.createdAt),
       `${order.unitCount} units (${order.items
-        .map(
-          (item) =>
-            `${item.name}${formatFlavors(item.flavor) ? ` · ${formatFlavors(item.flavor)}` : ""} · ${item.quantity} × ${item.unitPrice} = ${item.lineTotal}`
-        )
+        .map((item) => `${item.name} · ${item.quantity} × ${item.unitPrice} = ${item.lineTotal}`)
         .join(", ")})`,
+      order.items.map((item) => formatFlavors(item.flavor) || "—").join(" | "),
       String(order.amount),
       order.paymentStatus,
       order.status,
@@ -142,6 +140,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
                 <th className="px-3.5 py-2">Order ID</th>
                 <th className="px-3 py-2">Booking Date</th>
                 <th className="px-3 py-2">Manifest Items</th>
+                <th className="px-3 py-2">Flavor</th>
                 <th className="px-3 py-2 text-right">Order Amount</th>
                 <th className="px-3 py-2 text-center">Payment</th>
                 <th className="px-3 py-2 text-center">Fulfillment</th>
@@ -151,7 +150,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
             <tbody className="divide-y divide-outline-variant font-body-default text-body-default text-on-surface">
               {paged.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center">
+                  <td colSpan={8} className="px-4 py-10 text-center">
                     <div className="font-body-medium text-body-medium text-on-surface">
                       No saved orders match this view
                     </div>
@@ -190,9 +189,23 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
                               ) : null}
                             </div>
                             <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-                              {formatFlavors(item.flavor) || "No flavors"} · {item.quantity} ×{" "}
-                              {formatRs(item.unitPrice)} = {formatRs(item.lineTotal)}
+                              {item.quantity} × {formatRs(item.unitPrice)} = {formatRs(item.lineTotal)}
                             </div>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="font-mono-data-sm text-mono-data-sm text-secondary">
+                        &nbsp;
+                      </div>
+                      <div className="mt-1 flex flex-col gap-1">
+                        {order.items.map((item, index) => (
+                          <div
+                            key={`flavor-${item.sku || item.name}-${index}`}
+                            className="rounded border border-outline-variant/70 bg-surface-container-low px-1.5 py-1 font-mono-data-sm text-mono-data-sm text-primary"
+                          >
+                            {formatFlavors(item.flavor) || "—"}
                           </div>
                         ))}
                       </div>

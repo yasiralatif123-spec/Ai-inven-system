@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (inventory Adjust Stock panel is hidden by default and opens from a row Adjust click or dashboard deep-link).
+> Last updated: **2026-11-21** (supplier profile purchase rows cleaned up: duplicate product names, line date/status/pricing math removed).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,7 +799,59 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Inventory Adjust Stock panel hidden by default (completed 2026-11-21)
+### Latest task: Supplier profile row cleanup (completed 2026-11-21)
+
+- **User request:** Supplier profile row me jo extra/faltu cheezein hain unhe remove karna tha, pehle batana tha kya remove hoga.
+- **Proposed & approved cleanup (Recommended):**
+  - Removed top duplicate product-name list (`purchase.items`) from the Purchased Products cell — line cards already show item names.
+  - Removed per-line `date` (Date column already present) and per-line `status` (Status badge already present).
+  - Removed per-line `basePrice × flavorCount` pricing formula; `unitPrice` and `lineTotal` remain visible.
+  - Hidden the `No invoice reference` fallback; `Invoice #...` / notes now show only when a real reference exists.
+  - Per-line `received x/y` kept only for `Partially Received` purchases; removed for others because Ordered/Received columns show totals.
+- **Kept unchanged:** Purchase ID, Date, real invoice reference, item name + SKU, `qty @ unitPrice = lineTotal`, Flavor column, Ordered/Received/Total/Paid/Remaining/Status, and full CSV audit detail.
+- **Files modified:** `frontend/features/suppliers/components/SupplierPurchaseLedger.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.**
+- **Git:** Previous uncommitted tasks (dashboard date fix, customer Flavor columns, supplier Flavor column) remain uncommitted; last pushed commit `36e10a4`. This change is also uncommitted unless explicitly asked.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** Flavor column alignment now uses one placeholder line only when a real invoice/notes reference exists; both cells stay aligned.
+
+### Previous task: Supplier profile Flavor column (completed 2026-11-21)
+
+- **User request:** Supplier profile me bhi flavor ko alag column me dikhana hai, jaise customer profile me kiya gaya tha.
+- **Approved decisions:** Purchase History table me “Purchased Products” ke baad **Flavor** column; har purchase line ka flavor usi column me aligned card me; flavorless ke liye `—`; CSV export me bhi alag `Flavors` column. Order-level rows waise hi rakhe gaye.
+- **Files modified:** `frontend/features/suppliers/components/SupplierPurchaseLedger.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.**
+- **Git:** Dashboard date fix aur customer-profile flavor columns abhi uncommitted hain; last pushed commit `36e10a4`. Ye change bhi uncommitted hai jab tak explicitly na kaha jaye.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** Table ek column wider hua; horizontal scroll pehle se maujood hai. Multi-line purchases me flavor cards item cards ke neeche aligned dikhte hain.
+
+### Previous task: Customer profile Flavor column (completed 2026-11-21)
+
+- **User request:** Customer profile item rows were not showing flavor clearly with the item; flavor should appear in its own Flavor column.
+- **Approved decisions:** Add a dedicated Flavor column to both the Orders ledger and Invoices table. Keep order-level rows (do not flatten one row per item). Flavorless items show `—`. CSV export also gets a separate `Flavors` column.
+- **Files modified:**
+  - `frontend/features/customers/components/CustomerOrdersLedger.tsx` — new Flavor column with one aligned flavor card per item; inline flavor removed from item detail and CSV; empty `colSpan` 7 → 8.
+  - `frontend/features/customers/components/CustomerInvoices.tsx` — new Flavor column beside Invoice / Order; invoice cell now lists item names only and the flavor cell mirrors the same first two items.
+  - `PROJECT_MEMORY.md` — memory update.
+- **No backend/API/DB changes, no new dependencies, no new files.**
+- **Git:** Dashboard date fix from the previous task is still uncommitted; the last pushed commit remains `36e10a4`. This change is also uncommitted unless explicitly asked.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** Table width increased by one column on the customer profile; horizontal scroll is already present. Multi-item orders show flavors as stacked cards aligned with the item cards.
+
+### Previous task: Dashboard sales chart dates made dynamic (completed 2026-11-21)
+
+- **User request:** Dashboard graph dates were effectively fixed; make them dynamic so the chart reflects the current date properly.
+- **Bugs found:** Date buckets used an inclusive `00:00` upper bound. Custom ended at today `00:00` (today's orders excluded), weekly ended at Sunday `00:00` (Sunday excluded), and monthly ended at next month's 1st `00:00` (month-end excluded). The dashboard also only recalculated when manually reloaded, so an open page kept stale dates past midnight.
+- **Files modified:**
+  - `frontend/features/dashboard/utils.ts` — `inRange()` is now `[from, to)`; weekly/custom ranges use exclusive end boundaries; display labels use the real last day; bucket keys use local dates instead of `toISOString()` timezone shifts.
+  - `frontend/features/dashboard/hooks/useDashboard.ts` — checks the local date every minute and reloads the dashboard when it changes; initial timestamp is read inside `useEffect` to avoid Next.js 16 current-time prerender errors.
+  - `PROJECT_MEMORY.md` — memory update.
+- **No backend/API/DB changes, no new dependencies, no new files.**
+- **Git:** This change is uncommitted unless explicitly asked; the previous customer-profile/adjust-panel commit is `36e10a4`.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (16 routes). The first build attempt failed with Next.js 16 `blocking-prerender-current-time-client` because `new Date()` was read during render; moving it into `useEffect` fixed it.
+- **Side effects/risks:** Bucket boundaries no longer overlap or drop the final day. An idle dashboard triggers one background data reload within ~60 seconds of local midnight.
+
+### Previous task: Inventory Adjust Stock panel hidden by default (completed 2026-11-21)
 
 - **User request:** The right-side Adjust Stock section on `/inventory` should be hidden by default and only open after clicking Adjust in a row.
 - **Approved decision:** Change only the initial `adjustOpen` state to `false`. Existing `openAdjust(row)` already selects the row and opens the panel, and dashboard `?product=...&flavor=...` deep-links still open it explicitly. Header toggle and close behavior were left unchanged as requested.
