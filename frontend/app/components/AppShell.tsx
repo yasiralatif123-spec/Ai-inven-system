@@ -21,14 +21,9 @@ const mainMenu: NavItem[] = [
   { label: "Payments & Finance", icon: "payments", href: "#", path: "payments-and-finance" },
 ];
 
-const analyticsMenu: NavItem[] = [
-  { label: "Reports & Analytics", icon: "bar_chart", href: "#", path: "reports-and-analytics" },
-];
-
 const intelligenceMenu: NavItem[] = [
   { label: "AI Assistant", icon: "auto_awesome", href: "#", path: "ai-assistant" },
   { label: "Notifications", icon: "notifications", href: "#", path: "notifications", badge: "3" },
-  { label: "Automations", icon: "bolt", href: "#", path: "automations" },
 ];
 
 const systemMenu: NavItem[] = [
@@ -111,7 +106,6 @@ export function AppShell({ activePath, children }: { activePath: string; childre
           </div>
           <nav className="flex flex-col gap-y-4 px-3 py-3">
             <NavGroup title="Main Menu" items={mainMenu} activePath={activePath} />
-            <NavGroup title="Analytics" items={analyticsMenu} activePath={activePath} />
             <NavGroup title="Intelligence" items={intelligenceMenu} activePath={activePath} />
             <NavGroup title="System" items={systemMenu} activePath={activePath} />
           </nav>

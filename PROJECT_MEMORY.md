@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (purchase edit form resets saving state when switching rows; PR #1 open).
+> Last updated: **2026-11-21** (sidebar Analytics group and Automations button removed; purchase edit fix merged via PR #1).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,7 +799,18 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Purchase edit saving state fix (completed 2026-11-21)
+### Latest task: Remove sidebar Analytics group and Automations button (completed 2026-11-21)
+
+- **User request:** Side bar se "Analytics" section aur "Automations" button remove karna hai.
+- **Approved implementation (direct UI cleanup):** `frontend/app/components/AppShell.tsx` me `analyticsMenu` array, uska `<NavGroup title="Analytics" ... />` aur `intelligenceMenu` se `Automations` item remove kiya gaya. Baaki nav groups (Main Menu, Intelligence, System) unchanged.
+- **No routing/activePath references** thi; `reports-and-analytics` aur `automations` kahin aur use nahi hote the. Koi page/route delete nahi kiya gaya.
+- **Files modified:** `frontend/app/components/AppShell.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.**
+- **Git:** Branch `remove-analytics-automations-nav` (base `main` / `c1855ed`) par stash apply karke commit kiya gaya; user ne sab kuch `main` me merge karne ka instruction diya hai.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** Sidebar me ab Analytics heading aur Automations link nahi dikhte. Dashboard ka `bolt` icon (`DataSourceStrip`) unrelated hai, changed nahi.
+
+### Previous task: Purchase edit saving state fix (merged via PR #1, 2026-11-21)
 
 - **User request:** Purchase edit me save karne ke baad, bina reload doosre purchase ko edit karne par Save button disabled reh jata tha.
 - **Root cause:** `saving` state success ke baad `false` nahi hota tha aur query string `?edit=` badalne par client component instance reuse hota tha; edit-load effect `[]` ke saath sirf ek baar chalta tha.
