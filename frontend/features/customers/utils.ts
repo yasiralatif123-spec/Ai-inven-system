@@ -51,6 +51,11 @@ export function findCustomerForOrder(
   customers: Customer[],
   order: SalesOrder
 ): Customer | undefined {
+  if (order.customerId) {
+    const byId = customers.find((customer) => customer.id === order.customerId);
+    if (byId) return byId;
+  }
+
   const orderPhone = phoneDigits(order.phone || "");
   if (orderPhone) {
     const byPhone = customers.find(

@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (dashboard low/critical stock alerts are now flavor-aware; all low/critical purchased flavors are listed with exact Adjust Stock deep-links).
+> Last updated: **2026-11-21** (inventory Adjust Stock panel is hidden by default and opens from a row Adjust click or dashboard deep-link).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,7 +799,31 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Flavor-aware dashboard low/critical stock (completed 2026-11-21)
+### Latest task: Inventory Adjust Stock panel hidden by default (completed 2026-11-21)
+
+- **User request:** The right-side Adjust Stock section on `/inventory` should be hidden by default and only open after clicking Adjust in a row.
+- **Approved decision:** Change only the initial `adjustOpen` state to `false`. Existing `openAdjust(row)` already selects the row and opens the panel, and dashboard `?product=...&flavor=...` deep-links still open it explicitly. Header toggle and close behavior were left unchanged as requested.
+- **Files modified:** `frontend/app/inventory/page.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.**
+- **Git:** Sales-order customer navigation was not committed/pushed after the previous task; this change is also uncommitted unless explicitly asked.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** None. The table now occupies the full width until the panel is opened.
+
+### Previous task: Sales-order customer click opens exact profile (completed 2026-11-21)
+
+- **User request:** On the sales/orders page, clicking a customer should open that specific customer's profile.
+- **Approved decisions:** Use the authoritative saved `order.customerId` first and navigate directly to `/customers/<id>`; keep phone/name resolution only for legacy orders without an ID. `customerId` also takes priority over phone inside the shared matcher.
+- **Files modified:**
+  - `frontend/features/sales-orders/components/SalesOrdersView.tsx` — `handleOpenCustomer()` direct-navigates by `order.customerId` before falling back to `findCustomerForOrder()`.
+  - `frontend/features/customers/utils.ts` — `findCustomerForOrder()` checks `order.customerId` before phone/name, preventing a same-phone customer from winning.
+  - `frontend/features/sales-orders/components/OrdersTable.tsx` — customer name is an explicit button with hover feedback and `stopPropagation`; row click still works.
+  - `PROJECT_MEMORY.md` — memory update.
+- **No backend/API/DB changes, no new dependencies, no auth changes.**
+- **Git:** Dashboard flavor alerts were committed and pushed as `2bc5fae`; this customer-navigation change is not committed unless explicitly asked.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** Orders with a stale/deleted `customerId` now go straight to the profile route (which shows its own not-found/error state) instead of showing the sales-page notice. Legacy orders without an ID still use the previous fallback.
+
+### Previous task: Flavor-aware dashboard low/critical stock (completed 2026-11-21)
 
 - **User request:** Dashboard LOW STOCK ITEMS / Critical Low Stock should judge stock per purchased flavor and show the flavor name on each alert row.
 - **Approved decisions:** Reuse `toStockRows()` so only received flavors produce flavor rows; show **all** low/critical rows (no 5-row cap); count KPI `lowStockCount`/`urgentCount` from the same flavor rows; critical rows sort before low rows. Legacy/flavorless products keep a single product row.

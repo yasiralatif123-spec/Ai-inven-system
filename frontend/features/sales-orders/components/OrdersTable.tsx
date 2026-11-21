@@ -132,7 +132,17 @@ export function OrdersTable({
                     </td>
                     <td className="whitespace-nowrap px-2.5 py-2 font-mono-data-sm text-secondary">{order.time}</td>
                     <td className="px-2.5 py-2">
-                      <div className="font-body-medium leading-tight text-on-surface">{order.customer}</div>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onOpenCustomer(order);
+                        }}
+                        title={`Open profile for ${order.customer}`}
+                        className="font-body-medium leading-tight text-on-surface transition-colors hover:text-primary hover:underline"
+                      >
+                        {order.customer}
+                      </button>
                       <div className="font-mono-data-sm text-[10px] text-secondary">{order.location}</div>
                     </td>
                     <td className="whitespace-nowrap px-2.5 py-2 text-right font-mono-data-sm tabular-nums">

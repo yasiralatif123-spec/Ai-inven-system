@@ -59,7 +59,7 @@ export default function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
   const [activeTab, setActiveTab] = useState<InventoryTab>("overview");
-  const [adjustOpen, setAdjustOpen] = useState(true);
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<StockRow | null>(null);
   const [query, setQuery] = useState("");
   const [depotFilter, setDepotFilter] = useState("all");

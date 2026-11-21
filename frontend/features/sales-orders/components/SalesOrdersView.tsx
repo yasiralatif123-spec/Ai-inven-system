@@ -147,6 +147,11 @@ export function SalesOrdersView() {
   }
 
   function handleOpenCustomer(order: SalesOrder) {
+    if (order.customerId) {
+      router.push(`/customers/${encodeURIComponent(order.customerId)}`);
+      return;
+    }
+
     const customer = findCustomerForOrder(customers, order);
     if (!customer) {
       setNotice(`No saved customer profile matches ${order.customer}.`);
