@@ -93,6 +93,10 @@ export function CreatePurchaseView() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const supplierIdParam = searchParams.get("supplierId");
+  const productIdParam = searchParams.get("product");
+  const flavorParam = searchParams.get("flavor");
+  const stockParam = searchParams.get("stock");
+  const lowStockParam = searchParams.get("lowStock");
   const { suppliers, products, suppliersLoading, productsLoading, error: lookupError } =
     usePurchaseLookups();
 
@@ -115,11 +119,13 @@ export function CreatePurchaseView() {
   const [editingPurchase, setEditingPurchase] = useState<PurchaseDto | null>(null);
   const [loadingPurchase, setLoadingPurchase] = useState(false);
   const supplierPreselectedRef = useRef(false);
+  const lowStockPrefillRef = useRef(false);
 
   useEffect(() => {
     if (editId) return;
 
     supplierPreselectedRef.current = false;
+    lowStockPrefillRef.current = false;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       const today = toIsoDate(new Date());
@@ -272,6 +278,54 @@ export function CreatePurchaseView() {
     return { ...selectedSupplier, productFlavors: { ...current.productFlavors } };
   }, [selectedSupplier, suppliers]);
 
+  // Arriving from a dashboard low-stock alert preloads that product into the
+  // first line. Unit price stays at 0 in the form; totals and the saved record
+  // still use the authoritative product purchase price.
+  useEffect(() => {
+    if (editId || !productIdParam || lowStockPrefillRef.current || products.length === 0) return;
+
+    const product = products.find((candidate) => candidate._id === productIdParam);
+    if (!product) return;
+
+    const flavors = flavorParam ? [flavorParam] : defaultFlavorsFor(product, activeSupplier);
+    const parsedStock = Number(stockParam);
+    const stock =
+      stockParam !== null && Number.isFinite(parsedStock)
+        ? Math.max(parsedStock, 0)
+        : availableStock(product);
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled || lowStockPrefillRef.current) return;
+      lowStockPrefillRef.current = true;
+
+      setItems((current) => {
+        const first = current[0] ?? createRow();
+        const prefilled: PurchaseLineItem = {
+          ...first,
+          productId: product._id,
+          name: product.title,
+          sku: product.sku,
+          flavor: flavors,
+          quantity: first.quantity || 0,
+          availableStock: stock,
+          lowStock: lowStockParam === "1",
+          basePrice: purchaseBasePrice(product),
+          flavorCount: (product.flavors?.length || 0) > 0 ? flavors.length : 1,
+          unitPrice: 0,
+          unit: product.uom || "Carton",
+          taxRate: taxRateFromBracket(product.taxBracket),
+        };
+        return [prefilled, ...current.slice(1)];
+      });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [editId, productIdParam, flavorParam, stockParam, lowStockParam, products, activeSupplier]);
+
   const availableProducts = useMemo(() => {
     if (!activeSupplier) return [];
     const linkedIds = new Set(activeSupplier.productIds || []);
@@ -314,7 +368,7 @@ export function CreatePurchaseView() {
           ...next,
           basePrice: purchaseBasePrice(product),
           flavorCount: (product.flavors?.length || 0) > 0 ? flavors.length : 1,
-          unitPrice: flavorAdjustedPurchasePrice(product, flavors),
+          unitPrice: next.lowStock ? 0 : flavorAdjustedPurchasePrice(product, flavors),
         };
       })
     );
@@ -347,6 +401,7 @@ export function CreatePurchaseView() {
       flavor: defaultFlavorsFor(product, activeSupplier),
       availableStock: availableStock(product),
       quantity: 0,
+      lowStock: false,
       basePrice: purchaseBasePrice(product),
       unit: product.uom || "Carton",
       taxRate: taxRateFromBracket(product.taxBracket),

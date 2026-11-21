@@ -147,7 +147,11 @@ export function PurchaseItemsTable({
                         {item.sku || "Manual item · no SKU"}
                       </span>
                       {item.availableStock !== undefined && item.productId ? (
-                        <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                        <span
+                          className={`font-mono-data-sm text-mono-data-sm ${
+                            item.lowStock ? "font-semibold text-error" : "text-secondary"
+                          }`}
+                        >
                           Available {item.availableStock} · ordered {Math.max(item.quantity, 0)} ·
                           received {Math.max(item.receivedQuantity || 0, 0)}
                         </span>

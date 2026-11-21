@@ -8,6 +8,7 @@ export type PurchaseLineItem = {
   flavor?: string[];
   quantity: number;
   availableStock?: number;
+  lowStock?: boolean;
   receivedQuantity?: number;
   unit: string;
   basePrice?: number;
