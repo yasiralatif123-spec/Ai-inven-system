@@ -805,7 +805,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - **Approved implementation (minimal UI change):** `CriticalLowStock.tsx` me `row.status` condition hata diya gaya; ab section ki har row par `Purchase` link dikhta hai aur `/purchases/create` par le jata hai. Existing `Adjust Stock` link aur baaki layout unchanged.
 - **File modified:** `frontend/features/dashboard/components/CriticalLowStock.tsx`, `PROJECT_MEMORY.md`.
 - **No backend/API/DB changes, no new dependencies, no new files.** Product/flavor prefill purchase form me nahi kiya gaya (user ne nahi manga).
-- **Git:** Naya local branch `critical-stock-purchase-link` (base `main` / `c1855ed`) banaya gaya. User ne abhi commit/push nahi manga — changes uncommitted hain. Customer metrics branch `customer-row-metrics` aur sidebar stash alag hain.
+- **Git:** Branch `critical-stock-purchase-link` (base `main` / `c1855ed`) par commit `8be52ec` push kiya gaya. PR #3 open kiya gaya: https://github.com/yasiralatif123-spec/Ai-inven-system/pull/3. Customer metrics branch `customer-row-metrics` aur sidebar stash alag hain.
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes). Next 16 `Link` docs padhe gaye; existing client-side navigation pattern hi reuse kiya gaya.
 - **Side effects/risks:** Purchase link ab low-stock section ki har row par dikhega (chahe stock 0 ho ya threshold se kam); narrow screens par row thodi width use karegi. Purchase form kisi specific product/flavor ke saath prefill nahi hota.
 
