@@ -14,7 +14,7 @@ import {
   fetchInventoryProducts,
   fetchStockMovements,
 } from "./services/inventory.service";
-import { formatNumber, movementToEntry, toStockRow } from "./utils";
+import { formatFlavorLabel, formatNumber, movementToEntry, toStockRows } from "./utils";
 
 function isToday(value: string) {
   const date = new Date(value);
@@ -32,6 +32,17 @@ type InventoryTab = "overview" | "movements" | "adjustments" | "transfers" | "al
 
 function isAlertRow(row: StockRow) {
   return row.status === "critical" || row.status === "low";
+}
+
+function refreshedStockRow(product: Product, previous: StockRow | null) {
+  const options = toStockRows(product);
+  return (
+    options.find((row) =>
+      previous?.flavor ? row.flavor === previous.flavor : !row.flavor
+    ) ??
+    options[0] ??
+    null
+  );
 }
 
 const ACTIVE_TAB_CLASS =
@@ -84,7 +95,7 @@ export default function InventoryPage() {
     };
   }, [reloadToken]);
 
-  const rows = useMemo(() => products.map(toStockRow), [products]);
+  const rows = useMemo(() => products.flatMap(toStockRows), [products]);
 
   useEffect(() => {
     // Dashboard links can deep-link to a tab or open Adjust Stock for a product.
@@ -112,7 +123,7 @@ export default function InventoryPage() {
 
     const requestedProduct = params.get("product");
     if (requestedProduct && !deepLinkHandled.current.product) {
-      const row = rows.find((candidate) => candidate.id === requestedProduct);
+      const row = rows.find((candidate) => candidate.productId === requestedProduct);
       if (row) {
         deepLinkHandled.current.product = true;
         timeouts.push(
@@ -259,7 +270,7 @@ export default function InventoryPage() {
       )
     );
     setMovements((current) => [movement, ...current]);
-    setSelectedRow(toStockRow(updatedProduct));
+    setSelectedRow((current) => refreshedStockRow(updatedProduct, current));
   }
 
   async function handleDeleteMovement(movementId: string) {
@@ -272,7 +283,9 @@ export default function InventoryPage() {
     );
     setMovements((current) => current.filter((movement) => movement._id !== movementId));
     setSelectedRow((current) =>
-      current?.id === result.product._id ? toStockRow(result.product) : current
+      current?.productId === result.product._id
+        ? refreshedStockRow(result.product, current)
+        : current
     );
   }
 
@@ -280,6 +293,7 @@ export default function InventoryPage() {
     const header = [
       "SKU",
       "Product",
+      "Flavor",
       "Brand",
       "Warehouse",
       "Location",
@@ -293,6 +307,7 @@ export default function InventoryPage() {
     const lines = exportRows.map((row) => [
       row.sku,
       row.name,
+      formatFlavorLabel(row.flavor),
       row.brand,
       row.warehouse,
       row.location,

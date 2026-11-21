@@ -98,7 +98,9 @@ display one supplier's complete purchase history. An invalid `supplierId` return
 
 Creates a purchase. `supplierId` must reference an existing supplier. Each item requires `name`, a positive integer `quantity`, and a non-negative `unitPrice`.
 
-When a linked catalog product is selected in the UI, `quantity` starts at `0`; it is the number of units to add. `availableStock` is stored only as a read-only snapshot of the product's current stock. On create, the full submitted `quantity` is added to the product's `openingStock`. For example, available stock `10` and quantity `20` increases stored stock to `30`.
+When a linked catalog product is selected in the UI, `quantity` starts at `0`; it is the number of units to add. `availableStock` is stored only as a read-only snapshot of the product's current stock. Stock is added only when the purchase is saved with `status: "Received"`: each linked item's full `quantity` is recorded as `receivedQuantity`, added to the product's `openingStock`, and written as a `purchase` stock movement. Saving with `Draft` or `Ordered` does not change stock.
+
+For a flavored product, the full received quantity applies to **each selected flavor**. Three flavors at `quantity: 10` add 10 units to each flavor row and 30 to the product's `openingStock`, matching the `basePrice × flavorCount × quantity` pricing rule. Only flavors that have been received get a `Product.flavorStocks` entry, which is what the inventory page renders as separate rows.
 
 ### Request body
 
@@ -127,7 +129,7 @@ When a linked catalog product is selected in the UI, `quantity` starts at `0`; i
 }
 ```
 
-Accepted `status` values: `Draft`, `Ordered`, `Partially Received`, `Received`, `Cancelled`.
+Accepted `status` values: `Draft`, `Ordered`, `Partially Received`, `Received`, `Cancelled`. The create/edit form exposes `Draft`, `Ordered`, and `Received`; submitting `Received` is a full goods receipt. `Partially Received` is derived by the Receive Goods endpoint, and `Cancelled` is set through the status endpoint.
 
 ### Response
 
@@ -144,7 +146,7 @@ Accepted `status` values: `Draft`, `Ordered`, `Partially Received`, `Received`, 
       "freight": 3500,
       "total": 174600
     },
-    "status": "Received"
+    "status": "Ordered"
   }
 }
 ```
@@ -165,11 +167,11 @@ Returns one purchase. The `:id` segment accepts either the Mongo `_id` or the `p
 
 ## PUT `/api/purchases/:id`
 
-Updates an existing purchase. The request body is the same as `POST /api/purchases`. Supplier details, items, and financials are recomputed. Existing `paidAmount` and `payments` are preserved.
+Updates an existing purchase. The request body is the same as `POST /api/purchases`. Supplier details, items, and financials are recomputed. Existing `paidAmount` and `payments` are preserved. If the submitted status is `Received`, the server records a receipt only for the positive difference between each item's ordered quantity and its previously received quantity, so repeated saves never add stock twice.
 
 ## PATCH `/api/purchases/:id/status`
 
-Updates the non-receiving status. Use `POST /api/purchases/:id/receive` for `Partially Received` and `Received`.
+Updates the non-receiving status. Use `POST /api/purchases/:id/receive` for partial receipts, or save the purchase with `status: "Received"` through `POST`/`PUT` for a full receipt.
 
 ```json
 {
@@ -228,10 +230,11 @@ Deletes a purchase by Mongo `_id` or `purchaseNumber`.
 ## Notes
 
 - `paidAmount` and `payments` are returned on every purchase. The frontend derives `remaining` as `financials.total - paidAmount`.
-- On purchase creation, the full submitted `quantity` is added to stock for linked products. It is stored as `receivedQuantity` with an `AUTO-STOCK` receipt and a `purchase` stock movement, so a new purchase is fully received when saved.
-- Additional stock can be received later through `/api/purchases/:id/receive`, which only adds quantities beyond the already recorded `receivedQuantity`.
+- Saving with `status: "Received"` fully receives the purchase: linked products get their full ordered quantity added to `openingStock` (`quantity × selected flavor count`), with a `STATUS-RECEIVED` receipt and a `purchase` stock movement. Each selected flavor also gets its own `Product.flavorStocks` balance.
+- Saving with `Draft` or `Ordered` adds no stock and leaves `receivedQuantity` at `0` for new purchases.
+- `/api/purchases/:id/receive` remains available for partial goods receipts and only adds quantities beyond the already recorded `receivedQuantity`; both paths add only the positive delta and are idempotent on repeated submissions.
 - Each item stores `availableStock` (read-only stock snapshot at selection), `quantity` (units to add, starting at `0` in the form), `receivedQuantity` (cumulative received), and `remaining = quantity - receivedQuantity` is derived by the frontend.
-- Receipts create `StockMovement` entries with `type: "purchase"`, `direction: "in"`, and a reference containing the purchase number.
+- Receipts create `StockMovement` entries with `type: "purchase"`, `direction: "in"`, and a reference containing the purchase number. Multi-flavor lines store `flavorBreakdown: [{ flavor, quantity }]`; single-flavor lines also set `flavor`.
 - Editing a received purchase cannot reduce `receivedQuantity` below the already received amount or change its linked product.
 - Deleting a purchase reverses its received stock and removes the linked `purchase` stock movements in the same transaction.
 - Saving a purchase does not currently mutate the supplier's `totalPurchases` or `outstanding` fields.

@@ -4,6 +4,12 @@ const Product = require("../models/Product");
 const StockMovement = require("../models/StockMovement");
 const Supplier = require("../models/Supplier");
 const { runWithSession } = require("../utils/db");
+const {
+  applyFlavorStockChanges,
+  flavorBreakdown,
+  totalStockDelta,
+  uniqueFlavors,
+} = require("../utils/flavor-stock");
 
 const PURCHASE_STATUSES = [
   "Draft",
@@ -15,6 +21,8 @@ const PURCHASE_STATUSES = [
 const RECEIVING_STATUSES = ["Partially Received", "Received"];
 const BASE_PURCHASE_SEQUENCE = 2041;
 const DEFAULT_RECEIVED_BY = "Tariq M. (Owner)";
+const STATUS_RECEIPT_REFERENCE = "STATUS-RECEIVED";
+const STATUS_RECEIPT_NOTES = "Purchase marked Received";
 
 class ValidationError extends Error {
   constructor(message) {
@@ -183,13 +191,21 @@ async function buildPurchaseChanges(body, existingPurchase = null) {
   if (!PURCHASE_STATUSES.includes(status)) {
     throw new ValidationError("Invalid purchase status");
   }
+  if (status === "Received" && existingPurchase?.status === "Cancelled") {
+    throw new ValidationError("Cancelled purchases cannot be received");
+  }
 
   if (!Array.isArray(body.items) || body.items.length === 0) {
     throw new ValidationError("At least one purchase item is required");
   }
 
+  const receivedAt = new Date();
+  const receiptReference = cleanString(body.receiptReference) || STATUS_RECEIPT_REFERENCE;
+  const receiptNotes = cleanString(body.receiptNotes) || STATUS_RECEIPT_NOTES;
+  const performedBy = cleanString(body.performedBy ?? body.createdBy) || DEFAULT_RECEIVED_BY;
   const existingItems = Array.isArray(existingPurchase?.items) ? existingPurchase.items : [];
   const items = [];
+  const stockUpdates = [];
 
   for (const [index, rawItem] of body.items.entries()) {
     const name = cleanString(rawItem?.name);
@@ -242,26 +258,63 @@ async function buildPurchaseChanges(body, existingPurchase = null) {
       ) || 0
     );
     let receivedQuantity = existingItem ? toWholeNumber(rawItem?.receivedQuantity) : 0;
-    const receipts = existingItem ? existingItem.receipts || [] : [];
+    const receipts = Array.isArray(existingItem?.receipts) ? [...existingItem.receipts] : [];
 
     if (existingItem) {
-      if (receivedQuantity === null || receivedQuantity < 0) {
-        receivedQuantity = previousReceived;
-      }
-      if (receivedQuantity < previousReceived) {
-        throw new ValidationError(
-          `Received quantity for ${name} cannot be reduced below ${previousReceived}`
-        );
-      }
-      if (receivedQuantity > previousReceived) {
-        throw new ValidationError(
-          `Goods received for ${name} must be recorded using the Receive Goods action`
-        );
+      if (status !== "Received") {
+        if (receivedQuantity === null || receivedQuantity < 0) {
+          receivedQuantity = previousReceived;
+        }
+        if (receivedQuantity < previousReceived) {
+          throw new ValidationError(
+            `Received quantity for ${name} cannot be reduced below ${previousReceived}`
+          );
+        }
+        if (receivedQuantity > previousReceived) {
+          throw new ValidationError(
+            `Goods received for ${name} must be recorded using the Receive Goods action`
+          );
+        }
       }
       if (previousReceived > 0 && productId !== cleanString(existingItem?.productId)) {
         throw new ValidationError(
           `The product for ${name} cannot be changed after goods have been received`
         );
+      }
+    }
+
+    if (status === "Received") {
+      if (quantity < previousReceived) {
+        throw new ValidationError(
+          `Received quantity for ${name} cannot be reduced below ${previousReceived}`
+        );
+      }
+
+      receivedQuantity = quantity;
+      const delta = receivedQuantity - previousReceived;
+      if (delta > 0) {
+        receipts.push(
+          createReceiptEntry({
+            quantity: delta,
+            receivedQuantity,
+            reference: receiptReference,
+            notes: receiptNotes,
+            receivedAt,
+            performedBy,
+          })
+        );
+
+        const resolvedProductId = product?._id ? String(product._id) : productId;
+        if (product && mongoose.isValidObjectId(resolvedProductId)) {
+          stockUpdates.push({
+            productId: resolvedProductId,
+            delta,
+            flavors,
+            itemName: name,
+            unit: cleanString(rawItem?.unit) || "Carton",
+            product,
+          });
+        }
       }
     }
 
@@ -320,37 +373,40 @@ async function buildPurchaseChanges(body, existingPurchase = null) {
           : "Draft";
 
   return {
-    supplier: {
-      id: supplier._id.toString(),
-      code: supplier.supplierCode,
-      name: supplier.name,
-      contact: supplier.contactPerson,
-      phone: supplier.phone,
-      hub: supplier.hub || supplier.region || "",
-      address: supplier.address,
-      ntn: supplier.ntn || "",
-      paymentTerms: supplier.paymentTerms || "",
-      productIds: Array.isArray(supplier.productIds)
-        ? supplier.productIds.map(String)
-        : [],
-      productFlavors: toPlainMap(supplier.productFlavors),
+    changes: {
+      supplier: {
+        id: supplier._id.toString(),
+        code: supplier.supplierCode,
+        name: supplier.name,
+        contact: supplier.contactPerson,
+        phone: supplier.phone,
+        hub: supplier.hub || supplier.region || "",
+        address: supplier.address,
+        ntn: supplier.ntn || "",
+        paymentTerms: supplier.paymentTerms || "",
+        productIds: Array.isArray(supplier.productIds)
+          ? supplier.productIds.map(String)
+          : [],
+        productFlavors: toPlainMap(supplier.productFlavors),
+      },
+      purchaseDate,
+      expectedDelivery,
+      invoiceNumber: cleanString(body.invoiceNumber),
+      items,
+      financials: {
+        subtotal,
+        discount,
+        tax,
+        freight,
+        total,
+      },
+      paidAmount: 0,
+      payments: [],
+      status: derivedStatus,
+      notes: cleanString(body.notes),
+      createdBy: cleanString(body.createdBy) || "Tariq M. (Owner)",
     },
-    purchaseDate,
-    expectedDelivery,
-    invoiceNumber: cleanString(body.invoiceNumber),
-    items,
-    financials: {
-      subtotal,
-      discount,
-      tax,
-      freight,
-      total,
-    },
-    paidAmount: 0,
-    payments: [],
-    status: derivedStatus,
-    notes: cleanString(body.notes),
-    createdBy: cleanString(body.createdBy) || "Tariq M. (Owner)",
+    stockUpdates,
   };
 }
 
@@ -366,6 +422,118 @@ function handleControllerError(error, res, next) {
 
 function itemKey(item, index) {
   return item._id ? item._id.toString() : `index:${index}`;
+}
+
+function createReceiptEntry({ quantity, receivedQuantity, reference, notes, receivedAt, performedBy }) {
+  return {
+    quantity,
+    receivedQuantity,
+    reference,
+    notes: cleanString(notes),
+    receivedAt,
+    performedBy: cleanString(performedBy) || DEFAULT_RECEIVED_BY,
+  };
+}
+
+async function applyStockReceipt({
+  compensations = [],
+  productId,
+  delta,
+  flavors = [],
+  itemName,
+  unit,
+  reference,
+  notes,
+  performedBy,
+  partyName,
+  session,
+  productSnapshot = null,
+}) {
+  if (!delta || !mongoose.isValidObjectId(productId)) return null;
+
+  const product =
+    productSnapshot && productSnapshot._id
+      ? productSnapshot
+      : await Product.findById(productId)
+          .select("title sku uom")
+          .session(session)
+          .lean();
+
+  if (!product) {
+    throw new ValidationError(`The product linked to ${itemName} no longer exists`);
+  }
+
+  const selectedFlavors = uniqueFlavors(flavors);
+  const totalDelta = delta * (selectedFlavors.length || 1);
+  const targetId = String(product._id || productId);
+  const updatedProduct = await Product.findOneAndUpdate(
+    { _id: targetId },
+    { $inc: { openingStock: totalDelta } },
+    { new: true, runValidators: true, session }
+  );
+
+  if (!updatedProduct) {
+    throw new ValidationError(`The product linked to ${itemName} no longer exists`);
+  }
+
+  compensations.push(async () => {
+    await Product.findByIdAndUpdate(
+      targetId,
+      { $inc: { openingStock: -totalDelta } },
+      { session }
+    );
+  });
+
+  if (selectedFlavors.length > 0) {
+    await applyFlavorStockChanges({
+      productId: targetId,
+      flavors: selectedFlavors,
+      delta,
+      session,
+      compensations,
+    });
+  }
+
+  const newStock = Number(updatedProduct.openingStock) || 0;
+  const [movement] = await StockMovement.create(
+    [
+      {
+        product: targetId,
+        sku: product.sku,
+        productTitle: product.title,
+        type: "purchase",
+        direction: "in",
+        quantity: totalDelta,
+        previousStock: newStock - totalDelta,
+        newStock,
+        unit: product.uom || unit || "",
+        reason: "Purchase goods receipt",
+        reference,
+        notes: cleanString(notes),
+        performedBy: cleanString(performedBy) || DEFAULT_RECEIVED_BY,
+        partyName: cleanString(partyName),
+        flavor: selectedFlavors.length === 1 ? selectedFlavors[0] : "",
+        flavorBreakdown: flavorBreakdown(selectedFlavors, delta),
+      },
+    ],
+    { session }
+  );
+
+  compensations.push(async () => {
+    await StockMovement.deleteOne({ _id: movement._id }, { session });
+  });
+
+  return movement;
+}
+
+async function runCompensations(compensations) {
+  for (const compensate of compensations.reverse()) {
+    try {
+      await compensate();
+    } catch (compensationError) {
+      console.error("Failed to compensate purchase receipt:", compensationError.message);
+    }
+  }
 }
 
 function resolveReceiptItem(purchase, rawItem, index) {
@@ -429,8 +597,9 @@ async function getPurchases(req, res, next) {
 
 async function createPurchase(req, res, next) {
   try {
-    const changes = await buildPurchaseChanges(req.body || {});
-    const purchase = await runWithSession(async (session) => {
+    const { changes, stockUpdates } = await buildPurchaseChanges(req.body || {});
+    const purchase = await runWithSession(async (session, useTransaction) => {
+      const compensations = [];
       let created;
       try {
         for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -452,8 +621,26 @@ async function createPurchase(req, res, next) {
           }
         }
 
+        for (const update of stockUpdates) {
+          await applyStockReceipt({
+            compensations,
+            productId: update.productId,
+            delta: update.delta,
+            flavors: update.flavors,
+            itemName: update.itemName,
+            unit: update.unit,
+            reference: `${created.purchaseNumber} · ${STATUS_RECEIPT_REFERENCE}`,
+            notes: STATUS_RECEIPT_NOTES,
+            performedBy: changes.createdBy,
+            partyName: changes.supplier.name,
+            productSnapshot: update.product,
+            session,
+          });
+        }
+
         return created;
       } catch (error) {
+        if (!useTransaction) await runCompensations(compensations);
         if (created) {
           await Purchase.deleteOne({ _id: created._id }, { session }).catch(() => {});
         }
@@ -486,17 +673,61 @@ async function updatePurchase(req, res, next) {
       return res.status(404).json({ message: "Purchase not found" });
     }
 
-    const changes = await buildPurchaseChanges(req.body || {}, purchase);
-    purchase.set({
-      ...changes,
-      paidAmount: Number(purchase.paidAmount) || 0,
-      payments: purchase.payments || [],
-      createdBy: purchase.createdBy,
-      createdAt: purchase.createdAt,
-    });
-    await purchase.save();
+    const { changes, stockUpdates } = await buildPurchaseChanges(req.body || {}, purchase);
+    const previousState = {
+      status: purchase.status,
+      items: purchase.items.map((item) =>
+        typeof item.toObject === "function" ? item.toObject() : { ...item }
+      ),
+    };
 
-    return res.status(200).json({ message: "Purchase updated", purchase });
+    const updated = await runWithSession(async (session, useTransaction) => {
+      const compensations = [];
+      try {
+        if (stockUpdates.length > 0) {
+          compensations.push(async () => {
+            await Purchase.updateOne(
+              { _id: purchase._id },
+              { $set: previousState },
+              { session }
+            );
+          });
+        }
+
+        purchase.set({
+          ...changes,
+          paidAmount: Number(purchase.paidAmount) || 0,
+          payments: purchase.payments || [],
+          createdBy: purchase.createdBy,
+          createdAt: purchase.createdAt,
+        });
+        await purchase.save({ session });
+
+        for (const update of stockUpdates) {
+          await applyStockReceipt({
+            compensations,
+            productId: update.productId,
+            delta: update.delta,
+            flavors: update.flavors,
+            itemName: update.itemName,
+            unit: update.unit,
+            reference: `${purchase.purchaseNumber} · ${STATUS_RECEIPT_REFERENCE}`,
+            notes: STATUS_RECEIPT_NOTES,
+            performedBy: changes.createdBy,
+            partyName: changes.supplier.name,
+            productSnapshot: update.product,
+            session,
+          });
+        }
+
+        return purchase;
+      } catch (error) {
+        if (!useTransaction) await runCompensations(compensations);
+        throw error;
+      }
+    });
+
+    return res.status(200).json({ message: "Purchase updated", purchase: updated });
   } catch (error) {
     return handleControllerError(error, res, next);
   }
@@ -612,14 +843,14 @@ async function receivePurchase(req, res, next) {
         for (const update of updates) {
           if (update.delta === 0) continue;
 
-          const receipt = {
+          const receipt = createReceiptEntry({
             quantity: update.delta,
             receivedQuantity: update.desired,
             reference: receiptReference,
             notes: receiptNotes,
             receivedAt,
             performedBy,
-          };
+          });
 
           const casFilter = update.arrayFilter
             ? {
@@ -701,54 +932,18 @@ async function receivePurchase(req, res, next) {
             );
           });
 
-          const productId = cleanString(update.item.productId);
-          if (!mongoose.isValidObjectId(productId)) continue;
-
-          const product = await Product.findOneAndUpdate(
-            { _id: productId },
-            { $inc: { openingStock: update.delta } },
-            { new: true, runValidators: true, session }
-          );
-
-          if (!product) {
-            throw new ValidationError(
-              `The product linked to ${update.item.name} no longer exists`
-            );
-          }
-
-          compensations.push(async () => {
-            await Product.findByIdAndUpdate(
-              productId,
-              { $inc: { openingStock: -update.delta } },
-              { session }
-            );
-          });
-
-          const newStock = Number(product.openingStock) || 0;
-          const [movement] = await StockMovement.create(
-            [
-              {
-                product: product._id,
-                sku: product.sku,
-                productTitle: product.title,
-                type: "purchase",
-                direction: "in",
-                quantity: update.delta,
-                previousStock: newStock - update.delta,
-                newStock,
-                unit: product.uom || update.item.unit || "",
-                reason: "Purchase goods receipt",
-                reference: `${purchase.purchaseNumber} · ${receiptReference}`,
-                notes: receiptNotes,
-                performedBy,
-                partyName: cleanString(purchase.supplier?.name),
-              },
-            ],
-            { session }
-          );
-
-          compensations.push(async () => {
-            await StockMovement.deleteOne({ _id: movement._id }, { session });
+          await applyStockReceipt({
+            compensations,
+            productId: cleanString(update.item.productId),
+            delta: update.delta,
+            flavors: update.item.flavor || [],
+            itemName: update.item.name,
+            unit: update.item.unit,
+            reference: `${purchase.purchaseNumber} · ${receiptReference}`,
+            notes: receiptNotes,
+            performedBy,
+            partyName: purchase.supplier?.name,
+            session,
           });
         }
 
@@ -776,18 +971,7 @@ async function receivePurchase(req, res, next) {
 
         return Purchase.findById(purchase._id).session(session);
       } catch (error) {
-        if (!useTransaction) {
-          for (const compensate of compensations.reverse()) {
-            try {
-              await compensate();
-            } catch (compensationError) {
-              console.error(
-                "Failed to compensate purchase receipt:",
-                compensationError.message
-              );
-            }
-          }
-        }
+        if (!useTransaction) await runCompensations(compensations);
         throw error;
       }
     });
@@ -859,9 +1043,11 @@ async function deletePurchase(req, res, next) {
 
           if (received === 0 || !mongoose.isValidObjectId(productId)) continue;
 
+          const flavors = uniqueFlavors(item.flavor);
+          const totalDelta = totalStockDelta(received, flavors);
           const product = await Product.findOneAndUpdate(
             { _id: productId },
-            { $inc: { openingStock: -received } },
+            { $inc: { openingStock: -totalDelta } },
             { new: true, runValidators: true, session }
           );
           if (!product) {
@@ -873,10 +1059,20 @@ async function deletePurchase(req, res, next) {
           compensations.push(async () => {
             await Product.findByIdAndUpdate(
               productId,
-              { $inc: { openingStock: received } },
+              { $inc: { openingStock: totalDelta } },
               { session }
             );
           });
+
+          if (flavors.length > 0) {
+            await applyFlavorStockChanges({
+              productId,
+              flavors,
+              delta: -received,
+              session,
+              compensations,
+            });
+          }
         }
 
         if (references.size > 0) {

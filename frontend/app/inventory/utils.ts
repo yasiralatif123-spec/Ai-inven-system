@@ -40,13 +40,24 @@ export function deriveStockStatus(stock: number, reorderThreshold: number): Stoc
   return "optimal";
 }
 
-export function toStockRow(product: Product): StockRow {
-  const stock = Number(product.openingStock || 0);
+export function formatFlavorLabel(flavor?: string) {
+  if (!flavor) return "—";
+  return `${flavor.charAt(0).toUpperCase()}${flavor.slice(1)}`;
+}
+
+function buildStockRow(
+  product: Product,
+  flavor?: string,
+  flavorStock?: number
+): StockRow {
+  const stock = Number(flavorStock ?? product.openingStock ?? 0);
   const reorderThreshold = Number(product.reorderThreshold || 0);
   const warehouse = product.warehouse || "Unassigned";
 
   return {
-    id: product._id,
+    id: flavor ? `${product._id}::${encodeURIComponent(flavor)}` : product._id,
+    productId: product._id,
+    flavor,
     name: product.title,
     sku: product.sku,
     brand: product.brand || "Unbranded",
@@ -60,6 +71,22 @@ export function toStockRow(product: Product): StockRow {
     status: deriveStockStatus(stock, reorderThreshold),
     purchasePrice: Number(product.purchasePrice || 0),
   };
+}
+
+/**
+ * Flavored products expand to one row per received flavor. Products without
+ * flavor stock (including legacy products) keep their single product row.
+ */
+export function toStockRows(product: Product): StockRow[] {
+  const flavorRows = (product.flavorStocks || []).filter(
+    (entry) => Boolean(entry?.flavor) && Number.isFinite(Number(entry.quantity))
+  );
+
+  if (flavorRows.length === 0) return [buildStockRow(product)];
+
+  return flavorRows.map((entry) =>
+    buildStockRow(product, entry.flavor, Number(entry.quantity))
+  );
 }
 
 export function formatMovementTime(value: string) {

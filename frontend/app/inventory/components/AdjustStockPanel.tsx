@@ -8,7 +8,7 @@ import {
   type StockMovementDto,
   type StockRow,
 } from "../data";
-import { formatNumber, formatRs, getUnitShort } from "../utils";
+import { formatFlavorLabel, formatNumber, formatRs, getUnitShort } from "../utils";
 
 type AdjustStockPanelProps = {
   row: StockRow;
@@ -90,15 +90,23 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
 
     try {
       setSaving(true);
-      const result = await adjustStock(row.id, {
+      const result = await adjustStock(row.productId, {
         direction,
         quantity,
+        flavor: row.flavor,
         reason,
         reference: reference.trim(),
         notes: notes.trim(),
       });
 
-      const updatedStock = Number(result.product.openingStock || 0);
+      const updatedFlavor = row.flavor
+        ? result.product.flavorStocks?.find(
+            (entry) => entry.flavor.toLowerCase() === row.flavor?.toLowerCase()
+          )
+        : undefined;
+      const updatedStock = Number(
+        updatedFlavor ? updatedFlavor.quantity : result.product.openingStock || 0
+      );
       const unit = getUnitShort(result.product.uom);
       setSuccess(
         `Adjustment committed: ${formatNumber(row.available)} → ${formatNumber(
@@ -160,6 +168,11 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
           <span className="truncate font-body-medium text-body-medium font-semibold text-on-surface">
             {row.name}
           </span>
+          {row.flavor ? (
+            <span className="font-mono-data-sm text-mono-data-sm text-primary">
+              Flavor: {formatFlavorLabel(row.flavor)}
+            </span>
+          ) : null}
           <div className="flex items-center justify-between gap-2 border-t border-outline-variant pt-1 font-mono-data-sm text-mono-data-sm">
             <span className="truncate text-secondary">
               Depot: <strong className="text-on-surface">{row.warehouse}</strong>

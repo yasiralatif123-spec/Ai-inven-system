@@ -25,12 +25,21 @@ delete). It defaults to `""` for adjustments, returns, write-offs, and older
 records created before this field existed. It is a denormalized snapshot because
 the ledger is immutable.
 
+Movements for flavored products also include `flavor` (single flavor) and/or
+`flavorBreakdown: [{ flavor, quantity }]` (multi-flavor purchases and sales).
+`quantity` is the product-level total (`per-flavor quantity × selected flavor
+count`). The inventory page groups products into one row per received flavor
+using `Product.flavorStocks`; each row's Min. Safety bar is derived from that
+flavor's own balance and the product's `reorderThreshold`.
+
 ### `POST /api/products/:id/adjust-stock`
 
 Applies a stock adjustment and creates an immutable `StockMovement` ledger entry.
 The product route is used because the adjustment targets a product resource.
 
-Request body: `{ direction: "add" | "deduct", quantity: number, reason?, reference?, notes?, performedBy? }`.
+Request body: `{ direction: "add" | "deduct", quantity: number, flavor?, reason?, reference?, notes?, performedBy? }`.
+
+`flavor` is required when the product already has flavor-stock rows; the adjustment then updates both that flavor's `Product.flavorStocks` balance and the product's `openingStock`. It is optional for flavorless products. The created movement records the same `flavor` and a one-entry `flavorBreakdown`, so deleting the adjustment reverses both balances.
 
 ### `DELETE /api/inventory/movements/:id`
 

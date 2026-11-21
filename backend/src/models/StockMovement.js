@@ -1,5 +1,13 @@
 const mongoose = require("mongoose");
 
+const flavorBreakdownSchema = new mongoose.Schema(
+  {
+    flavor: { type: String, required: true, trim: true },
+    quantity: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
+
 const stockMovementSchema = new mongoose.Schema(
   {
     product: {
@@ -27,6 +35,10 @@ const stockMovementSchema = new mongoose.Schema(
     // Denormalized counterparty captured at movement time: supplier name for
     // purchases, customer/buyer name for sales. The ledger is immutable.
     partyName: { type: String, default: "" },
+    // Flavor context for the movement. `flavor` is set for single-flavor rows;
+    // `flavorBreakdown` records the per-flavor quantities of a multi-flavor line.
+    flavor: { type: String, default: "", trim: true },
+    flavorBreakdown: { type: [flavorBreakdownSchema], default: [] },
   },
   { timestamps: true }
 );

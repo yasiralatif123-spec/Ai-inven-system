@@ -97,6 +97,7 @@ export function CreatePurchaseView() {
   const [purchaseDate, setPurchaseDate] = useState("");
   const [expectedDelivery, setExpectedDelivery] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [status, setStatus] = useState<CreatePurchaseStatus>("Draft");
   const [items, setItems] = useState<PurchaseLineItem[]>(() => [createRow()]);
   const [freight, setFreight] = useState(0);
   const [notes, setNotes] = useState(DEFAULT_NOTES);
@@ -121,6 +122,7 @@ export function CreatePurchaseView() {
       setPurchaseDate(today);
       setExpectedDelivery(addDays(today, 3));
       setInvoiceNumber("");
+      setStatus("Draft");
       setItems([createRow()]);
       setFreight(0);
       setNotes(DEFAULT_NOTES);
@@ -187,6 +189,7 @@ export function CreatePurchaseView() {
         setPurchaseDate(toIsoDate(purchase.purchaseDate));
         setExpectedDelivery(toIsoDate(purchase.expectedDelivery));
         setInvoiceNumber(purchase.invoiceNumber || "");
+        setStatus(purchase.status as CreatePurchaseStatus);
         setFreight(Number(purchase.financials?.freight) || 0);
         setNotes(purchase.notes || "");
         setItems(
@@ -458,7 +461,7 @@ export function CreatePurchaseView() {
     return null;
   }
 
-  async function save(status: CreatePurchaseStatus) {
+  async function save(nextStatus: CreatePurchaseStatus = status) {
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -474,9 +477,7 @@ export function CreatePurchaseView() {
         purchaseDate,
         expectedDelivery,
         invoiceNumber,
-        status: editingPurchase
-          ? (editingPurchase.status as CreatePurchaseStatus)
-          : status,
+        status: nextStatus,
         freight,
         notes,
         items: items.map((item) => ({
@@ -518,9 +519,11 @@ export function CreatePurchaseView() {
         purchaseCode={purchaseCode}
         saving={saving}
         mode={editingPurchase ? "edit" : "create"}
+        status={status}
+        onStatusChange={setStatus}
         onCancel={() => router.push("/purchases")}
         onSaveDraft={() => save("Draft")}
-        onSavePurchase={() => save("Ordered")}
+        onSavePurchase={() => save(status)}
       />
 
       <div className="mt-1 grid grid-cols-1 gap-5 xl:grid-cols-12 xl:items-start">

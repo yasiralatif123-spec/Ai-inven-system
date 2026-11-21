@@ -10,10 +10,13 @@ The service follows the existing backend convention: JSON bodies and a stable
 Creating a sale order saves the order in MongoDB and immediately adjusts stock
 for every item whose SKU matches a catalog product:
 
-- Product `openingStock` is reduced by the ordered quantity.
+- Product `openingStock` is reduced by `quantity × selected flavor count`.
+- For flavored products, each selected flavor's `Product.flavorStocks` row is
+  reduced by the full ordered quantity. A flavor with insufficient stock blocks
+  the sale with `400`.
 - An immutable `StockMovement` record is written with `type: "sale"`,
-  `direction: "out"`, `reference: "<orderNumber> · SALE"`, and the before/after
-  stock values.
+  `direction: "out"`, `reference: "<orderNumber> · SALE"`, the before/after
+  product stock values, and `flavorBreakdown` for flavored lines.
 - Duplicate SKUs in the same order are combined before stock is validated, so
   two rows for the same product cannot oversell it.
 - If stock is insufficient, the request fails with `400` and no order or stock
@@ -22,10 +25,11 @@ for every item whose SKU matches a catalog product:
   order, but they do not change stock.
 
 Updating an order only applies the **difference** between the saved and new
-quantities. Reducing a quantity restores stock and writes an `in` movement;
-increasing it deducts the extra units and writes an `out` movement. Deleting an
-order restores the full deducted quantity and writes an `in` movement. Status
-and payment updates never change stock.
+quantities/flavors. Reducing a quantity restores stock and writes an `in`
+movement; increasing it deducts the extra units and writes an `out` movement.
+Changing flavors rebalances the affected flavor rows even when the product total
+is unchanged. Deleting an order restores the full deducted quantity and writes
+an `in` movement. Status and payment updates never change stock.
 
 Orders created before this behavior was introduced are not stock-tracked. When
 such an order is edited, its catalog items are treated as newly deducted at

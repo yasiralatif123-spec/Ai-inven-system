@@ -4,6 +4,10 @@ const Product = require("../models/Product");
 const Customer = require("../models/Customer");
 const StockMovement = require("../models/StockMovement");
 const { runWithSession } = require("../utils/db");
+const {
+  applyFlavorStockChange,
+  uniqueFlavors,
+} = require("../utils/flavor-stock");
 
 const PAYMENT_STATUSES = ["paid", "partial", "unpaid"];
 const ORDER_STATUSES = [
@@ -221,10 +225,32 @@ function sumStockQuantities(items, include) {
     if (!include(item)) return;
     const key = stockKey(item);
     if (!key) return;
-    totals.set(key, (totals.get(key) || 0) + Math.max(0, toNumber(item.quantity)));
+    const quantity = Math.max(0, toNumber(item.quantity));
+    const multiplier = uniqueFlavors(item.flavor).length || 1;
+    totals.set(key, (totals.get(key) || 0) + quantity * multiplier);
   });
 
   return totals;
+}
+
+function sumFlavorQuantities(items, include) {
+  const byProduct = new Map();
+
+  (items || []).forEach((item) => {
+    if (!include(item)) return;
+    const key = stockKey(item);
+    if (!key) return;
+    const quantity = Math.max(0, toNumber(item.quantity));
+    if (quantity === 0) return;
+
+    const flavors = byProduct.get(key) || new Map();
+    uniqueFlavors(item.flavor).forEach((flavor) => {
+      flavors.set(flavor, (flavors.get(flavor) || 0) + quantity);
+    });
+    if (flavors.size > 0) byProduct.set(key, flavors);
+  });
+
+  return byProduct;
 }
 
 async function rollbackCompensations(compensations) {
@@ -399,14 +425,32 @@ async function applyStockAdjustments({
   session,
   compensations = [],
 }) {
-  const previousTotals = sumStockQuantities(previousItems, (item) => item.stockDeducted === true);
-  const nextTotals = sumStockQuantities(nextItems, (item) => item.stockDeducted === true);
-  const keys = new Set([...previousTotals.keys(), ...nextTotals.keys()]);
+  const include = (item) => item.stockDeducted === true;
+  const previousTotals = sumStockQuantities(previousItems, include);
+  const nextTotals = sumStockQuantities(nextItems, include);
+  const previousFlavorTotals = sumFlavorQuantities(previousItems, include);
+  const nextFlavorTotals = sumFlavorQuantities(nextItems, include);
+  const keys = new Set([
+    ...previousTotals.keys(),
+    ...nextTotals.keys(),
+    ...previousFlavorTotals.keys(),
+    ...nextFlavorTotals.keys(),
+  ]);
   const movements = [];
 
   for (const key of keys) {
     const delta = (nextTotals.get(key) || 0) - (previousTotals.get(key) || 0);
-    if (delta === 0) continue;
+    const previousFlavors = previousFlavorTotals.get(key) || new Map();
+    const nextFlavors = nextFlavorTotals.get(key) || new Map();
+    const flavorKeys = new Set([...previousFlavors.keys(), ...nextFlavors.keys()]);
+    const flavorDeltas = [];
+
+    for (const flavor of flavorKeys) {
+      const flavorDelta = (nextFlavors.get(flavor) || 0) - (previousFlavors.get(flavor) || 0);
+      if (flavorDelta !== 0) flavorDeltas.push({ flavor, delta: flavorDelta });
+    }
+
+    if (delta === 0 && flavorDeltas.length === 0) continue;
 
     const representative =
       nextItems.find((item) => stockKey(item) === key) ||
@@ -418,28 +462,42 @@ async function applyStockAdjustments({
       );
     }
 
-    const filter = { _id: product._id };
-    if (delta > 0) filter.openingStock = { $gte: delta };
+    let newStock = toNumber(product.openingStock);
+    if (delta !== 0) {
+      const filter = { _id: product._id };
+      if (delta > 0) filter.openingStock = { $gte: delta };
 
-    const updated = await Product.findOneAndUpdate(
-      filter,
-      { $inc: { openingStock: -delta } },
-      { new: true, runValidators: true, session }
-    );
-
-    if (!updated) {
-      const current = await Product.findById(product._id).session(session).lean();
-      const available = current ? toNumber(current.openingStock) : 0;
-      throw new ValidationError(
-        `Insufficient stock for ${representative.name}. Available: ${available}, requested: ${delta}`
+      const updated = await Product.findOneAndUpdate(
+        filter,
+        { $inc: { openingStock: -delta } },
+        { new: true, runValidators: true, session }
       );
+
+      if (!updated) {
+        const current = await Product.findById(product._id).session(session).lean();
+        const available = current ? toNumber(current.openingStock) : 0;
+        throw new ValidationError(
+          `Insufficient stock for ${representative.name}. Available: ${available}, requested: ${delta}`
+        );
+      }
+
+      compensations.push(async () => {
+        await Product.findByIdAndUpdate(product._id, { $inc: { openingStock: delta } }, { session });
+      });
+
+      newStock = toNumber(updated.openingStock);
     }
 
-    compensations.push(async () => {
-      await Product.findByIdAndUpdate(product._id, { $inc: { openingStock: delta } }, { session });
-    });
+    for (const flavorDelta of flavorDeltas) {
+      await applyFlavorStockChange({
+        productId: product._id,
+        flavor: flavorDelta.flavor,
+        delta: -flavorDelta.delta,
+        session,
+        compensations,
+      });
+    }
 
-    const newStock = toNumber(updated.openingStock);
     const reason =
       mode === "create"
         ? "Sale order placed"
@@ -447,7 +505,9 @@ async function applyStockAdjustments({
           ? "Sale order deleted"
           : delta > 0
             ? "Sale order quantity increased"
-            : "Sale order quantity reduced";
+            : delta < 0
+              ? "Sale order quantity reduced"
+              : "Sale flavor selection changed";
 
     const [movement] = await StockMovement.create(
       [
@@ -456,16 +516,23 @@ async function applyStockAdjustments({
           sku: product.sku,
           productTitle: product.title,
           type: "sale",
-          direction: delta > 0 ? "out" : "in",
-          quantity: Math.abs(delta),
+          direction: delta < 0 ? "in" : "out",
+          quantity: Math.abs(delta) || 1,
           previousStock: newStock + delta,
           newStock,
           unit: product.uom || representative.unitLabel || "",
           reason,
           reference: `${orderNumber} · SALE`,
-          notes: `${mode === "delete" ? "Stock restored after sale order deletion" : "Stock synced from sale order"}`,
+          notes: `${
+            mode === "delete" ? "Stock restored after sale order deletion" : "Stock synced from sale order"
+          }`,
           performedBy,
           partyName: cleanString(partyName),
+          flavor: flavorDeltas.length === 1 ? flavorDeltas[0].flavor : "",
+          flavorBreakdown: flavorDeltas.map(({ flavor, delta: flavorDelta }) => ({
+            flavor,
+            quantity: Math.abs(flavorDelta),
+          })),
         },
       ],
       { session }

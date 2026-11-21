@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const StockMovement = require("../models/StockMovement");
+const {
+  applyFlavorStockChange,
+  cleanFlavor,
+} = require("../utils/flavor-stock");
 
 function cleanString(value) {
   return value === undefined || value === null ? "" : String(value).trim();
@@ -24,6 +28,24 @@ async function adjustStock(req, res, next) {
       return res.status(400).json({ message: "quantity must be a positive whole number" });
     }
 
+    const current = await Product.findById(id).lean();
+    if (!current) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const requestedFlavor = cleanFlavor(req.body?.flavor);
+    const flavorRows = Array.isArray(current.flavorStocks) ? current.flavorStocks : [];
+    if (flavorRows.length > 0 && !requestedFlavor) {
+      return res.status(400).json({ message: "Select a flavor to adjust this product" });
+    }
+
+    const matchingRow = requestedFlavor
+      ? flavorRows.find(
+          (row) => cleanFlavor(row.flavor).toLowerCase() === requestedFlavor.toLowerCase()
+        )
+      : null;
+    const flavor = matchingRow ? matchingRow.flavor : requestedFlavor;
+
     const delta = direction === "add" ? qty : -qty;
     const filter = { _id: id };
     if (direction === "deduct") {
@@ -31,6 +53,7 @@ async function adjustStock(req, res, next) {
       filter.openingStock = { $gte: qty };
     }
 
+    const compensations = [];
     const product = await Product.findOneAndUpdate(
       filter,
       { $inc: { openingStock: delta } },
@@ -38,15 +61,29 @@ async function adjustStock(req, res, next) {
     );
 
     if (!product) {
-      const current = await Product.findById(id).lean();
-      if (!current) {
-        return res.status(404).json({ message: "Product not found" });
-      }
       return res.status(400).json({
         message: `Cannot deduct more than the available stock (${Number(
           current.openingStock || 0
         )})`,
       });
+    }
+
+    compensations.push(async () => {
+      await Product.findByIdAndUpdate(id, { $inc: { openingStock: -delta } });
+    });
+
+    try {
+      if (flavor) {
+        await applyFlavorStockChange({
+          productId: id,
+          flavor,
+          delta,
+          compensations,
+        });
+      }
+    } catch (error) {
+      for (const compensate of compensations.reverse()) await compensate();
+      throw error;
     }
 
     const newStock = Number(product.openingStock || 0);
@@ -68,18 +105,22 @@ async function adjustStock(req, res, next) {
         reference: cleanString(reference),
         notes: cleanString(notes),
         performedBy: cleanString(performedBy) || "Admin",
+        flavor,
+        flavorBreakdown: flavor ? [{ flavor, quantity: qty }] : [],
       });
     } catch (movementError) {
       // Roll the stock change back so the ledger and stock balance never drift apart.
-      await Product.findByIdAndUpdate(id, { $inc: { openingStock: -delta } }).catch((revertError) => {
-        console.error("Failed to revert stock after movement error:", revertError.message);
-      });
+      for (const compensate of compensations.reverse()) {
+        await compensate().catch((revertError) => {
+          console.error("Failed to revert stock after movement error:", revertError.message);
+        });
+      }
       throw movementError;
     }
 
     return res.status(201).json({
       message: "Stock adjusted successfully",
-      product,
+      product: await Product.findById(id),
       movement,
     });
   } catch (error) {
@@ -141,20 +182,44 @@ async function deleteStockMovement(req, res, next) {
       });
     }
 
+    const compensations = [
+      async () => {
+        await Product.findByIdAndUpdate(movement.product, {
+          $inc: { openingStock: -reversal },
+        });
+      },
+    ];
+
     try {
+      const flavorEntries =
+        Array.isArray(movement.flavorBreakdown) && movement.flavorBreakdown.length > 0
+          ? movement.flavorBreakdown
+          : cleanFlavor(movement.flavor)
+            ? [{ flavor: movement.flavor, quantity: movement.quantity }]
+            : [];
+
+      for (const entry of flavorEntries) {
+        await applyFlavorStockChange({
+          productId: movement.product,
+          flavor: entry.flavor,
+          delta: reversal < 0 ? -Number(entry.quantity) : Number(entry.quantity),
+          compensations,
+        });
+      }
+
       await StockMovement.findByIdAndDelete(id);
     } catch (deleteError) {
-      await Product.findByIdAndUpdate(movement.product, {
-        $inc: { openingStock: -reversal },
-      }).catch((revertError) => {
-        console.error("Failed to revert stock after movement delete error:", revertError.message);
-      });
+      for (const compensate of compensations.reverse()) {
+        await compensate().catch((revertError) => {
+          console.error("Failed to revert stock after movement delete error:", revertError.message);
+        });
+      }
       throw deleteError;
     }
 
     return res.status(200).json({
       message: "Stock adjustment deleted",
-      product,
+      product: await Product.findById(movement.product),
       movement,
     });
   } catch (error) {

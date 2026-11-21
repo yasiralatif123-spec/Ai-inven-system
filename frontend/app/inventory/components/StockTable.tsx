@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { STOCK_STATUS_META, type StockRow } from "../data";
-import { formatNumber } from "../utils";
+import { formatFlavorLabel, formatNumber } from "../utils";
 
 type StockTableProps = {
   rows: StockRow[];
@@ -77,6 +77,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
                 />
               </th>
               <th className="px-3 py-1.5">Product &amp; SKU</th>
+              <th className="px-3 py-1.5">Flavor</th>
               <th className="px-3 py-1.5">Depot Location</th>
               <th className="px-3 py-1.5 text-right">Available</th>
               <th className="px-3 py-1.5 text-right">Reserved</th>
@@ -89,7 +90,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
           <tbody className="divide-y divide-outline-variant font-body-default text-body-default">
             {sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-secondary">
+                <td colSpan={10} className="px-4 py-8 text-center text-secondary">
                   No products match the current filters.
                 </td>
               </tr>
@@ -128,6 +129,17 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
                           </span>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`inline-flex rounded border px-1.5 py-0.5 font-body-medium text-[12px] ${
+                          row.flavor
+                            ? "border-primary/30 bg-primary-container/20 font-semibold text-primary"
+                            : "border-outline-variant bg-surface-container text-secondary"
+                        }`}
+                      >
+                        {formatFlavorLabel(row.flavor)}
+                      </span>
                     </td>
                     <td className="px-3 py-2">
                       <span className="flex items-center gap-1 font-mono-data-sm text-mono-data-sm font-medium text-on-surface">

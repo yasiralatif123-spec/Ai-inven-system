@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (purchase/sale flavor pricing snapshots, customer order links, receive-only purchase stock, and enriched supplier/customer product histories implemented and verified).
+> Last updated: **2026-11-21** (flavor-wise inventory rows with per-flavor stock, purchase/sale flavor stock propagation, and flavor-aware adjustments implemented and verified).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -115,7 +115,8 @@ inv_system/
 - Live API smoke test ✅ for flavor create/update, supplier default, purchase line, and sale line, with all test records deleted afterward.
 - Live multi-flavor smoke test ✅ on `http://localhost:5000`: sale order with `["chese","SALT","mystery"]` canonicalized to `["chese","salt","mystery"]`; supplier defaults `["chese","SALT","mystery"]` stored as `["chese","salt"]` (non-catalog value dropped); purchase line stored as `["chese","salt"]`. All smoke records deleted; LAYS stock was 50 then, and is 5 now after a separate real sale.
 - Live receive-only purchase + customer-link smoke test ✅ on `http://localhost:5000` (2026-11-21): purchase create with 2 flavors stored `basePrice=50`, `flavorCount=2`, `unitPrice=100`, `receivedQuantity=0`, no stock change; partial receive added only delta 1 and repeated receive was idempotent; sale with `customerId` stored the link and `?customerId=` filtered correctly; all smoke records deleted and LAYS stock returned to 5.
-- Live ports used previously: backend `http://localhost:5000`, frontend `http://localhost:3000`.
+- Live flavor-stock smoke test ✅ on `http://localhost:5000` (2026-11-21): purchase 10×3 flavors → product 30 / each flavor 10; 2-flavor sale → product 26 / chese+chilli 8; flavor adjustment and sale/purchase deletion restored all balances; all temp business records deleted and leftover immutable sale ledger rows removed directly from MongoDB.
+- Live ports used previously: backend `http://localhost:5000`, frontend `http://localhost:3000` (a `next start --port 3100` instance was also observed).
 
 ---
 
@@ -210,9 +211,10 @@ No model has custom virtuals or `.pre()/.post()` hooks. All use `{ timestamps: t
 - `title`, `sku` (unique), `barcode`
 - `category`, `brand`, `description`
 - `flavors`: optional `String[]`; normalized to de-duplicated, trimmed values (max 24 flavors, 80 chars each)
+- `flavorStocks`: array of `{ flavor, quantity }`; created/updated only when a flavor is actually received, sold, or adjusted. Inventory renders one row per entry. Entries are not removed when quantity reaches `0` (the purchased flavor must remain visible).
 - `purchasePrice`, `wholesalePrice`, `retailPrice`
 - `taxBracket`, `uom`, `warehouse`, `rackBay`
-- `openingStock` — **the single stock balance used everywhere**
+- `openingStock` — **authoritative product-level total**; for products with `flavorStocks`, it is the sum of all flavor balances (each received/sold quantity is multiplied by selected flavor count)
 - `reorderThreshold`
 - `catalogStatus`: `active | draft | discontinued`, default `active`
 - `batchTracking`, `expiryDate`
@@ -228,7 +230,8 @@ No model has custom virtuals or `.pre()/.post()` hooks. All use `{ timestamps: t
 - `quantity` (min 1), `previousStock`, `newStock`
 - `unit`, `reason`, `reference`, `notes`, `performedBy` (default `"Admin"`)
 - `partyName` (default `""`) — denormalized counterparty captured at movement time: supplier name for purchases, customer/buyer name for sales.
-- Purchase movements use `type: "purchase"`, `direction: "in"`, reference `<PO> · <GRN ref>` and are created only by Receive Goods (legacy `AUTO-STOCK` rows may still exist).
+- `flavor` (single flavor) and `flavorBreakdown: [{ flavor, quantity }]` (multi-flavor purchase/sale lines) — audit context for flavor-level stock changes. `quantity` always stores the product-level total.
+- Purchase movements use `type: "purchase"`, `direction: "in"`, reference `<PO> · <GRN ref>` (or `<PO> · STATUS-RECEIVED`) and are created by both status-driven receiving and Receive Goods (legacy `AUTO-STOCK` rows may still exist).
 - Sale movements use `type: "sale"`, reference `<SO> · SALE`.
 
 ### `Customer` (`backend/src/models/Customer.js`)
@@ -357,8 +360,8 @@ Health: `GET /api/health` → `{ status: "ok", message: "API is running" }`.
 | GET | `/api/purchases/next-code` | `PO-2042` base |
 | GET | `/api/purchases` | Optional `?supplierId=<ObjectId>` filter |
 | GET | `/api/purchases/:id` | Accepts ObjectId or `purchaseNumber` |
-| POST | `/api/purchases` | Recomputes strict flavor pricing; saves `receivedQuantity=0`; no stock movement |
-| PUT | `/api/purchases/:id` | Recomputes purchase; never applies stock; receiving is a separate action |
+| POST | `/api/purchases` | Recomputes strict flavor pricing; `Received` fully receives with stock/movement, `Draft`/`Ordered` save `receivedQuantity=0` with no stock |
+| PUT | `/api/purchases/:id` | Recomputes purchase; `Received` adds only the positive stock delta, other statuses never apply stock |
 | PATCH | `/api/purchases/:id/status` | Rejects receiving statuses; **Cancelled does not reverse stock (known bug)** |
 | POST | `/api/purchases/:id/receive` | Cumulative received quantity; only delta added to stock; CAS conflict → 409 |
 | POST | `/api/purchases/:id/payment` | `0 < amount <= total - paidAmount` |
@@ -422,7 +425,9 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 **Status:** Mostly implemented, DB-backed.
 
 - Five tabs: overview, movements, adjustments, transfers, alerts.
-- Adjust Stock works and persists with audit fields; only adjustment movements are deletable and deletion reverses stock.
+- Products with received flavors expand into one inventory row per flavor (`Chese Lays`, `Chilli Lays`, `Salt Lays`); product page still shows one product with its flavor list. Products without `flavorStocks` keep the single product row.
+- Each flavor row uses the flavor's own available balance and the product's `reorderThreshold` for status and the Min. Safety horizontal bar, so bars differ per flavor.
+- Adjust Stock on a flavor row sends `flavor` and updates both that flavor balance and product total; flavorless adjustments are unchanged. Only adjustment movements are deletable and deletion reverses both balances.
 - CSV export for overview/alerts.
 - Deep links `?tab=`, `?product=` work.
 - Reserved stock is always `0` (synthetic).
@@ -495,8 +500,8 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
   - clean redirect to `/purchases?created=...` after save.
 - List actions: View PO, Receipt History, Receive Goods (GRN), Record Payment, Edit, Cancel, Delete.
 - Purchase lines use strict `Product.purchasePrice`; `unitPrice = purchasePrice × selected flavor count`, and flavored products require at least one flavor.
-- Create/save does **not** add stock: new items start with `receivedQuantity=0` and no `AUTO-STOCK` receipt/movement.
-- Partial receiving uses cumulative `receivedQuantity`, adds only the new delta, prevents duplicate stock updates, idempotent repeat submissions, 409 on concurrent conflict.
+- Create/edit header now has a status selector (`Draft`, `Ordered`, `Received`). Saving `Received` fully receives the purchase with a `STATUS-RECEIVED` receipt and `purchase` stock movement; saving `Draft`/`Ordered` leaves stock unchanged.
+- Partial receiving via GRN still uses cumulative `receivedQuantity`, adds only the new delta, prevents duplicate stock updates, idempotent repeat submissions, 409 on concurrent conflict.
 - Delete reverses received stock and removes related purchase movements.
 - Saved purchase orders do not update supplier `totalPurchases`/`outstanding`.
 - `Upload Supplier Invoice is not connected yet.` notice remains.
@@ -507,9 +512,10 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 
 ### Stock
 
-- `Product.openingStock` is the only stock balance.
+- `Product.openingStock` is the authoritative product total; `Product.flavorStocks` holds per-flavor balances for products with flavors. A received/sold quantity applies in full to each selected flavor; total = `quantity × selected flavor count`.
+- Only flavors that have been received appear in `flavorStocks` and therefore as separate inventory rows. Rows stay at `0` after being fully sold instead of disappearing.
 - Stock deductions/restorations happen for sale orders and purchases/inventory only where explicitly implemented.
-- Guard pattern: atomic `$inc` with `openingStock: { $gte: quantity }` where supported; standalone Mongo uses compensating reversals via `runWithSession`.
+- Guard pattern: atomic `$inc` with `openingStock: { $gte: quantity }` where supported; flavor balances use a guarded read-modify-write helper (`backend/src/utils/flavor-stock.js`) with compensations. Standalone Mongo uses compensating reversals via `runWithSession`.
 - Movements are audit records; only `adjustment` movements can be deleted through the API.
 
 ### Sale order rules
@@ -520,7 +526,7 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 - Catalog prices are authoritative from the database on create, on newly added edit items, and whenever the flavor set changes. Both sale and purchase items store `basePrice`/`flavorCount` snapshots. Manual items keep client-supplied price; unchanged edits preserve the saved snapshot/price from the database record rather than trusting the request body.
 - Duplicate SKUs are aggregated before stock validation.
 - Insufficient stock → `400` with available/requested; no order saved.
-- Order create deducts stock; edit applies only the **delta**; delete restores full deducted quantity.
+- Order create deducts stock: product total by `quantity × flavor count`, and each selected flavor row by the full quantity. Edit applies only the **delta** (including flavor changes); delete restores full deducted quantity. A flavor with insufficient stock blocks the sale.
 - Status and payment updates never touch stock.
 - `financials.tax` is computed as 18% embedded tax but **not added to `total`**; `total = subtotal - discount + freight`. This is documented but financially inconsistent.
 - Unpaid orders: `dueDate: "Due on receipt"`, `paymentLabel: "Unpaid (Due on receipt)"`.
@@ -532,11 +538,12 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 - `availableStock` is only a stored snapshot; it does not reduce the stock increment.
 - Catalog items must have a non-zero `Product.purchasePrice`; no fallback to wholesale/retail price. Flavored catalog items require at least one selected flavor.
 - `unitPrice = purchasePrice × selected flavor count`; prices are snapshotted as `basePrice`/`flavorCount`/`unitPrice` and cannot be overridden by the request body.
-- Create/save adds no stock and sets `receivedQuantity=0`; only `Receive Goods` adds stock.
-- Receiving via `/receive` uses **cumulative** `receivedQuantity`; only the positive delta is added to stock, and repeated submissions are idempotent.
-- Editing cannot reduce `receivedQuantity` below what is already received, increase it via PUT, or change a received item’s linked product.
-- Status is derived from `receivedQuantity` when receiving; Cancelled is preserved.
-- Purchase delete reverses stock by cumulative `receivedQuantity`, deletes matching `purchase` movements, and deletes the purchase atomically/compensated.
+- Saving with `Received` (POST/PUT) sets each item's `receivedQuantity` to its ordered quantity, appends a `STATUS-RECEIVED` receipt for the positive delta only, increments `Product.openingStock` by `delta × selected flavor count`, increments every selected flavor's `flavorStocks` balance by `delta`, and writes a `purchase`/`in` `StockMovement` with flavor breakdown. Saving again with `Received` is idempotent.
+- Saving with `Draft` or `Ordered` adds no stock; new purchases start with `receivedQuantity=0`.
+- Receiving via `/receive` still uses **cumulative** `receivedQuantity`; only the positive delta is added to stock, and repeated submissions are idempotent. Both receipt paths share the same stock helper.
+- Editing cannot reduce the ordered quantity below what was already received or change a received item’s linked product. PUT only increases `receivedQuantity` when the submitted status is `Received`; other statuses still require GRN.
+- Status is derived from `receivedQuantity` on every save/receive; Cancelled remains a terminal status.
+- Purchase delete reverses product and flavor stock by cumulative `receivedQuantity`, deletes matching `purchase` movements, and deletes the purchase atomically/compensated.
 - Known bug: `PATCH .../status` to Cancelled does not reverse stock.
 
 ### Customer/supplier rules
@@ -665,7 +672,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
   - Flavor remains descriptive only: no per-flavor stock or stock-movement changes.
 - Sale order flavor-based pricing: catalog unit price is `selected flavor count × Product.wholesalePrice`; the UI shows the live formula, requires at least one flavor for flavored products, and recalculates on create/new items/flavor changes while preserving saved prices on unchanged edits.
 - Sale order create form now gives visible validation feedback instead of a silently greyed-out submit button; typing an exact catalog product name/SKU auto-fills SKU and wholesale-derived price; the dialog remounts fresh on every open under `cacheComponents`/`<Activity>`.
-- Purchase/sale flavor pricing snapshots and receive-only purchase stock are implemented; supplier/customer profile tables show detailed product history and sale orders carry actual customer IDs.
+- Purchase/sale flavor pricing snapshots and status-driven purchase receiving are implemented; supplier/customer profile tables show detailed product history and sale orders carry actual customer IDs.
 
 ---
 
@@ -754,8 +761,9 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - Negative stock blocked with guarded `$inc`; standalone Mongo uses compensating rollbacks via `runWithSession`.
 - GRN stock movements use `type: "purchase"`, `direction: "in"`; movement deletion remains limited to `type: "adjustment"`.
 - Partial receiving uses cumulative `receivedQuantity`; repeated cumulative submissions are idempotent; concurrent losers get `409`.
-- Purchase creation stores `availableStock` and `receivedQuantity=0`, but adds **no** stock; every unit must go through Receive Goods.
-- Editing/re-saving a purchase never adds stock; newly added items also need Receive Goods.
+- **Superseded (2026-11-21):** purchase creation previously stored `receivedQuantity=0` with no stock and only Receive Goods added stock; this was changed at the user's request.
+- Purchase creation/edit form exposes a status selector; `Received` is now a full receipt that adds stock on save, while `Draft`/`Ordered` still store `receivedQuantity=0` and add no stock.
+- Repeated `Received` saves add only the positive delta and never duplicate receipts or stock movements; GRN remains available for partial receipts and shares the same stock helper.
 - Supplier update prunes stale saved `productIds`; new unknown product IDs still fail validation.
 - Purchase row click navigates to `/suppliers/<supplier _id>`; `View PO` remains in the 3-dot menu.
 - Bank fields not stored; supplier profile shows saved supplier data only.
@@ -776,7 +784,10 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - Returns & Credit Notes tab remains empty because no returns model/API/records exist.
 - Add Product links use plain `<a>` to force full page reload; Add Product form also keyed by pathname with `blankForm()` and `autoComplete="off"`.
 - Add Supplier/Add Customer forms reset their state in the submit handler before redirect (Next.js `<Activity>` state preservation); no refresh and no `bfcacheId` used.
-- Flavors are **descriptive only**: stock, pricing, and stock movements remain product-level; `openingStock` is never split by flavor.
+- **Superseded (2026-11-21):** flavors were previously descriptive only; stock was product-level and never split by flavor.
+- Flavor-wise inventory is now authoritative: `Product.flavorStocks` holds per-flavor balances while `openingStock` remains the product total. Each received/sold quantity applies to every selected flavor, matching the existing flavor-count pricing rule. No separate collection or duplicate product records were introduced.
+- No backfill was requested or performed: existing received purchases/sale orders do not populate `flavorStocks` retroactively; new receipts/adjustments do. Existing ordered purchases remain no-stock until received.
+- The product page still creates/edits one product with multiple flavors; inventory expands that product into one row per received flavor. Each row's Min. Safety bar uses the flavor's own balance with the product-level `reorderThreshold`.
 - Product flavors are normalized server-side: comma/newline/array input accepted, trimmed, de-duplicated case-insensitively, max 24 values and 80 chars each.
 - Flavor inputs on Add/Edit Product auto-split comma-separated text as it is typed and commit the trailing value on blur; Enter and "Add flavor" remain optional.
 - Sale/purchase line flavor is an optional `String[]` (each value max 120 chars, max 24 values); values may also arrive as a comma/newline-separated string and are split server-side. Case-insensitive matches to catalog flavors are canonicalized to the catalog spelling; non-catalog values are preserved on sale/purchase lines but dropped from supplier defaults.
@@ -788,7 +799,69 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Supplier/customer product histories, flavor pricing snapshots, and receive-only purchases (completed 2026-11-21)
+### Latest task: Flavor-wise inventory rows and per-flavor stock (completed 2026-11-21)
+
+- **User request:** A product is still saved once with multiple flavors, but `/inventory` must show one row per purchased flavor (`Chese Lays`, `Chilli Lays`, `Salt Lays`). Each flavor row must have its own stock and Min. Safety bar. A purchase with multiple flavors applies the full quantity to each flavor; sales deduct from the selected flavor rows.
+- **Approved decisions:** Full quantity per selected flavor; sales deduct selected flavors; show only flavors that have been purchased; **no backfill** of old records; product-level `openingStock` becomes `quantity × flavor count` for flavored lines.
+- **Files created:**
+  - `backend/src/utils/flavor-stock.js` — shared `uniqueFlavors`, `totalStockDelta`, `flavorBreakdown`, and guarded `applyFlavorStockChange(s)` with compensations.
+- **Files modified:**
+  - `backend/src/models/Product.js` — added `flavorStocks: [{ flavor, quantity }]`.
+  - `backend/src/models/StockMovement.js` — added `flavor` and `flavorBreakdown`.
+  - `backend/src/controllers/purchase.controller.js` — status receipts, GRN, and delete now update every selected flavor and the multiplied product total; movements carry flavor breakdown.
+  - `backend/src/controllers/sale-order.controller.js` — weighted stock totals and per-flavor deltas for create/edit/delete, including flavor-only rebalances; movements carry flavor breakdown.
+  - `backend/src/controllers/inventory.controller.js` — `adjust-stock` accepts `flavor` (required when flavor rows exist) and reverses flavor + total on movement delete.
+  - `frontend/app/products/types.ts` — `Product.flavorStocks`.
+  - `frontend/app/inventory/data.ts` — `StockRow.productId`/`flavor`; `StockMovementDto.flavor`/`flavorBreakdown`.
+  - `frontend/app/inventory/utils.ts` — `toStockRows()` expands flavored products; Min. Safety uses each flavor's own balance.
+  - `frontend/app/inventory/page.tsx`, `components/AdjustStockPanel.tsx`, `services/inventory.service.ts` — render/refresh flavor rows and submit `flavor` on adjustments.
+  - `backend/docs/purchases-api.md`, `backend/docs/sales-orders-api.md`, `backend/docs/inventory-api.md`, `PROJECT_MEMORY.md` — contract and memory updates.
+- **No new dependencies, no auth changes, no new collection, and no duplicate product/tab/collections.**
+- **Verification:**
+  - `node --check` on all changed backend JS files ✅.
+  - `npx tsc --noEmit` ✅.
+  - `npm run lint` ✅ — 0 errors, 1 pre-existing layout font warning.
+  - `npm run build` ✅ — all 16 app routes generated.
+  - Live API smoke test on `http://localhost:5000` ✅ (temp product/supplier/purchase/sale created and deleted):
+    - Purchase `Received`, `quantity=10`, flavors `chese/chilli/salt` → product stock `30`, each flavor `10`, one purchase movement `qty=30` with 3-entry breakdown.
+    - Sale `quantity=2`, flavors `chese/chilli` → product `26`, chese/chilli `8`, salt `10`, sale movement `qty=4` with 2-entry breakdown.
+    - Flavor adjustment `+3 chese` → chese `11`, product `29`; deleting that adjustment restored chese `8`, product `26`.
+    - Sale delete restored all flavors to `10` and product to `30`; purchase delete reduced all flavor rows to `0` and product to `0`.
+    - Sale ledger rows are immutable (original + reversal remain); only non-sale smoke movements were cleaned up directly from MongoDB after the test.
+- **Follow-up UI refinement (same day):** Inventory table product name is now plain (e.g. `Lays Chips`); a separate **Flavor** column shows `Chese`/`Chilli`/`Salt` (or `—` for flavorless rows). CSV export and the Adjust Stock panel also show the flavor. Files additionally touched: `frontend/app/inventory/utils.ts`, `components/StockTable.tsx`, `components/AdjustStockPanel.tsx`, `page.tsx`. Verified with `npx tsc --noEmit`, `npm run lint` (0 errors, 1 pre-existing warning), and `npm run build` (16 routes).
+- **Side effects/risks:** Product-level stock movement quantities for flavored lines are now multiplied by flavor count. Existing already-received flavors do not get historical rows because no backfill was requested. The `Cancelled` status stock-reversal bug remains unchanged.
+
+### Previous task: Status-driven purchase receiving (completed 2026-11-21)
+
+- **User request:** When purchasing from a supplier, product/inventory stock was not increasing. Add a status option on `/purchases/create`; when the status becomes `Received`, product stock should increase on the inventory and product pages.
+- **Approved plan:** Keep `Draft`/`Ordered` as no-stock states, make `Received` a full goods receipt on save, preserve GRN for partial receipts, and add only positive deltas so repeated saves cannot double-stock.
+- **Files modified:**
+  - `backend/src/controllers/purchase.controller.js`
+    - Added `STATUS_RECEIPT_REFERENCE` / `STATUS_RECEIPT_NOTES`, shared `createReceiptEntry()`, `applyStockReceipt()`, and `runCompensations()`.
+    - `buildPurchaseChanges()` now returns `{ changes, stockUpdates }`; with status `Received` it sets each item's `receivedQuantity` to its ordered quantity, appends a receipt for the positive delta, and ignores any submitted `receivedQuantity`.
+    - `POST /api/purchases` and `PUT /api/purchases/:id` now run inside `runWithSession()` and apply stock/movements atomically for `Received`; PUT restores purchase state on compensation in standalone Mongo.
+    - `receivePurchase()` now uses the same stock helper and compensation runner as the status path.
+  - `backend/docs/purchases-api.md` — corrected stale receive-only/create-time stock documentation and documented delta/idempotency guarantees.
+  - `frontend/features/purchases/constants.ts` — added `PURCHASE_FORM_STATUSES` (`Draft`, `Ordered`, `Received`).
+  - `frontend/features/purchases/components/CreatePurchaseHeader.tsx` — added a labelled Status selector and a context hint; legacy `Partially Received`/`Cancelled` remain visible but non-selectable when editing.
+  - `frontend/features/purchases/components/CreatePurchaseView.tsx` — added status state, reset on new form, load from edited purchase, and submit selected status from both save buttons.
+  - `PROJECT_MEMORY.md` — updated API table, purchase rules, decisions, and latest change log.
+- **No new dependencies, no auth changes, no schema migration, no new collections/tabs.**
+- **Verification:**
+  - `node --check backend/src/controllers/purchase.controller.js` ✅.
+  - `npx tsc --noEmit` ✅.
+  - `npm run lint` ✅ — 0 errors, 1 pre-existing layout font warning.
+  - `npm run build` ✅ — all 16 app routes generated.
+  - Live API smoke test on `http://localhost:5000` with DairyMilk (`purchasePrice=50`, flavors `milk`/`chocklete`, stock `0`) ✅:
+    - `Ordered` create kept stock `0`, `receivedQuantity=0`.
+    - Changing to `Received` via PUT added exactly `2`, stored one `STATUS-RECEIVED` receipt, status `Received`.
+    - Re-saving `Received` did not change stock or add a second receipt.
+    - Direct `Received` create added `1` immediately.
+    - Existing `Receive Goods (GRN)` path still added `1` and derived `Received`.
+    - All smoke purchases deleted; stock restored to `0`; no smoke movements or purchases remained.
+- **Side effects/risks:** Existing `Ordered` purchases are not retroactively received; open/edit them to `Received` or use GRN. The separate `PATCH .../status` Cancelled stock-reversal bug remains unchanged.
+
+### Previous task: Supplier/customer product histories, flavor pricing snapshots, and receive-only purchases (completed 2026-11-21)
 
 - **User request:** Show complete purchased/sold product histories on supplier/customer profiles (quantity, prices, flavors, dates, status); price purchases and sales by `Base Price × selected flavors × quantity`; make purchases add stock only when goods are received; keep backend authoritative and avoid duplicate stock records.
 - **Clarified decisions:**

@@ -2,6 +2,8 @@ export type StockStatus = "critical" | "low" | "in-stock" | "optimal";
 
 export type StockRow = {
   id: string;
+  productId: string;
+  flavor?: string;
   name: string;
   sku: string;
   brand: string;
@@ -48,6 +50,8 @@ export type StockMovementDto = {
   notes?: string;
   performedBy?: string;
   partyName?: string;
+  flavor?: string;
+  flavorBreakdown?: Array<{ flavor: string; quantity: number }>;
   createdAt: string;
   updatedAt?: string;
 };
