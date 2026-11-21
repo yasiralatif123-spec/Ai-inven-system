@@ -98,7 +98,7 @@ export default function InventoryPage() {
   const rows = useMemo(() => products.flatMap(toStockRows), [products]);
 
   useEffect(() => {
-    // Dashboard links can deep-link to a tab or open Adjust Stock for a product.
+    // Dashboard links can deep-link to a tab or open Adjust Stock for a product/flavor.
     const params = new URLSearchParams(window.location.search);
     const requestedTab = params.get("tab");
     const validTabs: InventoryTab[] = [
@@ -122,8 +122,17 @@ export default function InventoryPage() {
     }
 
     const requestedProduct = params.get("product");
+    const requestedFlavor = params.get("flavor");
     if (requestedProduct && !deepLinkHandled.current.product) {
-      const row = rows.find((candidate) => candidate.productId === requestedProduct);
+      const exactFlavorRow = requestedFlavor
+        ? rows.find(
+            (candidate) =>
+              candidate.productId === requestedProduct &&
+              candidate.flavor === requestedFlavor
+          )
+        : undefined;
+      const row =
+        exactFlavorRow ?? rows.find((candidate) => candidate.productId === requestedProduct);
       if (row) {
         deepLinkHandled.current.product = true;
         timeouts.push(

@@ -42,7 +42,9 @@ export type RecentOrder = {
 
 export type LowStockRow = {
   id: string;
+  productId: string;
   title: string;
+  flavor?: string;
   sku: string;
   available: number;
   unit: string;

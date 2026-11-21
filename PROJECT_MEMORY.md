@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (flavor-wise inventory rows with per-flavor stock, purchase/sale flavor stock propagation, and flavor-aware adjustments implemented and verified).
+> Last updated: **2026-11-21** (dashboard low/critical stock alerts are now flavor-aware; all low/critical purchased flavors are listed with exact Adjust Stock deep-links).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,7 +799,22 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Flavor-wise inventory rows and per-flavor stock (completed 2026-11-21)
+### Latest task: Flavor-aware dashboard low/critical stock (completed 2026-11-21)
+
+- **User request:** Dashboard LOW STOCK ITEMS / Critical Low Stock should judge stock per purchased flavor and show the flavor name on each alert row.
+- **Approved decisions:** Reuse `toStockRows()` so only received flavors produce flavor rows; show **all** low/critical rows (no 5-row cap); count KPI `lowStockCount`/`urgentCount` from the same flavor rows; critical rows sort before low rows. Legacy/flavorless products keep a single product row.
+- **Files modified:**
+  - `frontend/features/dashboard/utils.ts` — added `collectLowStockRows()`; `getDashboardKpis()` and `getLowStockRows()` now use it, with default limit `0` (all rows).
+  - `frontend/features/dashboard/types.ts` — `LowStockRow` gained `productId` and `flavor`.
+  - `frontend/features/dashboard/components/CriticalLowStock.tsx` — flavor pill beside product title, “items flagged”, and exact `/inventory?product=<id>&flavor=<flavor>` Adjust Stock link.
+  - `frontend/app/inventory/page.tsx` — accepts `?flavor=` and selects the matching flavor row (falls back to the first product row).
+  - `PROJECT_MEMORY.md` — memory update.
+- **No backend/API/DB changes, no new dependencies, no auth changes.**
+- **Git:** Earlier flavor-wise/pricing/receiving work was committed and pushed as `bb5afdf`; this dashboard change is not committed unless explicitly asked.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** A product with several low flavors now contributes several rows to the KPI count by design. Fully sold flavor rows at `0` are flagged critical. No historical purchase/sale records were backfilled.
+
+### Previous task: Flavor-wise inventory rows and per-flavor stock (completed 2026-11-21)
 
 - **User request:** A product is still saved once with multiple flavors, but `/inventory` must show one row per purchased flavor (`Chese Lays`, `Chilli Lays`, `Salt Lays`). Each flavor row must have its own stock and Min. Safety bar. A purchase with multiple flavors applies the full quantity to each flavor; sales deduct from the selected flavor rows.
 - **Approved decisions:** Full quantity per selected flavor; sales deduct selected flavors; show only flavors that have been purchased; **no backfill** of old records; product-level `openingStock` becomes `quantity × flavor count` for flavored lines.

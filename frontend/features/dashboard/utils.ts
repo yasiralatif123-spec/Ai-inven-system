@@ -1,6 +1,6 @@
 import type { Product } from "../../app/products/types";
 import type { StockMovementDto } from "../../app/inventory/data";
-import { deriveStockStatus, formatRs, getUnitShort } from "../../app/inventory/utils";
+import { formatRs, getUnitShort, toStockRows } from "../../app/inventory/utils";
 import type { SalesOrder } from "../sales-orders/types";
 import type { Supplier } from "../suppliers/types";
 import type {
@@ -160,6 +160,38 @@ export function summarizeBuckets(buckets: SalesBucket[]): SalesPeriodSummary {
   return { current, prior, changePct: percentChange(current, prior) };
 }
 
+/**
+ * Low stock is evaluated per inventory row so purchased flavors get their own
+ * alert. Products without received flavors keep their single product row.
+ */
+function collectLowStockRows(products: Product[]): LowStockRow[] {
+  return products
+    .flatMap((product) =>
+      toStockRows(product)
+        .filter((row) => row.status === "low" || row.status === "critical")
+        .map((row) => ({
+          id: row.id,
+          productId: row.productId,
+          title: row.name,
+          flavor: row.flavor,
+          sku: row.sku,
+          available: row.available,
+          unit: row.unit,
+          threshold: row.minSafety,
+          status: row.status,
+        }))
+    )
+    .sort((a, b) => {
+      const severityA = a.status === "critical" ? 0 : 1;
+      const severityB = b.status === "critical" ? 0 : 1;
+      if (severityA !== severityB) return severityA - severityB;
+      const ratioA = a.threshold > 0 ? a.available / a.threshold : a.available;
+      const ratioB = b.threshold > 0 ? b.available / b.threshold : b.available;
+      if (ratioA !== ratioB) return ratioA - ratioB;
+      return `${a.title}${a.flavor || ""}`.localeCompare(`${b.title}${b.flavor || ""}`);
+    });
+}
+
 export function getDashboardKpis(
   products: Product[],
   orders: SalesOrder[],
@@ -172,13 +204,7 @@ export function getDashboardKpis(
 
   const todaySales = sumOn(points, today);
   const yesterdaySales = sumOn(points, yesterday);
-  const lowStock = products.filter((product) => {
-    const status = deriveStockStatus(
-      safeAmount(product.openingStock),
-      safeAmount(product.reorderThreshold)
-    );
-    return status === "low" || status === "critical";
-  });
+  const lowStock = collectLowStockRows(products);
 
   return {
     totalProducts: products.length,
@@ -196,13 +222,7 @@ export function getDashboardKpis(
       0
     ),
     lowStockCount: lowStock.length,
-    urgentCount: lowStock.filter(
-      (product) =>
-        deriveStockStatus(
-          safeAmount(product.openingStock),
-          safeAmount(product.reorderThreshold)
-        ) === "critical"
-    ).length,
+    urgentCount: lowStock.filter((row) => row.status === "critical").length,
   };
 }
 
@@ -225,29 +245,10 @@ export function getRecentOrders(orders: SalesOrder[], limit = 5): RecentOrder[] 
     }));
 }
 
-export function getLowStockRows(products: Product[], limit = 5): LowStockRow[] {
-  return products
-    .map((product) => {
-      const available = safeAmount(product.openingStock);
-      const threshold = safeAmount(product.reorderThreshold);
-      const status = deriveStockStatus(available, threshold);
-      return {
-        id: product._id,
-        title: product.title,
-        sku: product.sku,
-        available,
-        unit: getUnitShort(product.uom),
-        threshold,
-        status,
-      };
-    })
-    .filter((row) => row.status === "low" || row.status === "critical")
-    .sort((a, b) => {
-      const ratioA = a.threshold > 0 ? a.available / a.threshold : a.available;
-      const ratioB = b.threshold > 0 ? b.available / b.threshold : b.available;
-      return ratioA - ratioB;
-    })
-    .slice(0, limit);
+/** `limit <= 0` returns every flagged flavor row for the dashboard panel. */
+export function getLowStockRows(products: Product[], limit = 0): LowStockRow[] {
+  const rows = collectLowStockRows(products);
+  return limit > 0 ? rows.slice(0, limit) : rows;
 }
 
 function relativeTime(value: Date, now: Date): string {
