@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (low-stock Purchase action now prefills the clicked product with zero Unit Price and red available stock).
+> Last updated: **2026-11-21** (PR #3 merged to `main`; low-stock Purchase prefills product + supplier, zero Unit Price and red stock).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -812,7 +812,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
   - Supplier badalne par naya product select karne se `lowStock` flag clear ho jata hai aur normal pricing wapas aa jati hai.
 - **Files modified:** `frontend/features/dashboard/components/CriticalLowStock.tsx`, `frontend/features/purchases/components/CreatePurchaseView.tsx`, `frontend/features/purchases/components/PurchaseItemsTable.tsx`, `frontend/features/purchases/types.ts`, `frontend/features/purchases/utils.ts`, `PROJECT_MEMORY.md`.
 - **No backend/API/DB changes, no new dependencies, no new files.** Saved purchase me backend ab bhi apne authoritative `purchasePrice × selected flavors` rule se unit price/store karta hai; sirf create form display 0 hai.
-- **Git:** User ne plan approve kiya; ye changes same branch `critical-stock-purchase-link` / PR #3 par commit + push kiye gaye. Pehle wale commits `8be52ec`, `5706b01` hain.
+- **Git:** User ne merge + push ka instruction diya. Branch `critical-stock-purchase-link` ke commits `8be52ec`, `5706b01`, `512cb38`, `dee95dd` PR #3 ke through `main` me merge ho gaye. Merge commit `cc81754` `origin/main` par push kiya gaya. PR #3: https://github.com/yasiralatif123-spec/Ai-inven-system/pull/3 (merged ✅).
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes). React lint rule `set-state-in-effect` ke chalte prefill `setTimeout(0)` + cleanup ke andar kiya gaya, existing create-reset pattern ke jaisa.
 - **Side effects/risks:** Form me Unit Price `0` dikhne ke bawajood Line Total aur final summary real purchase price se nikte hain (backend ke sath match karne ke liye). Agar user low-stock row ka product manually badalta hai to normal pricing wapas aa jati hai.
 
@@ -822,7 +822,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - **Approved implementation (minimal UI change):** `CriticalLowStock.tsx` me `row.status` condition hata diya gaya; ab section ki har row par `Purchase` link dikhta hai aur `/purchases/create` par le jata hai. Existing `Adjust Stock` link aur baaki layout unchanged.
 - **File modified:** `frontend/features/dashboard/components/CriticalLowStock.tsx`, `PROJECT_MEMORY.md`.
 - **No backend/API/DB changes, no new dependencies, no new files.** Is stage par prefill nahi tha; user ke agle request par product/flavor prefill add kiya gaya (upar dekhein).
-- **Git:** Branch `critical-stock-purchase-link` (base `main` / `c1855ed`) par commit `8be52ec` push kiya gaya. PR #3 open kiya gaya: https://github.com/yasiralatif123-spec/Ai-inven-system/pull/3. Customer metrics branch `customer-row-metrics` aur sidebar stash alag hain.
+- **Git:** Branch `critical-stock-purchase-link` (base `main` / `c1855ed`) par commit `8be52ec` push kiya gaya aur PR #3 open hua tha; ab PR #3 merge ho kar `main` (`cc81754`) me aa gaya: https://github.com/yasiralatif123-spec/Ai-inven-system/pull/3. Customer metrics branch `customer-row-metrics` aur sidebar stash alag hain.
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes). Next 16 `Link` docs padhe gaye; existing client-side navigation pattern hi reuse kiya gaya.
 - **Side effects/risks:** Purchase link ab low-stock section ki har row par dikhega (chahe stock 0 ho ya threshold se kam); narrow screens par row thodi width use karegi. Is stage par kisi product/flavor ka prefill nahi hota tha — ab upar wale task me ho gaya hai.
 
