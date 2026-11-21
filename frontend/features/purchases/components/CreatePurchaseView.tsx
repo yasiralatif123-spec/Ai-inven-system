@@ -287,6 +287,10 @@ export function CreatePurchaseView() {
     const product = products.find((candidate) => candidate._id === productIdParam);
     if (!product) return;
 
+    const linkedSupplier = suppliers.find((candidate) =>
+      (candidate.productIds || []).includes(product._id)
+    );
+
     const flavors = flavorParam ? [flavorParam] : defaultFlavorsFor(product, activeSupplier);
     const parsedStock = Number(stockParam);
     const stock =
@@ -298,6 +302,11 @@ export function CreatePurchaseView() {
     const timer = window.setTimeout(() => {
       if (cancelled || lowStockPrefillRef.current) return;
       lowStockPrefillRef.current = true;
+
+      if (!supplierIdParam && !selectedSupplier && linkedSupplier) {
+        setSelectedSupplier(linkedSupplier);
+        setSupplierQuery(supplierLabel(linkedSupplier));
+      }
 
       setItems((current) => {
         const first = current[0] ?? createRow();
