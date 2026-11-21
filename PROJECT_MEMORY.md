@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (purchase edit form resets saving state when switching rows; PR #1 open).
+> Last updated: **2026-11-21** (critical low-stock rows now have a Purchase action linking to the purchase form).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,7 +799,17 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Purchase edit saving state fix (completed 2026-11-21)
+### Latest task: Purchase action on critical low-stock rows (completed 2026-11-21)
+
+- **User request:** Dashboard ke Critical Low Stock section ki **har row** me "Purchase" option ho; click karne par purchase page par redirect ho. User ne clarify kiya ke ye button sirf 0-stock/critical rows par nahi, section me dikhne wali sab rows par hona chahiye.
+- **Approved implementation (minimal UI change):** `CriticalLowStock.tsx` me `row.status` condition hata diya gaya; ab section ki har row par `Purchase` link dikhta hai aur `/purchases/create` par le jata hai. Existing `Adjust Stock` link aur baaki layout unchanged.
+- **File modified:** `frontend/features/dashboard/components/CriticalLowStock.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.** Product/flavor prefill purchase form me nahi kiya gaya (user ne nahi manga).
+- **Git:** Naya local branch `critical-stock-purchase-link` (base `main` / `c1855ed`) banaya gaya. User ne abhi commit/push nahi manga — changes uncommitted hain. Customer metrics branch `customer-row-metrics` aur sidebar stash alag hain.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes). Next 16 `Link` docs padhe gaye; existing client-side navigation pattern hi reuse kiya gaya.
+- **Side effects/risks:** Purchase link ab low-stock section ki har row par dikhega (chahe stock 0 ho ya threshold se kam); narrow screens par row thodi width use karegi. Purchase form kisi specific product/flavor ke saath prefill nahi hota.
+
+### Previous task: Purchase edit saving state fix (merged via PR #1, 2026-11-21)
 
 - **User request:** Purchase edit me save karne ke baad, bina reload doosre purchase ko edit karne par Save button disabled reh jata tha.
 - **Root cause:** `saving` state success ke baad `false` nahi hota tha aur query string `?edit=` badalne par client component instance reuse hota tha; edit-load effect `[]` ke saath sirf ek baar chalta tha.
