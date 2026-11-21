@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (purchase payment is now recorded from create/edit page; paidAmount and payment ledger persist).
+> Last updated: **2026-11-21** (sales-order edit form hides the Order Items section; items remain preserved in payload).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,7 +799,18 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Purchase payment from create/edit page (completed 2026-11-21)
+### Latest task: Hide Order Items in sale-order edit (completed 2026-11-21)
+
+- **User request:** Sales & Orders page me Edit dialog me "Order Items" section remove karna hai; ye section sirf Add New Sale / Order me dikhe.
+- **Approved implementation (direct UI change):** `OrderFormDialog` me edit branch ko `null` kar diya gaya; create branch waise hi render hoti hai. Edit mode me `items` state phir bhi `draftOrderFromSalesOrder(order)` se load hoti hai taake payload, subtotal, discount, paid aur outstanding sahi rahein aur backend stock-delta zero rahe.
+- **Validation adjustment:** Edit mode me hidden items ki client-side item validation (name/flavor/quantity/price/stock) skip ki gayi, kyunki user unhe edit kar sakta hi nahi. Backend `buildOrderChanges` apni validation aur pricing snapshots waise hi enforce karta hai. Customer, hub, total, paid>total jaise visible-field checks active rahe.
+- **File modified:** `frontend/features/sales-orders/components/OrderFormDialog.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.** Add/new sale flow unchanged.
+- **Git:** Naya local branch `hide-order-items-in-edit` (base `main` / `dc54dbc`) banaya gaya. User ne abhi commit/push nahi manga — changes uncommitted hain. Existing PR #1 (`fix/purchase-edit-saving-state`) is se unaffected hai.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** Edit dialog me ab item list nahi dikhti, isliye user wahan se product/qty/price change nahi kar sakta. Agar kisi legacy order ke items backend validation se match na karein to server error dikhega; UI se usse theek nahi kiya ja sakta.
+
+### Previous task: Purchase payment from create/edit page (completed 2026-11-21)
 
 - **User request:** Add/edit purchase page me remaining amount ko paid mein badalne ka option ho; database me `paidAmount` update ho aur remaining sahi rahe, aur jahan jahan paid/remaining dikhte hain wahan effect functional ho.
 - **Approved decisions:**
