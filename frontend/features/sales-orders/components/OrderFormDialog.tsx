@@ -161,35 +161,39 @@ export function OrderFormDialog({
   if (!customer.trim()) {
     validationIssues.push("Enter a customer / shop name.");
   }
-  if (items.length === 0) {
-    validationIssues.push("Add at least one order item.");
+  // Edit mode keeps items only to preserve the saved payload and financials.
+  // They are not rendered there, so skip client-side checks the user cannot act on.
+  if (!isEdit) {
+    if (items.length === 0) {
+      validationIssues.push("Add at least one order item.");
+    }
+
+    items.forEach((item, index) => {
+      const label = `Item ${index + 1}`;
+      const product = productForItem(item);
+      const quantity = Number(item.quantity);
+      const unitPrice = Number(item.unitPrice);
+      const available = product ? Number(product.openingStock) || 0 : null;
+
+      if (!item.name.trim()) {
+        validationIssues.push(`${label}: select a catalog product or type a product name.`);
+      }
+      if (product && (product.flavors?.length || 0) > 0 && toFlavorArray(item.flavor).length === 0) {
+        validationIssues.push(`${label}: select at least one flavor for ${product.title}.`);
+      }
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        validationIssues.push(`${label}: quantity must be greater than zero.`);
+      }
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        validationIssues.push(`${label}: unit price cannot be negative.`);
+      }
+      if (available !== null && Number.isFinite(quantity) && quantity > available) {
+        validationIssues.push(
+          `${label}: only ${available} unit${available === 1 ? "" : "s"} available for ${product?.title || "this product"}.`
+        );
+      }
+    });
   }
-
-  items.forEach((item, index) => {
-    const label = `Item ${index + 1}`;
-    const product = productForItem(item);
-    const quantity = Number(item.quantity);
-    const unitPrice = Number(item.unitPrice);
-    const available = product ? Number(product.openingStock) || 0 : null;
-
-    if (!item.name.trim()) {
-      validationIssues.push(`${label}: select a catalog product or type a product name.`);
-    }
-    if (product && (product.flavors?.length || 0) > 0 && toFlavorArray(item.flavor).length === 0) {
-      validationIssues.push(`${label}: select at least one flavor for ${product.title}.`);
-    }
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-      validationIssues.push(`${label}: quantity must be greater than zero.`);
-    }
-    if (!Number.isFinite(unitPrice) || unitPrice < 0) {
-      validationIssues.push(`${label}: unit price cannot be negative.`);
-    }
-    if (available !== null && Number.isFinite(quantity) && quantity > available) {
-      validationIssues.push(
-        `${label}: only ${available} unit${available === 1 ? "" : "s"} available for ${product?.title || "this product"}.`
-      );
-    }
-  });
 
   const hubValid = HUB_OPTIONS.includes(hub as (typeof HUB_OPTIONS)[number]) || hub.trim().length > 0;
   if (!hubValid) {
@@ -371,98 +375,7 @@ export function OrderFormDialog({
             </label>
           </section>
 
-          {isEdit ? (
-            <section className="rounded border border-outline-variant bg-surface-container-low p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="font-label-caps text-label-caps uppercase text-secondary">Order Items</span>
-                <button
-                  type="button"
-                  onClick={addItem}
-                  className="flex items-center gap-1 font-mono-data-sm text-mono-data-sm text-primary underline"
-                >
-                  <span className="material-symbols-outlined text-[14px]">add</span>
-                  Add item
-                </button>
-              </div>
-              <div className="space-y-2">
-                {items.map((item, index) => (
-                  <div key={index} className="flex flex-col gap-1">
-                    <div className="grid grid-cols-12 gap-2">
-                    <ProductAutocomplete
-                      value={item.name}
-                      onChange={(value) => updateItem(index, { name: value })}
-                      onProductSelect={(product) => selectProduct(index, product)}
-                      products={products}
-                      loading={productsLoading}
-                      error={productsError}
-                      ariaLabel={`Item ${index + 1} name`}
-                    />
-                    <input
-                      value={item.sku}
-                      onChange={(event) => updateItem(index, { sku: event.target.value })}
-                      placeholder="SKU (optional)"
-                      aria-label={`Item ${index + 1} SKU`}
-                      className="col-span-6 h-8 rounded border border-outline-variant bg-surface px-2 font-mono-data-sm text-mono-data-sm text-on-surface placeholder:text-outline focus:border-primary focus:outline-none sm:col-span-3"
-                    />
-                    <input
-                      value={item.quantity}
-                      onChange={(event) => updateItem(index, { quantity: event.target.value })}
-                      type="number"
-                      min="1"
-                      step="1"
-                      aria-label={`Item ${index + 1} quantity`}
-                      className="col-span-3 h-8 rounded border border-outline-variant bg-surface px-2 font-mono-data-sm text-mono-data-sm text-on-surface focus:border-primary focus:outline-none sm:col-span-1"
-                    />
-                    <input
-                      value={item.unitLabel}
-                      onChange={(event) => updateItem(index, { unitLabel: event.target.value })}
-                      aria-label={`Item ${index + 1} unit`}
-                      className="col-span-3 h-8 rounded border border-outline-variant bg-surface px-2 font-body-default text-body-dense text-on-surface focus:border-primary focus:outline-none sm:col-span-1"
-                    />
-                    <input
-                      value={item.unitPrice}
-                      onChange={(event) => updateItem(index, { unitPrice: event.target.value })}
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="Unit price"
-                      aria-label={`Item ${index + 1} unit price`}
-                      className="col-span-10 h-8 rounded border border-outline-variant bg-surface px-2 font-mono-data-sm text-mono-data-sm text-on-surface placeholder:text-outline focus:border-primary focus:outline-none sm:col-span-2"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeItem(index)}
-                      aria-label={`Remove item ${index + 1}`}
-                      disabled={items.length === 1}
-                      className="col-span-2 flex h-8 items-center justify-center rounded border border-outline-variant bg-surface text-secondary transition-colors hover:text-error disabled:opacity-40"
-                    >
-                      <span className="material-symbols-outlined text-[15px]">close</span>
-                    </button>
-                  </div>
-                    <FlavorSelect
-                      item={item}
-                      product={productForItem(item)}
-                      onChange={(flavors) => {
-                        const selectedProduct = productForItem(item);
-                        updateItem(index, {
-                          flavor: flavors,
-                          ...(selectedProduct
-                            ? { unitPrice: flavorAdjustedUnitPrice(selectedProduct, flavors) }
-                            : {}),
-                        });
-                      }}
-                      ariaLabel={`Item ${index + 1} flavor`}
-                    />
-                    {productForItem(item) ? (
-                      <div className="-mt-1 font-mono-data-sm text-mono-data-sm text-secondary">
-                        Available stock: {Number(productForItem(item)?.openingStock) || 0}
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : (
+          {isEdit ? null : (
             <section className="rounded border border-outline-variant bg-surface-container-low p-3">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <span className="font-label-caps text-label-caps uppercase text-secondary">Order Items</span>

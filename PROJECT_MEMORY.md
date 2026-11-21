@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (purchase edit form resets saving state when switching rows; PR #1 open).
+> Last updated: **2026-11-21** (purchase edit saving fix merged via PR #1; sale-order edit hides Order Items via PR #2).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,14 +799,25 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Purchase edit saving state fix (completed 2026-11-21)
+### Latest task: Hide Order Items in sale-order edit (completed 2026-11-21)
+
+- **User request:** Sales & Orders page me Edit dialog me "Order Items" section remove karna hai; ye section sirf Add New Sale / Order me dikhe.
+- **Approved implementation (direct UI change):** `OrderFormDialog` me edit branch ko `null` kar diya gaya; create branch waise hi render hoti hai. Edit mode me `items` state phir bhi `draftOrderFromSalesOrder(order)` se load hoti hai taake payload, subtotal, discount, paid aur outstanding sahi rahein aur backend stock-delta zero rahe.
+- **Validation adjustment:** Edit mode me hidden items ki client-side item validation (name/flavor/quantity/price/stock) skip ki gayi, kyunki user unhe edit kar sakta hi nahi. Backend `buildOrderChanges` apni validation aur pricing snapshots waise hi enforce karta hai. Customer, hub, total, paid>total jaise visible-field checks active rahe.
+- **File modified:** `frontend/features/sales-orders/components/OrderFormDialog.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.** Add/new sale flow unchanged.
+- **Git:** Branch `hide-order-items-in-edit` par commits `41ab72c` + `aa85297`; PR #2 open hai: https://github.com/yasiralatif123-spec/Ai-inven-system/pull/2. Purchase fix PR #1 is branch me merge kiya gaya taake dono changes ek saath available hon.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** Edit dialog me ab item list nahi dikhti, isliye user wahan se product/qty/price change nahi kar sakta. Agar kisi legacy order ke items backend validation se match na karein to server error dikhega; UI se usse theek nahi kiya ja sakta.
+
+### Previous task: Purchase edit saving state fix (merged via PR #1, 2026-11-21)
 
 - **User request:** Purchase edit me save karne ke baad, bina reload doosre purchase ko edit karne par Save button disabled reh jata tha.
 - **Root cause:** `saving` state success ke baad `false` nahi hota tha aur query string `?edit=` badalne par client component instance reuse hota tha; edit-load effect `[]` ke saath sirf ek baar chalta tha.
-- **Approved implementation (no separate approval needed — direct bug fix):** `useSearchParams()` se `editId` aur `supplierId` track kiye; create-reset effect, supplier-preselect effect aur edit-load effect ab `editId` par depend karte hain. Har naye edit par `saving`, `error`, `notice`, `previewOpen`, `editingPurchase`, `paymentAmount`, `paymentMethod` reset hote hain. Save success par bhi `setSaving(false)` before navigation. `useSearchParams` ko static prerender se bachane ke liye create page me `Suspense` boundary add kiya.
+- **Approved implementation (no separate approval needed — direct bug fix):** `useSearchParams()` se `editId` aur `supplierId` track kiye; create-reset effect, supplier-preselect effect aur edit-load effect ab `editId` par depend karte hain. Har naye edit par `saving`, `error`, `notice`, `previewOpen`, `editingPurchase`, `paymentAmount`, `paymentMethod` reset hote hain. Save success par bhi `setSaving(false)` before navigation. Error catch me bhi `setSaving(false)` hai. `useSearchParams` ko static prerender se bachane ke liye create page me `Suspense` boundary add kiya.
 - **Files modified:** `frontend/features/purchases/components/CreatePurchaseView.tsx`, `frontend/app/purchases/create/page.tsx`, `PROJECT_MEMORY.md`.
 - **No backend/API/DB changes, no new dependencies, no new files.**
-- **Git:** Branch `fix/purchase-edit-saving-state` from `main` (base commit `dc54dbc`) par commit `4d43286` push kiya gaya. PR #1 open kiya gaya: https://github.com/yasiralatif123-spec/Ai-inven-system/pull/1 (base `main`). Working tree clean.
+- **Git:** Branch `fix/purchase-edit-saving-state` se PR #1 https://github.com/yasiralatif123-spec/Ai-inven-system/pull/1 ab **merged** hai (merge commit `c1855ed` on `main`). Is fix ko current branch me bhi merge kiya gaya hai.
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes). Next 16 `useSearchParams` docs padhe gaye; Suspense wrapper ke saath prerender safe.
 - **Side effects/risks:** Suspense fallback ke dauran form thodi der “Loading purchase form…” dikha sakta hai; query change par poora form fresh load hota hai (expected).
 
