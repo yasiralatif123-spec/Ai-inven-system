@@ -120,12 +120,14 @@ export function CreatePurchaseView() {
   const [loadingPurchase, setLoadingPurchase] = useState(false);
   const supplierPreselectedRef = useRef(false);
   const lowStockPrefillRef = useRef(false);
+  const supplierPrefillRef = useRef(false);
 
   useEffect(() => {
     if (editId) return;
 
     supplierPreselectedRef.current = false;
     lowStockPrefillRef.current = false;
+    supplierPrefillRef.current = false;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       const today = toIsoDate(new Date());
@@ -278,18 +280,14 @@ export function CreatePurchaseView() {
     return { ...selectedSupplier, productFlavors: { ...current.productFlavors } };
   }, [selectedSupplier, suppliers]);
 
-  // Arriving from a dashboard low-stock alert preloads that product and its
-  // linked supplier into the form. Unit price stays at 0 in the form; totals
-  // and the saved record still use the authoritative product purchase price.
+  // Arriving from a dashboard low-stock alert preloads that product into the
+  // first line. Unit price stays at 0 in the form; totals and the saved record
+  // still use the authoritative product purchase price.
   useEffect(() => {
     if (editId || !productIdParam || lowStockPrefillRef.current || products.length === 0) return;
 
     const product = products.find((candidate) => candidate._id === productIdParam);
     if (!product) return;
-
-    const linkedSupplier = suppliers.find((candidate) =>
-      (candidate.productIds || []).includes(product._id)
-    );
 
     const flavors = flavorParam ? [flavorParam] : defaultFlavorsFor(product, activeSupplier);
     const parsedStock = Number(stockParam);
@@ -302,11 +300,6 @@ export function CreatePurchaseView() {
     const timer = window.setTimeout(() => {
       if (cancelled || lowStockPrefillRef.current) return;
       lowStockPrefillRef.current = true;
-
-      if (!supplierIdParam && !selectedSupplier && linkedSupplier) {
-        setSelectedSupplier(linkedSupplier);
-        setSupplierQuery(supplierLabel(linkedSupplier));
-      }
 
       setItems((current) => {
         const first = current[0] ?? createRow();
@@ -333,18 +326,45 @@ export function CreatePurchaseView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [
-    editId,
-    productIdParam,
-    flavorParam,
-    stockParam,
-    lowStockParam,
-    products,
-    suppliers,
-    supplierIdParam,
-    selectedSupplier,
-    activeSupplier,
-  ]);
+  }, [editId, productIdParam, flavorParam, stockParam, lowStockParam, products, activeSupplier]);
+
+  // Supplier prefill is separate from the line-item values above. Suppliers and
+  // products load in parallel, so waiting for both here avoids a race where the
+  // product is prefilled before the supplier list is available.
+  useEffect(() => {
+    if (
+      editId ||
+      !productIdParam ||
+      supplierIdParam ||
+      selectedSupplier ||
+      supplierPrefillRef.current ||
+      products.length === 0 ||
+      suppliers.length === 0
+    ) {
+      return;
+    }
+
+    const product = products.find((candidate) => candidate._id === productIdParam);
+    if (!product) return;
+
+    const linkedSupplier = suppliers.find((candidate) =>
+      (candidate.productIds || []).includes(product._id)
+    );
+    if (!linkedSupplier) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      if (cancelled || supplierPrefillRef.current || selectedSupplier) return;
+      supplierPrefillRef.current = true;
+      setSelectedSupplier(linkedSupplier);
+      setSupplierQuery(supplierLabel(linkedSupplier));
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [editId, productIdParam, products, suppliers, supplierIdParam, selectedSupplier]);
 
   const availableProducts = useMemo(() => {
     if (!activeSupplier) return [];
