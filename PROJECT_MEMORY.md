@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (purchase edit form resets saving state when switching rows; PR branch created).
+> Last updated: **2026-11-21** (purchase edit form resets saving state when switching rows; PR #1 open).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -806,7 +806,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - **Approved implementation (no separate approval needed — direct bug fix):** `useSearchParams()` se `editId` aur `supplierId` track kiye; create-reset effect, supplier-preselect effect aur edit-load effect ab `editId` par depend karte hain. Har naye edit par `saving`, `error`, `notice`, `previewOpen`, `editingPurchase`, `paymentAmount`, `paymentMethod` reset hote hain. Save success par bhi `setSaving(false)` before navigation. `useSearchParams` ko static prerender se bachane ke liye create page me `Suspense` boundary add kiya.
 - **Files modified:** `frontend/features/purchases/components/CreatePurchaseView.tsx`, `frontend/app/purchases/create/page.tsx`, `PROJECT_MEMORY.md`.
 - **No backend/API/DB changes, no new dependencies, no new files.**
-- **Git:** Branch `fix/purchase-edit-saving-state` from `main` (base commit `dc54dbc`) banayi gayi hai. Commit/push/PR next step hai; user ne PR request kiya hai.
+- **Git:** Branch `fix/purchase-edit-saving-state` from `main` (base commit `dc54dbc`) par commit `4d43286` push kiya gaya. PR #1 open kiya gaya: https://github.com/yasiralatif123-spec/Ai-inven-system/pull/1 (base `main`). Working tree clean.
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes). Next 16 `useSearchParams` docs padhe gaye; Suspense wrapper ke saath prerender safe.
 - **Side effects/risks:** Suspense fallback ke dauran form thodi der “Loading purchase form…” dikha sakta hai; query change par poora form fresh load hota hai (expected).
 
