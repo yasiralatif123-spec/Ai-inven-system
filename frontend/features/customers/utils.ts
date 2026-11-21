@@ -67,6 +67,41 @@ export function findCustomerForOrder(
   return customers.find((customer) => customerMatchesOrder(customer, order));
 }
 
+/**
+ * Derives the money/count columns shown in customer rows from the live sale
+ * order ledger. The customer document itself only stores the opening balance;
+ * orders, purchases and receivables must come from actual orders.
+ */
+export function applyCustomerOrderMetrics(
+  customers: Customer[],
+  orders: SalesOrder[]
+): Customer[] {
+  const totals = new Map<string, { count: number; purchases: number; outstanding: number }>();
+
+  orders.forEach((order) => {
+    const customer = findCustomerForOrder(customers, order);
+    if (!customer) return;
+
+    const current = totals.get(customer.id) || { count: 0, purchases: 0, outstanding: 0 };
+    current.count += 1;
+    current.purchases += Math.max(Number(order.financials?.total) || 0, 0);
+    current.outstanding += Math.max(Number(order.financials?.outstanding) || 0, 0);
+    totals.set(customer.id, current);
+  });
+
+  return customers.map((customer) => {
+    const metric = totals.get(customer.id);
+    const openingBalance = Math.max(Number(customer.openingBalance) || 0, 0);
+
+    return {
+      ...customer,
+      orders: metric?.count || 0,
+      totalPurchases: metric?.purchases || 0,
+      outstanding: openingBalance + (metric?.outstanding || 0),
+    };
+  });
+}
+
 export function getCustomerSummary(customers: Customer[]): CustomerSummary {
   const active = customers.filter((customer) => customer.status === "Active").length;
   const total = customers.length;

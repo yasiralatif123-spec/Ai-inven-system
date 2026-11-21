@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (PR #1, #2 aur #3 merged; low-stock Purchase prefills product + supplier, zero Unit Price and red stock).
+> Last updated: **2026-11-21** (PR #1, #2, #3 + customer metrics merged; low-stock Purchase prefills product + supplier, zero Unit Price and red stock).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -835,6 +835,16 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - **Git:** Branch `hide-order-items-in-edit` ke commits `41ab72c` + `aa85297` PR #2 ke through `main` me merge ho gaye: https://github.com/yasiralatif123-spec/Ai-inven-system/pull/2 (merged ✅). Purchase fix PR #1 is branch me pehle merge kiya gaya tha.
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes).
 - **Side effects/risks:** Edit dialog me ab item list nahi dikhti, isliye user wahan se product/qty/price change nahi kar sakta. Agar kisi legacy order ke items backend validation se match na karein to server error dikhega; UI se usse theek nahi kiya ja sakta.
+### Previous task: Customer row metrics from sale orders (merged into main, 2026-11-21)
+
+- **User request:** Customers page ki rows me Total Orders, Total Purchases, Outstanding (PKR) aur Credit Limit jaise columns proper values ke saath dikhein.
+- **Root cause:** `Customer` document me sirf `openingBalance` aur `creditLimit` store hote hain; `orders`, `totalPurchases`, `outstanding` create time par `0 / 0 / openingBalance` rehte hain aur sale order create/payment par update nahi hote. Customer profile already in values ko live sale orders se derive karta tha, list nahi karti thi.
+- **Approved implementation (frontend-only, no API change):** `customers/utils.ts` me `applyCustomerOrderMetrics(customers, orders)` add kiya gaya — har order ko `findCustomerForOrder` se match karke count, `financials.total` sum aur `financials.outstanding` sum nikalta hai; outstanding me `openingBalance` bhi add hota hai. `CustomersView` ab `fetchCustomers()` + `fetchSaleOrders()` ko parallel load karke rows enrich karta hai. `useCustomerProfile` bhi same helper use karta hai taaki list aur profile values same rahein. Table header `Orders` → `Total Orders` kiya gaya.
+- **Files modified:** `frontend/features/customers/utils.ts`, `frontend/features/customers/components/CustomersView.tsx`, `frontend/features/customers/hooks/useCustomerProfile.ts`, `frontend/features/customers/components/CustomersTable.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.** Credit limit customer document se hi aata hai (live DB me current value `0` hai).
+- **Git:** Branch `customer-row-metrics` (commit `5c4d88e`, base `main` / `c1855ed`) ab `main` me merge ho gaya. Sidebar cleanup abhi alag branch `remove-analytics-automations-nav` par stash hai.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes). Live API cross-check: 3 customers, 4 sale orders; expected orders/purchases = 2/17100, 1/2700, 1/1200 (outstanding 0 kyunki sab orders paid hain).
+- **Side effects/risks:** Sale orders API fail hone par customers page error + retry dikhaega (pehle bhi profile aisa hi karta hai). Legacy orders bina `customerId` ke phone/name se match hote hain — yahi rule profile me hai.
 
 ### Previous task: Purchase edit saving state fix (merged via PR #1, 2026-11-21)
 

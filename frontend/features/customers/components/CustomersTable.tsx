@@ -75,7 +75,7 @@ export function CustomersTable({
               </th>
               <th className="min-w-[220px] px-3">Customer / Business</th>
               <th className="min-w-[130px] px-3">Contact No.</th>
-              <th className="min-w-[90px] px-3 text-right">Orders</th>
+              <th className="min-w-[105px] px-3 text-right">Total Orders</th>
               <th className="min-w-[125px] px-3 text-right">Total Purchases</th>
               <th className="min-w-[145px] px-3 text-right">Outstanding (PKR)</th>
               <th className="min-w-[115px] px-3 text-right">Credit Limit</th>
