@@ -5,7 +5,7 @@ import { fetchSaleOrders } from "../../sales-orders/services/sale-order.service"
 import type { SalesOrder } from "../../sales-orders/types";
 import { fetchCustomer } from "../services/customer.service";
 import type { Customer } from "../types";
-import { customerMatchesOrder } from "../utils";
+import { applyCustomerOrderMetrics, customerMatchesOrder } from "../utils";
 
 export function useCustomerProfile(customerId: string) {
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -43,20 +43,9 @@ export function useCustomerProfile(customerId: string) {
           seen.add(order.id);
           return true;
         });
-        const orderOutstanding = customerOrders.reduce(
-          (sum, order) => sum + Math.max(order.financials.outstanding, 0),
-          0
-        );
+        const [profileCustomer] = applyCustomerOrderMetrics([customerData], customerOrders);
 
-        setCustomer({
-          ...customerData,
-          orders: customerOrders.length,
-          totalPurchases: customerOrders.reduce(
-            (sum, order) => sum + Math.max(order.financials.total, 0),
-            0
-          ),
-          outstanding: Number(customerData.openingBalance || 0) + orderOutstanding,
-        });
+        setCustomer(profileCustomer);
         setOrders(customerOrders);
       } catch (loadError) {
         if (!cancelled) {

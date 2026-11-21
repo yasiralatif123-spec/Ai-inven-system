@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (purchase edit form resets saving state when switching rows; PR #1 open).
+> Last updated: **2026-11-21** (customer list rows derive orders, purchases and outstanding from live sale orders).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,7 +799,18 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Purchase edit saving state fix (completed 2026-11-21)
+### Latest task: Customer row metrics from sale orders (completed 2026-11-21)
+
+- **User request:** Customers page ki rows me Total Orders, Total Purchases, Outstanding (PKR) aur Credit Limit jaise columns proper values ke saath dikhein.
+- **Root cause:** `Customer` document me sirf `openingBalance` aur `creditLimit` store hote hain; `orders`, `totalPurchases`, `outstanding` create time par `0 / 0 / openingBalance` rehte hain aur sale order create/payment par update nahi hote. Customer profile already in values ko live sale orders se derive karta tha, list nahi karti thi.
+- **Approved implementation (frontend-only, no API change):** `customers/utils.ts` me `applyCustomerOrderMetrics(customers, orders)` add kiya gaya — har order ko `findCustomerForOrder` se match karke count, `financials.total` sum aur `financials.outstanding` sum nikalta hai; outstanding me `openingBalance` bhi add hota hai. `CustomersView` ab `fetchCustomers()` + `fetchSaleOrders()` ko parallel load karke rows enrich karta hai. `useCustomerProfile` bhi same helper use karta hai taaki list aur profile values same rahein. Table header `Orders` → `Total Orders` kiya gaya.
+- **Files modified:** `frontend/features/customers/utils.ts`, `frontend/features/customers/components/CustomersView.tsx`, `frontend/features/customers/hooks/useCustomerProfile.ts`, `frontend/features/customers/components/CustomersTable.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.** Credit limit customer document se hi aata hai (live DB me current value `0` hai).
+- **Git:** Naya local branch `customer-row-metrics` (base `main` / `c1855ed`) banaya gaya. User ne abhi commit/push nahi manga — changes uncommitted hain. Sidebar cleanup wale changes alag branch `remove-analytics-automations-nav` par stash kiye hue hain.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes). Live API cross-check: 3 customers, 4 sale orders; expected orders/purchases = 2/17100, 1/2700, 1/1200 (outstanding 0 kyunki sab orders paid hain).
+- **Side effects/risks:** Sale orders API fail hone par customers page error + retry dikhaega (pehle bhi profile aisa hi karta hai). Legacy orders bina `customerId` ke phone/name se match hote hain — yahi rule profile me hai.
+
+### Previous task: Purchase edit saving state fix (merged via PR #1, 2026-11-21)
 
 - **User request:** Purchase edit me save karne ke baad, bina reload doosre purchase ko edit karne par Save button disabled reh jata tha.
 - **Root cause:** `saving` state success ke baad `false` nahi hota tha aur query string `?edit=` badalne par client component instance reuse hota tha; edit-load effect `[]` ke saath sirf ek baar chalta tha.
