@@ -96,8 +96,17 @@ export function flavorAdjustedPurchasePrice(product: Product, flavors: string[])
   return purchaseBasePrice(product) * multiplier;
 }
 
+function effectiveLineUnitPrice(item: PurchaseLineItem): number {
+  if (item.lowStock && item.productId) {
+    return roundAmount(
+      Math.max(Number(item.basePrice) || 0, 0) * Math.max(Number(item.flavorCount) || 1, 1)
+    );
+  }
+  return Math.max(Number(item.unitPrice) || 0, 0);
+}
+
 export function calculateLineTotal(item: PurchaseLineItem): number {
-  const subtotal = roundAmount(Math.max(Number(item.quantity) || 0, 0) * (Number(item.unitPrice) || 0));
+  const subtotal = roundAmount(Math.max(Number(item.quantity) || 0, 0) * effectiveLineUnitPrice(item));
   const discount = Math.min(Math.max(Number(item.discount) || 0, 0), subtotal);
   const taxRate = Math.min(Math.max(Number(item.taxRate) || 0, 0), 100);
   const tax = roundAmount(((subtotal - discount) * taxRate) / 100);
@@ -105,7 +114,7 @@ export function calculateLineTotal(item: PurchaseLineItem): number {
 }
 
 export function calculateLineTax(item: PurchaseLineItem): number {
-  const subtotal = roundAmount(Math.max(Number(item.quantity) || 0, 0) * (Number(item.unitPrice) || 0));
+  const subtotal = roundAmount(Math.max(Number(item.quantity) || 0, 0) * effectiveLineUnitPrice(item));
   const discount = Math.min(Math.max(Number(item.discount) || 0, 0), subtotal);
   const taxRate = Math.min(Math.max(Number(item.taxRate) || 0, 0), 100);
   return roundAmount(((subtotal - discount) * taxRate) / 100);
@@ -117,7 +126,7 @@ export function calculatePurchaseTotals(
 ): PurchaseFinancials {
   const subtotal = roundAmount(
     items.reduce(
-      (sum, item) => sum + Math.max(Number(item.quantity) || 0, 0) * (Number(item.unitPrice) || 0),
+      (sum, item) => sum + Math.max(Number(item.quantity) || 0, 0) * effectiveLineUnitPrice(item),
       0
     )
   );

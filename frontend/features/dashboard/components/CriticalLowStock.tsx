@@ -31,6 +31,13 @@ export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
             const params = new URLSearchParams({ product: row.productId });
             if (row.flavor) params.set("flavor", row.flavor);
 
+            const purchaseParams = new URLSearchParams({
+              product: row.productId,
+              stock: String(row.available),
+              lowStock: "1",
+            });
+            if (row.flavor) purchaseParams.set("flavor", row.flavor);
+
             return (
               <div
                 key={row.id}
@@ -58,12 +65,21 @@ export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
                     <span className="text-outline-variant">{row.sku}</span>
                   </div>
                 </div>
-                <Link
-                  href={`/inventory?${params.toString()}`}
-                  className="shrink-0 rounded border border-outline-variant bg-surface-container-lowest px-2 py-1 font-mono-data-sm text-mono-data-sm font-medium text-primary-container transition-colors hover:bg-surface-container hover:underline"
-                >
-                  Adjust Stock
-                </Link>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Link
+                    href={`/purchases/create?${purchaseParams.toString()}`}
+                    aria-label={`Create a purchase for ${row.title}`}
+                    className="rounded bg-primary-container px-2 py-1 font-mono-data-sm text-mono-data-sm font-medium text-on-primary transition-colors hover:bg-primary"
+                  >
+                    Purchase
+                  </Link>
+                  <Link
+                    href={`/inventory?${params.toString()}`}
+                    className="rounded border border-outline-variant bg-surface-container-lowest px-2 py-1 font-mono-data-sm text-mono-data-sm font-medium text-primary-container transition-colors hover:bg-surface-container hover:underline"
+                  >
+                    Adjust Stock
+                  </Link>
+                </div>
               </div>
             );
           })
