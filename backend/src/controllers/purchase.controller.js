@@ -360,6 +360,23 @@ async function buildPurchaseChanges(body, existingPurchase = null) {
     throw new ValidationError("Purchase total must be greater than zero");
   }
 
+  // Initial payment is accepted only on create. Edits record payments through
+  // the dedicated /payment endpoint so the existing ledger stays immutable.
+  const paymentAmount = existingPurchase ? 0 : Math.max(toNumber(body.paymentAmount), 0);
+  if (paymentAmount > total) {
+    throw new ValidationError(`Payment cannot exceed the purchase total of ${total}`);
+  }
+  const paidAmount = round(paymentAmount);
+  const initialPayments = paidAmount > 0
+    ? [{
+        amount: paidAmount,
+        method: cleanString(body.paymentMethod) || "Cash",
+        reference: cleanString(body.paymentReference) || cleanString(body.invoiceNumber),
+        paidAt: now,
+        createdBy: cleanString(body.createdBy) || DEFAULT_RECEIVED_BY,
+      }]
+    : [];
+
   const anyReceived = items.some((item) => item.receivedQuantity > 0);
   const allReceived = items.every((item) => item.receivedQuantity >= item.quantity);
   const derivedStatus = status === "Cancelled"
@@ -400,11 +417,11 @@ async function buildPurchaseChanges(body, existingPurchase = null) {
         freight,
         total,
       },
-      paidAmount: 0,
-      payments: [],
+      paidAmount,
+      payments: initialPayments,
       status: derivedStatus,
       notes: cleanString(body.notes),
-      createdBy: cleanString(body.createdBy) || "Tariq M. (Owner)",
+      createdBy: cleanString(body.createdBy) || DEFAULT_RECEIVED_BY,
     },
     stockUpdates,
   };

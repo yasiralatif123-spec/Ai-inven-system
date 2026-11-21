@@ -52,3 +52,10 @@ export const SORT_OPTIONS = [
 export type PaymentFilter = "All" | "Unpaid" | "Partial" | "Paid";
 
 export const PAYMENT_FILTERS: PaymentFilter[] = ["All", "Unpaid", "Partial", "Paid"];
+
+export type PurchaseAmountView = "Paid Amount" | "Remaining Amount";
+
+export const PURCHASE_AMOUNT_VIEWS: PurchaseAmountView[] = [
+  "Paid Amount",
+  "Remaining Amount",
+];

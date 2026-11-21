@@ -11,6 +11,7 @@ import {
   createPurchase,
   fetchNextPurchaseCode,
   fetchPurchase,
+  recordPurchasePayment,
   updatePurchase,
 } from "../services/purchase.service";
 import type { CreatePurchaseStatus, PurchaseDto, PurchaseLineItem } from "../types";
@@ -18,6 +19,7 @@ import {
   addDays,
   calculatePurchaseTotals,
   flavorAdjustedPurchasePrice,
+  formatRs,
   purchaseBasePrice,
   purchaseSupplierToSupplier,
   taxRateFromBracket,
@@ -101,6 +103,8 @@ export function CreatePurchaseView() {
   const [items, setItems] = useState<PurchaseLineItem[]>(() => [createRow()]);
   const [freight, setFreight] = useState(0);
   const [notes, setNotes] = useState(DEFAULT_NOTES);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -126,6 +130,8 @@ export function CreatePurchaseView() {
       setItems([createRow()]);
       setFreight(0);
       setNotes(DEFAULT_NOTES);
+      setPaymentAmount(0);
+      setPaymentMethod("Cash");
       setSaving(false);
       setError(null);
       setNotice(null);
@@ -192,6 +198,8 @@ export function CreatePurchaseView() {
         setStatus(purchase.status as CreatePurchaseStatus);
         setFreight(Number(purchase.financials?.freight) || 0);
         setNotes(purchase.notes || "");
+        setPaymentAmount(0);
+        setPaymentMethod("Cash");
         setItems(
           purchase.items.map((item, index) => {
             nextRowId += 1;
@@ -244,6 +252,8 @@ export function CreatePurchaseView() {
   }, [notice, error]);
 
   const totals = useMemo(() => calculatePurchaseTotals(items, freight), [freight, items]);
+  const paidAmount = editingPurchase ? Number(editingPurchase.paidAmount) || 0 : 0;
+  const remainingAmount = Math.max(totals.total - paidAmount, 0);
 
   // Saved purchases carry a supplier snapshot. Use the live supplier's flavor
   // defaults when it is available, without writing derived state back to state.
@@ -458,6 +468,12 @@ export function CreatePurchaseView() {
     if (totals.total <= 0) {
       return "Purchase total must be greater than 0.";
     }
+    if (!Number.isFinite(paymentAmount) || paymentAmount < 0) {
+      return "Payment amount cannot be negative.";
+    }
+    if (paymentAmount > remainingAmount) {
+      return `Payment cannot exceed the remaining balance of ${formatRs(remainingAmount)}.`;
+    }
     return null;
   }
 
@@ -480,6 +496,9 @@ export function CreatePurchaseView() {
         status: nextStatus,
         freight,
         notes,
+        paymentAmount: editingPurchase ? 0 : paymentAmount,
+        paymentMethod,
+        paymentReference: invoiceNumber,
         items: items.map((item) => ({
           id: item.id,
           itemIndex: item.itemIndex,
@@ -502,8 +521,16 @@ export function CreatePurchaseView() {
       const purchase = editingPurchase
         ? await updatePurchase(editingPurchase.purchaseNumber, payload)
         : await createPurchase(payload);
-      const key = editingPurchase ? "updated" : "created";
 
+      if (editingPurchase && paymentAmount > 0) {
+        await recordPurchasePayment(purchase.purchaseNumber, {
+          amount: paymentAmount,
+          method: paymentMethod,
+          reference: invoiceNumber,
+        });
+      }
+
+      const key = editingPurchase ? "updated" : "created";
       router.push(`/purchases?${key}=${encodeURIComponent(purchase.purchaseNumber)}`);
     } catch (saveError) {
       setError(
@@ -526,57 +553,50 @@ export function CreatePurchaseView() {
         onSavePurchase={() => save(status)}
       />
 
-      <div className="mt-1 grid grid-cols-1 gap-5 xl:grid-cols-12 xl:items-start">
-        <div className="flex flex-col gap-4 xl:col-span-8">
-          <PurchaseContextCard
-            supplierQuery={supplierQuery}
-            onSupplierQueryChange={handleSupplierQueryChange}
-            onSupplierSelect={handleSupplierSelect}
-            selectedSupplier={selectedSupplier}
-            suppliers={suppliers}
-            suppliersLoading={suppliersLoading}
-            supplierError={lookupError}
-            purchaseDate={purchaseDate}
-            onPurchaseDateChange={handlePurchaseDateChange}
-            expectedDelivery={expectedDelivery}
-            onExpectedDeliveryChange={setExpectedDelivery}
-            invoiceNumber={invoiceNumber}
-            onInvoiceNumberChange={setInvoiceNumber}
-          />
+      <div className="mt-1 flex flex-col gap-5">
+        <PurchaseContextCard
+          supplierQuery={supplierQuery}
+          onSupplierQueryChange={handleSupplierQueryChange}
+          onSupplierSelect={handleSupplierSelect}
+          selectedSupplier={selectedSupplier}
+          suppliers={suppliers}
+          suppliersLoading={suppliersLoading}
+          supplierError={lookupError}
+          purchaseDate={purchaseDate}
+          onPurchaseDateChange={handlePurchaseDateChange}
+          expectedDelivery={expectedDelivery}
+          onExpectedDeliveryChange={setExpectedDelivery}
+          invoiceNumber={invoiceNumber}
+          onInvoiceNumberChange={setInvoiceNumber}
+        />
 
-          <PurchaseItemsTable
-            items={items}
-            products={availableProducts}
-            productsLoading={productsLoading}
-            emptyProductsMessage={emptyProductsMessage}
-            onItemChange={updateItem}
-            onProductSelect={handleProductSelect}
-            onRemoveItem={handleRemoveItem}
-            onAddItem={() => addProductRow()}
-            onBarcodeScan={handleBarcodeScan}
-          />
-        </div>
+        <PurchaseItemsTable
+          items={items}
+          products={availableProducts}
+          productsLoading={productsLoading}
+          emptyProductsMessage={emptyProductsMessage}
+          onItemChange={updateItem}
+          onProductSelect={handleProductSelect}
+          onRemoveItem={handleRemoveItem}
+          onAddItem={() => addProductRow()}
+          onBarcodeScan={handleBarcodeScan}
+        />
 
-        <div className="flex flex-col gap-4 xl:col-span-4 xl:sticky xl:top-20">
-          <PurchaseSummaryCard
-            totals={totals}
-            unitsLabel={unitsLabel}
-            freight={freight}
-            onFreightChange={setFreight}
-            notes={notes}
-            onNotesChange={setNotes}
-            selectedSupplier={selectedSupplier}
-            onPreview={() => setPreviewOpen(true)}
-          />
-
-          <div className="flex items-center justify-between rounded-xl bg-surface-container-lowest p-3 font-mono-data-sm text-mono-data-sm text-secondary shadow-sm">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-primary" />
-              {saving ? "Saving purchase…" : "Draft ready to review"}
-            </span>
-            <span>{purchaseCode}</span>
-          </div>
-        </div>
+        <PurchaseSummaryCard
+          totals={totals}
+          paidAmount={paidAmount}
+          unitsLabel={unitsLabel}
+          freight={freight}
+          onFreightChange={setFreight}
+          notes={notes}
+          onNotesChange={setNotes}
+          selectedSupplier={selectedSupplier}
+          onPreview={() => setPreviewOpen(true)}
+          paymentAmount={paymentAmount}
+          onPaymentAmountChange={setPaymentAmount}
+          paymentMethod={paymentMethod}
+          onPaymentMethodChange={setPaymentMethod}
+        />
       </div>
 
       <PurchasePreviewDialog

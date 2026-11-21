@@ -41,6 +41,9 @@ export type CreatePurchasePayload = {
   status: CreatePurchaseStatus;
   freight: number;
   notes: string;
+  paymentAmount?: number;
+  paymentMethod?: string;
+  paymentReference?: string;
   items: Array<{
     id?: string;
     itemIndex?: number;

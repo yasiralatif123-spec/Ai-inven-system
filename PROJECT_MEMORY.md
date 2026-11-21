@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (supplier profile purchase rows cleaned up: duplicate product names, line date/status/pricing math removed).
+> Last updated: **2026-11-21** (purchase payment is now recorded from create/edit page; paidAmount and payment ledger persist).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -360,7 +360,7 @@ Health: `GET /api/health` → `{ status: "ok", message: "API is running" }`.
 | GET | `/api/purchases/next-code` | `PO-2042` base |
 | GET | `/api/purchases` | Optional `?supplierId=<ObjectId>` filter |
 | GET | `/api/purchases/:id` | Accepts ObjectId or `purchaseNumber` |
-| POST | `/api/purchases` | Recomputes strict flavor pricing; `Received` fully receives with stock/movement, `Draft`/`Ordered` save `receivedQuantity=0` with no stock |
+| POST | `/api/purchases` | Recomputes strict flavor pricing; optional `paymentAmount` (0..total) records initial payment atomically; `Received` fully receives with stock/movement, `Draft`/`Ordered` save `receivedQuantity=0` with no stock |
 | PUT | `/api/purchases/:id` | Recomputes purchase; `Received` adds only the positive stock delta, other statuses never apply stock |
 | PATCH | `/api/purchases/:id/status` | Rejects receiving statuses; **Cancelled does not reverse stock (known bug)** |
 | POST | `/api/purchases/:id/receive` | Cumulative received quantity; only delta added to stock; CAS conflict → 409 |
@@ -799,7 +799,56 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Supplier profile row cleanup (completed 2026-11-21)
+### Latest task: Purchase payment from create/edit page (completed 2026-11-21)
+
+- **User request:** Add/edit purchase page me remaining amount ko paid mein badalne ka option ho; database me `paidAmount` update ho aur remaining sahi rahe, aur jahan jahan paid/remaining dikhte hain wahan effect functional ho.
+- **Approved decisions:**
+  - Custom partial amount input + **Pay Full Remaining** button; partial aur full dono supported.
+  - Edit me current paid se zyada/remaining se zyada amount block; purana payment ledger delete nahi hota (block recommended).
+  - Create me initial payment atomic backend contract ke through; edit me additional payment dedicated `/payment` endpoint se.
+- **Contract change (POST `/api/purchases`):** Optional `paymentAmount` (0..computed grand total), `paymentMethod` (default `Cash`), `paymentReference` (falls back to `invoiceNumber`). Backend sets `paidAmount` aur, jab amount > 0 ho, ek `payments[]` entry. PUT me ye fields ignore hote hain; existing ledger preserved. Docs updated in `backend/docs/purchases-api.md`.
+- **Files modified:**
+  - `backend/src/controllers/purchase.controller.js` — create-only initial payment validation/ledger; `DEFAULT_RECEIVED_BY` reuse.
+  - `backend/docs/purchases-api.md` — contract updated.
+  - `frontend/features/purchases/types.ts` — `CreatePurchasePayload` payment fields.
+  - `frontend/features/purchases/constants.ts` — shared `PAYMENT_METHODS`.
+  - `frontend/features/purchases/components/RecordPurchasePaymentDialog.tsx` — shared methods constant.
+  - `frontend/features/purchases/components/PurchaseSummaryCard.tsx` — payment input, method select, Pay Full Remaining, live remaining-after-payment.
+  - `frontend/features/purchases/components/CreatePurchaseView.tsx` — state, validation, create payload, post-save payment for edits.
+  - `PROJECT_MEMORY.md` — memory + API table update.
+- **No new dependencies, no new files (temp smoke script outside repo only).**
+- **Where effect appears:** purchases list table/KPI/payment filter, supplier profile ledger/timeline, purchase detail dialog — sab `paidAmount`/`payments` se derived hain; add/edit se list par wapas aate hi fresh fetch hota hai.
+- **Git:** Ye change abhi uncommitted hai; last pushed commit `31bab6c`. Push sirf explicit request par.
+- **Verification:** `node --check purchase.controller.js` ✅; `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes). Live API smoke (temp records deleted): initial partial `paidAmount=100`, payments=1; after remaining payment `paidAmount=283.2`, remaining=0, payments=2; no paymentAmount → `paidAmount=0`, payments=0; amount > total → `400`.
+- **Side effects/risks:** Edit me payment save ke baad failure par purchase details saved rehte hain aur error dikhta hai (user edit karke payment dobara kar sakta hai). Payment ledger immutable; reduce/clear support nahi.
+
+### Previous task: Paid Amount / Remaining Amount display dropdown (completed 2026-11-21)
+
+- **User request:** Purchases page aur purchases/add page me ek dropdown ho jisme **Paid Amount** aur **Remaining Amount** options hon, fully functional. Clarification ke baad user ne **display toggle** choose kiya (data/ledger change nahi).
+- **Approved decision:** Dropdown sirf summary value switch karta hai. Purchases page ke KPI card me total paid vs total outstanding; purchase add/edit page ke summary me current purchase ka paid vs remaining (`Total − Paid`). Default view `Remaining Amount` rakha gaya taaki purana behavior bana rahe.
+- **Files modified:**
+  - `frontend/features/purchases/purchaseData.ts` — shared `PurchaseAmountView` type aur `PURCHASE_AMOUNT_VIEWS` constant.
+  - `frontend/features/purchases/index.ts` — naya type export.
+  - `frontend/features/purchases/components/PurchasesSummary.tsx` — Unpaid Balance KPI ab dropdown se Paid Amount / Remaining Amount dikhata hai; badge/subtext/color bhi view ke saath badalte hain.
+  - `frontend/features/purchases/components/PurchaseSummaryCard.tsx` — `paidAmount` prop + amount-view dropdown aur computed remaining amount.
+  - `frontend/features/purchases/components/CreatePurchaseView.tsx` — editing purchase ka `paidAmount` summary ko pass karta hai.
+  - `PROJECT_MEMORY.md` — memory update.
+- **No backend/API/DB changes, no new dependencies, no new files.**
+- **Git:** Ye change commit `31bab6c` ke baad kiya gaya hai; purchase add page right sidebar removal bhi abhi uncommitted hai. Push sirf explicit request par.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** Sirf local UI state; dropdown selection save nahi hoti aur payment ledger par asar nahi karta.
+
+### Previous task: Purchase add page right sidebar removed (completed 2026-11-21)
+
+- **User request:** Purchase add page ka right side section remove karna tha.
+- **Approved decision:** Right wali sticky `xl:col-span-4` column remove; main form full width; `PurchaseSummaryCard` items table ke neeche move; chhota “Draft ready to review / purchaseCode” pill remove (code header me pehle se hai). Freight, notes, totals, supplier ledger info aur Preview PO button bache hue hain.
+- **Files modified:** `frontend/features/purchases/components/CreatePurchaseView.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files, no component deleted.**
+- **Git:** Ye change commit `31bab6c` (pushed) ke baad kiya gaya hai; abhi uncommitted hai. Push tabhi karna hai jab explicitly kaha jaye.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing layout font warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** Purchase add/edit page ab single-column hai; summary neeche aane se preview button thoda neeche milta hai. Koi functionality nahi hati.
+
+### Previous task: Supplier profile row cleanup (completed 2026-11-21)
 
 - **User request:** Supplier profile row me jo extra/faltu cheezein hain unhe remove karna tha, pehle batana tha kya remove hoga.
 - **Proposed & approved cleanup (Recommended):**

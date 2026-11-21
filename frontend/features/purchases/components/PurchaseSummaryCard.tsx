@@ -1,11 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import type { Supplier } from "../../suppliers/types";
+import { PAYMENT_METHODS } from "../constants";
+import {
+  PURCHASE_AMOUNT_VIEWS,
+  type PurchaseAmountView,
+} from "../purchaseData";
 import type { PurchaseFinancials } from "../types";
 import { formatRs, paymentTermsLabel } from "../utils";
 
 type PurchaseSummaryCardProps = {
   totals: PurchaseFinancials;
+  paidAmount: number;
   unitsLabel: string;
   freight: number;
   onFreightChange: (value: number) => void;
@@ -13,10 +20,15 @@ type PurchaseSummaryCardProps = {
   onNotesChange: (value: string) => void;
   selectedSupplier: Supplier | null;
   onPreview: () => void;
+  paymentAmount: number;
+  onPaymentAmountChange: (value: number) => void;
+  paymentMethod: string;
+  onPaymentMethodChange: (value: string) => void;
 };
 
 export function PurchaseSummaryCard({
   totals,
+  paidAmount,
   unitsLabel,
   freight,
   onFreightChange,
@@ -24,7 +36,15 @@ export function PurchaseSummaryCard({
   onNotesChange,
   selectedSupplier,
   onPreview,
+  paymentAmount,
+  onPaymentAmountChange,
+  paymentMethod,
+  onPaymentMethodChange,
 }: PurchaseSummaryCardProps) {
+  const [amountView, setAmountView] = useState<PurchaseAmountView>("Remaining Amount");
+  const remainingAmount = Math.max(totals.total - paidAmount, 0);
+  const selectedAmount = amountView === "Paid Amount" ? paidAmount : remainingAmount;
+
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-surface-container-lowest p-4 shadow-sm">
       <div className="flex items-center justify-between pb-2">
@@ -87,6 +107,83 @@ export function PurchaseSummaryCard({
           <span className="text-right font-mono-data-sm text-mono-data-sm text-secondary">
             Pakistani Rupee (PKR)
           </span>
+
+          <div className="mt-2 flex items-center justify-between gap-2 border-t border-outline-variant pt-2">
+            <label
+              htmlFor="purchase-amount-view"
+              className="font-label-caps text-label-caps uppercase tracking-wider text-secondary"
+            >
+              Amount View
+            </label>
+            <select
+              id="purchase-amount-view"
+              value={amountView}
+              onChange={(event) => setAmountView(event.target.value as PurchaseAmountView)}
+              className="h-7 rounded border border-outline-variant bg-surface-container-lowest px-1.5 font-body-dense text-body-dense text-on-surface focus:border-primary-container focus:outline-none"
+            >
+              {PURCHASE_AMOUNT_VIEWS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-baseline justify-between pt-1">
+            <span className="font-body-dense text-body-dense text-secondary">{amountView}</span>
+            <span
+              className={`font-mono-data text-[18px] font-semibold ${
+                amountView === "Paid Amount" ? "text-primary" : "text-error"
+              }`}
+            >
+              {formatRs(selectedAmount)}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 rounded border border-outline-variant bg-surface-container-lowest p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+              Record Payment
+            </span>
+            <button
+              type="button"
+              onClick={() => onPaymentAmountChange(remainingAmount)}
+              disabled={remainingAmount <= 0}
+              className="rounded border border-outline-variant bg-surface-container px-2 py-1 font-body-dense text-body-dense text-primary transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Pay Full Remaining
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              max={remainingAmount}
+              value={paymentAmount}
+              onChange={(event) =>
+                onPaymentAmountChange(Math.max(Number(event.target.value) || 0, 0))
+              }
+              aria-label="Payment amount"
+              placeholder="0"
+              className="h-9 min-w-0 flex-1 rounded border border-outline-variant bg-surface px-2 text-right font-mono-data text-mono-data text-on-surface outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container"
+            />
+            <select
+              aria-label="Payment method"
+              value={paymentMethod}
+              onChange={(event) => onPaymentMethodChange(event.target.value)}
+              className="h-9 rounded border border-outline-variant bg-surface px-2 font-body-dense text-body-dense text-on-surface outline-none focus:border-primary-container"
+            >
+              {PAYMENT_METHODS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center justify-between font-mono-data-sm text-mono-data-sm text-secondary">
+            <span>Remaining after payment</span>
+            <span>{formatRs(Math.max(remainingAmount - paymentAmount, 0))}</span>
+          </div>
         </div>
       </div>
 

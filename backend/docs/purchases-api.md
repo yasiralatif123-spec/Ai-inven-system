@@ -96,7 +96,7 @@ display one supplier's complete purchase history. An invalid `supplierId` return
 
 ## POST `/api/purchases`
 
-Creates a purchase. `supplierId` must reference an existing supplier. Each item requires `name`, a positive integer `quantity`, and a non-negative `unitPrice`.
+Creates a purchase. `supplierId` must reference an existing supplier. Each item requires `name`, a positive integer `quantity`, and a non-negative `unitPrice`. An optional `paymentAmount` (0 to the computed grand total) records an initial payment atomically: the response returns `paidAmount` set to that value and, when positive, one entry in `payments` with `method` (default `Cash`) and `reference` (falls back to `invoiceNumber`).
 
 When a linked catalog product is selected in the UI, `quantity` starts at `0`; it is the number of units to add. `availableStock` is stored only as a read-only snapshot of the product's current stock. Stock is added only when the purchase is saved with `status: "Received"`: each linked item's full `quantity` is recorded as `receivedQuantity`, added to the product's `openingStock`, and written as a `purchase` stock movement. Saving with `Draft` or `Ordered` does not change stock.
 
@@ -113,6 +113,9 @@ For a flavored product, the full received quantity applies to **each selected fl
   "status": "Ordered",
   "freight": 3500,
   "notes": "Deliver to Karachi Central Warehouse.",
+  "paymentAmount": 100000,
+  "paymentMethod": "Bank Transfer",
+  "paymentReference": "TRF-12345",
   "items": [
     {
       "productId": "665f1a...",
@@ -159,7 +162,8 @@ The endpoint returns `400` with a `message` when:
 - no valid line items are supplied;
 - an item is missing a name, has zero/negative quantity, or has a negative price;
 - expected delivery is before the purchase date;
-- the status is not one of the accepted values.
+- the status is not one of the accepted values;
+- `paymentAmount` exceeds the computed purchase total.
 
 ## GET `/api/purchases/:id`
 
@@ -167,7 +171,7 @@ Returns one purchase. The `:id` segment accepts either the Mongo `_id` or the `p
 
 ## PUT `/api/purchases/:id`
 
-Updates an existing purchase. The request body is the same as `POST /api/purchases`. Supplier details, items, and financials are recomputed. Existing `paidAmount` and `payments` are preserved. If the submitted status is `Received`, the server records a receipt only for the positive difference between each item's ordered quantity and its previously received quantity, so repeated saves never add stock twice.
+Updates an existing purchase. The request body is the same as `POST /api/purchases`, except `paymentAmount`, `paymentMethod`, and `paymentReference` are ignored on update — existing `paidAmount` and `payments` are preserved. Record additional payments through `POST /api/purchases/:id/payment`. Supplier details, items, and financials are recomputed. If the submitted status is `Received`, the server records a receipt only for the positive difference between each item's ordered quantity and its previously received quantity, so repeated saves never add stock twice.
 
 ## PATCH `/api/purchases/:id/status`
 

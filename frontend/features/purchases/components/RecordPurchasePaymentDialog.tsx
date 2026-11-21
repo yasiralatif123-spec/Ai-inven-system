@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PAYMENT_METHODS } from "../constants";
 import type { PurchaseRecord } from "../purchaseData";
 import type { PurchasePaymentInput } from "../types";
 import { formatRs } from "../utils";
@@ -12,8 +13,6 @@ type RecordPurchasePaymentDialogProps = {
   onConfirm: (purchase: PurchaseRecord, payload: PurchasePaymentInput) => void;
 };
 
-const METHODS = ["Cash", "Bank Transfer", "Cheque", "Online Transfer"];
-
 export function RecordPurchasePaymentDialog({
   purchase,
   saving,
@@ -21,7 +20,7 @@ export function RecordPurchasePaymentDialog({
   onConfirm,
 }: RecordPurchasePaymentDialogProps) {
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState(METHODS[0]);
+  const [method, setMethod] = useState(PAYMENT_METHODS[0]);
   const [reference, setReference] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -98,7 +97,7 @@ export function RecordPurchasePaymentDialog({
               onChange={(event) => setMethod(event.target.value)}
               className="h-10 rounded border border-outline-variant bg-surface px-3 font-body-default text-body-default text-on-surface outline-none focus:border-primary focus:outline-none"
             >
-              {METHODS.map((option) => (
+              {PAYMENT_METHODS.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>

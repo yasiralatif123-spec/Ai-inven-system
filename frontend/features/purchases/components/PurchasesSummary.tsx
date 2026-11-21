@@ -1,6 +1,11 @@
 "use client";
 
-import type { PurchaseRecord } from "../purchaseData";
+import { useState } from "react";
+import {
+  PURCHASE_AMOUNT_VIEWS,
+  type PurchaseAmountView,
+  type PurchaseRecord,
+} from "../purchaseData";
 import { formatRs } from "../utils";
 
 type PurchasesSummaryProps = {
@@ -8,8 +13,11 @@ type PurchasesSummaryProps = {
 };
 
 export function PurchasesSummary({ purchases }: PurchasesSummaryProps) {
+  const [amountView, setAmountView] = useState<PurchaseAmountView>("Remaining Amount");
   const totalPurchases = purchases.reduce((sum, purchase) => sum + purchase.total, 0);
+  const paidAmount = purchases.reduce((sum, purchase) => sum + purchase.paid, 0);
   const unpaidBalance = purchases.reduce((sum, purchase) => sum + purchase.remaining, 0);
+  const selectedAmount = amountView === "Paid Amount" ? paidAmount : unpaidBalance;
   const pendingDelivery = purchases.filter(
     (purchase) => purchase.status === "Ordered" || purchase.status === "Partially Received"
   ).length;
@@ -72,19 +80,34 @@ export function PurchasesSummary({ purchases }: PurchasesSummaryProps) {
       </div>
 
       <div className="flex flex-col justify-between bg-error-container/20 px-4 py-3">
-        <div className="flex items-center justify-between text-secondary">
-          <span className="font-label-caps text-label-caps uppercase tracking-wider text-error">
-            Unpaid Balance
-          </span>
-          <span className="rounded border border-error/30 bg-error-container px-1.5 py-0.5 font-label-caps text-[10px] uppercase text-on-error-container">
-            Aging Alert
+        <div className="flex items-center justify-between gap-2 text-secondary">
+          <select
+            aria-label="Amount view"
+            value={amountView}
+            onChange={(event) => setAmountView(event.target.value as PurchaseAmountView)}
+            className="h-7 min-w-0 flex-1 rounded border border-outline-variant bg-surface-container-lowest px-1.5 font-label-caps text-label-caps uppercase text-secondary focus:border-primary-container focus:outline-none"
+          >
+            {PURCHASE_AMOUNT_VIEWS.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+          <span className="shrink-0 rounded border border-error/30 bg-error-container px-1.5 py-0.5 font-label-caps text-[10px] uppercase text-on-error-container">
+            {amountView === "Paid Amount" ? "Ledger Total" : "Aging Alert"}
           </span>
         </div>
-        <div className="mt-1 font-metric-display text-metric-display tracking-tight text-error">
-          {formatRs(unpaidBalance)}
+        <div
+          className={`mt-1 font-metric-display text-metric-display tracking-tight ${
+            amountView === "Paid Amount" ? "text-primary" : "text-error"
+          }`}
+        >
+          {formatRs(selectedAmount)}
         </div>
         <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
-          Outstanding across saved purchase ledger
+          {amountView === "Paid Amount"
+            ? "Recorded across saved purchase ledger"
+            : "Outstanding across saved purchase ledger"}
         </div>
       </div>
     </section>
