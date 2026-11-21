@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (PR #1, #2, #3, customer metrics aur sidebar cleanup sab `main` me merged; low-stock Purchase prefills product + supplier, zero Unit Price and red stock).
+> Last updated: **2026-11-21** (New Sale Order me flavor-wise stock display + zero/low-stock warnings add kiye gaye; changes abhi `sale-order-flavor-stock-display` branch par uncommitted hain).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,7 +799,22 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Prefill purchase form from low-stock Purchase action (completed 2026-11-21)
+### Latest task: Flavor stock display + warnings in New Sale Order (in progress 2026-11-21)
+
+- **User request:** New Sale Order ke Order Items me flavor stocks dikhein — pehle total stock, phir us product ke saare flavor stocks. Kisi selected flavor ka stock `0` ho to red me "Stock not available for {flavor} flavor." aur quantity flavor stock se zyada ho to "Only {available} available for {flavor} flavor." message dikhe. `Available stock:` line me product ke saare flavor dikhein; product create me flavor hi na ho to flavor lines na dikhein.
+- **Approved implementation (create mode only):**
+  - `sales-orders/utils.ts` me `productFlavorStocks()`, `flavorStockFor()` aur `flavorStockWarnings()` helpers add kiye gaye. Stock lookup case-insensitive hai; missing `flavorStocks` entry ko backend ki tarah `0` mana gaya.
+  - `OrderFormDialog.tsx` me naya `FlavorStockWarnings` component add hua — selected flavors ke liye inline red messages dikhata hai.
+  - Item footer ki `Available stock: {total}` line ab `· flavor: qty` entries ke saath dikhti hai (sirf tab jab product ke `flavorStocks` entries hon).
+  - Client validation me flavor-stock warnings bhi add kiye gaye, taake 0 ya insufficient flavor stock par save block ho aur backend error na aaye.
+  - Edit mode me Order Items pehle ki tarah hidden hai; koi pricing/payload/backend change nahi.
+- **Files modified:** `frontend/features/sales-orders/utils.ts`, `frontend/features/sales-orders/components/OrderFormDialog.tsx`, `PROJECT_MEMORY.md`.
+- **No backend/API/DB changes, no new dependencies, no new files.**
+- **Git:** User ki approval par branch `sale-order-flavor-stock-display` (base `main` / `20a808f`) par commit + push kiya gaya aur `main` me merge kiya gaya.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes).
+- **Side effects/risks:** 0 ya low flavor stock par Save ab blocked hoga (paused backend bhi yahi enforce karta hai). Purane products jinke `flavors` to hain par `flavorStocks` entries nahi — unke selected flavors `0` stock maane jayenge, backend behavior ke mutabik.
+
+### Previous task: Prefill purchase form from low-stock Purchase action (completed 2026-11-21)
 
 - **User request:** Dashboard ke Critical Low Stock section me Purchase button click karne par jis product par click kiya hai usi ka name, SKU, price etc purchase form me prefilled ho; **Unit Price 0** ho; jtna available stock hai wo side me **red** me dikhe; aur **supplier ka name** bhi us product ke linked supplier se aa jaye.
 - **Approved implementation:**
