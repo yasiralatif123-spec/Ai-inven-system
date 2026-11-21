@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (New Sale Order me flavor-wise stock display + zero/low-stock warnings add kiye gaye; changes abhi `sale-order-flavor-stock-display` branch par uncommitted hain).
+> Last updated: **2026-11-21** (New Sale Order me flavor-wise stock display + zero/low-stock warnings add karke `main` me merge kiya gaya).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -810,7 +810,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
   - Edit mode me Order Items pehle ki tarah hidden hai; koi pricing/payload/backend change nahi.
 - **Files modified:** `frontend/features/sales-orders/utils.ts`, `frontend/features/sales-orders/components/OrderFormDialog.tsx`, `PROJECT_MEMORY.md`.
 - **No backend/API/DB changes, no new dependencies, no new files.**
-- **Git:** User ki approval par branch `sale-order-flavor-stock-display` (base `main` / `20a808f`) par commit + push kiya gaya aur `main` me merge kiya gaya.
+- **Git:** User ki approval par branch `sale-order-flavor-stock-display` (base `main` / `20a808f`) par commit `71797aa` push kiya gaya aur `main` me merge commit `5d5af80` ke saath merge kiya gaya.
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes).
 - **Side effects/risks:** 0 ya low flavor stock par Save ab blocked hoga (paused backend bhi yahi enforce karta hai). Purane products jinke `flavors` to hain par `flavorStocks` entries nahi — unke selected flavors `0` stock maane jayenge, backend behavior ke mutabik.
 
