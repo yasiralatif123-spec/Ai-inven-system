@@ -806,7 +806,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 - **Validation adjustment:** Edit mode me hidden items ki client-side item validation (name/flavor/quantity/price/stock) skip ki gayi, kyunki user unhe edit kar sakta hi nahi. Backend `buildOrderChanges` apni validation aur pricing snapshots waise hi enforce karta hai. Customer, hub, total, paid>total jaise visible-field checks active rahe.
 - **File modified:** `frontend/features/sales-orders/components/OrderFormDialog.tsx`, `PROJECT_MEMORY.md`.
 - **No backend/API/DB changes, no new dependencies, no new files.** Add/new sale flow unchanged.
-- **Git:** Naya local branch `hide-order-items-in-edit` (base `main` / `dc54dbc`) banaya gaya. User ne abhi commit/push nahi manga — changes uncommitted hain. Existing PR #1 (`fix/purchase-edit-saving-state`) is se unaffected hai.
+- **Git:** Branch `hide-order-items-in-edit` (base `main` / `dc54dbc`) par commit `41ab72c` push kiya gaya. PR #2 open kiya gaya: https://github.com/yasiralatif123-spec/Ai-inven-system/pull/2. PR #1 (`fix/purchase-edit-saving-state`) is se unaffected hai.
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (16 routes).
 - **Side effects/risks:** Edit dialog me ab item list nahi dikhti, isliye user wahan se product/qty/price change nahi kar sakta. Agar kisi legacy order ke items backend validation se match na karein to server error dikhega; UI se usse theek nahi kiya ja sakta.
 
