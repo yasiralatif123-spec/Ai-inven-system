@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toFlavorArray } from "../../../app/lib/flavors";
 import type { Product } from "../../../app/products/types";
@@ -90,6 +90,9 @@ function supplierLabel(supplier: Supplier): string {
 
 export function CreatePurchaseView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+  const supplierIdParam = searchParams.get("supplierId");
   const { suppliers, products, suppliersLoading, productsLoading, error: lookupError } =
     usePurchaseLookups();
 
@@ -114,8 +117,9 @@ export function CreatePurchaseView() {
   const supplierPreselectedRef = useRef(false);
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("edit")) return;
+    if (editId) return;
 
+    supplierPreselectedRef.current = false;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       const today = toIsoDate(new Date());
@@ -152,18 +156,14 @@ export function CreatePurchaseView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [editId]);
 
   useEffect(() => {
-    if (supplierPreselectedRef.current || suppliers.length === 0 || selectedSupplier) return;
+    if (editId || supplierPreselectedRef.current || suppliers.length === 0 || selectedSupplier) return;
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("edit")) return;
+    if (!supplierIdParam) return;
 
-    const supplierId = params.get("supplierId");
-    if (!supplierId) return;
-
-    const target = suppliers.find((supplier) => supplier.id === supplierId);
+    const target = suppliers.find((supplier) => supplier.id === supplierIdParam);
     if (!target) return;
 
     const timer = window.setTimeout(() => {
@@ -173,14 +173,20 @@ export function CreatePurchaseView() {
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [selectedSupplier, suppliers]);
+  }, [editId, selectedSupplier, supplierIdParam, suppliers]);
 
   useEffect(() => {
-    const editId = new URLSearchParams(window.location.search).get("edit");
     if (!editId) return;
 
     let cancelled = false;
     const timer = window.setTimeout(async () => {
+      setSaving(false);
+      setError(null);
+      setNotice(null);
+      setPreviewOpen(false);
+      setEditingPurchase(null);
+      setPaymentAmount(0);
+      setPaymentMethod("Cash");
       setLoadingPurchase(true);
       try {
         const purchase = await fetchPurchase(editId);
@@ -240,7 +246,7 @@ export function CreatePurchaseView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, []);
+  }, [editId]);
 
   useEffect(() => {
     if (!notice && !error) return;
@@ -531,6 +537,7 @@ export function CreatePurchaseView() {
       }
 
       const key = editingPurchase ? "updated" : "created";
+      setSaving(false);
       router.push(`/purchases?${key}=${encodeURIComponent(purchase.purchaseNumber)}`);
     } catch (saveError) {
       setError(
