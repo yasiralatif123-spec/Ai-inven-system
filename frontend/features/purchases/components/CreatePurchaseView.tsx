@@ -278,9 +278,9 @@ export function CreatePurchaseView() {
     return { ...selectedSupplier, productFlavors: { ...current.productFlavors } };
   }, [selectedSupplier, suppliers]);
 
-  // Arriving from a dashboard low-stock alert preloads that product into the
-  // first line. Unit price stays at 0 in the form; totals and the saved record
-  // still use the authoritative product purchase price.
+  // Arriving from a dashboard low-stock alert preloads that product and its
+  // linked supplier into the form. Unit price stays at 0 in the form; totals
+  // and the saved record still use the authoritative product purchase price.
   useEffect(() => {
     if (editId || !productIdParam || lowStockPrefillRef.current || products.length === 0) return;
 
@@ -324,7 +324,18 @@ export function CreatePurchaseView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [editId, productIdParam, flavorParam, stockParam, lowStockParam, products, activeSupplier]);
+  }, [
+    editId,
+    productIdParam,
+    flavorParam,
+    stockParam,
+    lowStockParam,
+    products,
+    suppliers,
+    supplierIdParam,
+    selectedSupplier,
+    activeSupplier,
+  ]);
 
   const availableProducts = useMemo(() => {
     if (!activeSupplier) return [];

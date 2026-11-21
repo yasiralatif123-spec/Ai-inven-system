@@ -801,13 +801,14 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ### Latest task: Prefill purchase form from low-stock Purchase action (completed 2026-11-21)
 
-- **User request:** Dashboard ke Critical Low Stock section me Purchase button click karne par jis product par click kiya hai usi ka name, SKU, price etc purchase form me prefilled ho; **Unit Price 0** ho; aur jtna available stock hai wo side me **red** me dikhe.
+- **User request:** Dashboard ke Critical Low Stock section me Purchase button click karne par jis product par click kiya hai usi ka name, SKU, price etc purchase form me prefilled ho; **Unit Price 0** ho; jtna available stock hai wo side me **red** me dikhe; aur **supplier ka name** bhi us product ke linked supplier se aa jaye.
 - **Approved implementation:**
   - `CriticalLowStock.tsx` Purchase link ab `product`, `flavor`, `stock`, `lowStock=1` query params bhejta hai.
   - `CreatePurchaseView.tsx` in params padhkar products load hote hi pehli line ko clicked product se prefill karta hai: name, SKU, flavor, unit, tax, base price, available stock. `unitPrice` ko `0` rakha gaya.
   - `PurchaseLineItem` me optional `lowStock` flag add kiya gaya. Is flag wali row par quantity/flavor badalne par bhi Unit Price `0` rehta hai, par `basePrice`/`flavorCount` update hote rehte hain.
   - `utils.ts` me `effectiveLineUnitPrice()` add kiya gaya: low-stock prefilled rows ke liye line totals/tax/summary `basePrice × flavorCount` se nikalte hain, taake validation aur backend pricing authoritative rahe aur form me Unit Price 0 dikhe.
   - `PurchaseItemsTable.tsx` me low-stock row ki "Available X" line ab `text-error font-semibold` me dikhti hai.
+  - `CreatePurchaseView.tsx` ab clicked product ke `productIds` se linked supplier bhi dhoondhta hai aur Supplier field me prefill karta hai. Agar URL me `supplierId` hai ya user ne pehle se supplier select kiya hai to override nahi karta.
   - Supplier badalne par naya product select karne se `lowStock` flag clear ho jata hai aur normal pricing wapas aa jati hai.
 - **Files modified:** `frontend/features/dashboard/components/CriticalLowStock.tsx`, `frontend/features/purchases/components/CreatePurchaseView.tsx`, `frontend/features/purchases/components/PurchaseItemsTable.tsx`, `frontend/features/purchases/types.ts`, `frontend/features/purchases/utils.ts`, `PROJECT_MEMORY.md`.
 - **No backend/API/DB changes, no new dependencies, no new files.** Saved purchase me backend ab bhi apne authoritative `purchasePrice × selected flavors` rule se unit price/store karta hai; sirf create form display 0 hai.
