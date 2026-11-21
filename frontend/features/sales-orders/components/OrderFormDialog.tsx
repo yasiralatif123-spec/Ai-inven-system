@@ -17,7 +17,7 @@ import type {
   PaymentStatus,
 } from "../types";
 import { useProductLookup } from "../hooks/useProductLookup";
-import { formatRs } from "../utils";
+import { flavorStockWarnings, formatRs, productFlavorStocks } from "../utils";
 import { CustomerAutocomplete } from "./CustomerAutocomplete";
 import { ProductAutocomplete } from "./ProductAutocomplete";
 
@@ -111,6 +111,29 @@ function FlavorSelect({
   );
 }
 
+function FlavorStockWarnings({
+  product,
+  flavors,
+  quantity,
+}: {
+  product: Product | null;
+  flavors: string[];
+  quantity: number;
+}) {
+  const warnings = flavorStockWarnings(product, flavors, quantity);
+  if (warnings.length === 0) return null;
+
+  return (
+    <div className="col-span-12 flex flex-col gap-0.5" role="alert">
+      {warnings.map((warning) => (
+        <span key={warning} className="font-body-dense text-body-dense font-semibold text-error">
+          {warning}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function OrderFormDialog({
   mode,
   initialValues,
@@ -190,6 +213,11 @@ export function OrderFormDialog({
       if (available !== null && Number.isFinite(quantity) && quantity > available) {
         validationIssues.push(
           `${label}: only ${available} unit${available === 1 ? "" : "s"} available for ${product?.title || "this product"}.`
+        );
+      }
+      if (product && (product.flavors?.length || 0) > 0) {
+        flavorStockWarnings(product, toFlavorArray(item.flavor), quantity).forEach((warning) =>
+          validationIssues.push(`${label}: ${warning}`)
         );
       }
     });
@@ -392,6 +420,7 @@ export function OrderFormDialog({
               <div className="space-y-2">
                 {items.map((item, index) => {
                   const product = productForItem(item);
+                  const flavorStocks = product ? productFlavorStocks(product) : [];
                   const itemTotal =
                     Math.max(Number(item.quantity) || 0, 0) *
                     Math.max(Number(item.unitPrice) || 0, 0);
@@ -515,10 +544,24 @@ export function OrderFormDialog({
                         ariaLabel={`Item ${index + 1} flavor`}
                       />
 
+                      <FlavorStockWarnings
+                        product={product}
+                        flavors={toFlavorArray(item.flavor)}
+                        quantity={Number(item.quantity)}
+                      />
+
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-outline-variant/70 pt-2">
                         {product ? (
                           <span className="font-mono-data-sm text-mono-data-sm text-secondary">
                             Available stock: {Number(product.openingStock) || 0}
+                            {flavorStocks.length > 0 ? (
+                              <span className="ml-1">
+                                {" · "}
+                                {flavorStocks
+                                  .map((entry) => `${entry.flavor}: ${entry.quantity}`)
+                                  .join(" · ")}
+                              </span>
+                            ) : null}
                           </span>
                         ) : null}
                         <span
