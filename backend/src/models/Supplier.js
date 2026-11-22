@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+require("./Business");
+require("./User");
 
 const supplierSchema = new mongoose.Schema(
   {
@@ -61,6 +63,19 @@ const supplierSchema = new mongoose.Schema(
       type: String,
       default: "Tariq M. (Owner)",
       trim: true,
+    },
+    // Tenancy foundation (Phase 5). Optional until Phase 6 backfill+enforcement.
+    businessId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Business",
+      default: null,
+      index: true,
+    },
+    // Audit only - never used for authorization.
+    createdByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
   },
   { timestamps: true }

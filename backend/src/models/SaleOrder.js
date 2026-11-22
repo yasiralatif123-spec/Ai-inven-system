@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+require("./Business");
+require("./User");
 
 const saleOrderItemSchema = new mongoose.Schema(
   {
@@ -102,6 +104,19 @@ const saleOrderSchema = new mongoose.Schema(
     credit: { type: saleOrderCreditSchema, default: () => ({}) },
     warning: { type: saleOrderWarningSchema, default: null },
     financials: { type: saleOrderFinancialsSchema, required: true },
+    // Tenancy foundation (Phase 5). Optional until Phase 6 backfill+enforcement.
+    businessId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Business",
+      default: null,
+      index: true,
+    },
+    // Audit only - never used for authorization.
+    createdByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true }
 );

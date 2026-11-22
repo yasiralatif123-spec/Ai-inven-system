@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+require("./Business");
+require("./User");
 
 const flavorBreakdownSchema = new mongoose.Schema(
   {
@@ -39,6 +41,19 @@ const stockMovementSchema = new mongoose.Schema(
     // `flavorBreakdown` records the per-flavor quantities of a multi-flavor line.
     flavor: { type: String, default: "", trim: true },
     flavorBreakdown: { type: [flavorBreakdownSchema], default: [] },
+    // Tenancy foundation (Phase 5). Optional until Phase 6 backfill+enforcement.
+    businessId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Business",
+      default: null,
+      index: true,
+    },
+    // Audit only - never used for authorization.
+    createdByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   { timestamps: true }
 );
