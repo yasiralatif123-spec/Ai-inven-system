@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+require("./Business");
 
 const userSchema = new mongoose.Schema(
   {

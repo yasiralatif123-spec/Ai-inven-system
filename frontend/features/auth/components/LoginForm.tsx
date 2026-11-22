@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { INITIAL_LOGIN_VALUES } from "../constants";
-import type { LoginFormValues } from "../types";
-import { isLoginFormValid } from "../utils";
+import { useAuth } from "../hooks/useAuth";
 
 const labelClass = "mb-1.5 block text-[13px] font-medium text-[#1C1917]";
 
@@ -14,27 +12,32 @@ const inputClass =
 
 export function LoginForm() {
   const router = useRouter();
-  const [values, setValues] = useState<LoginFormValues>(INITIAL_LOGIN_VALUES);
+  const searchParams = useSearchParams();
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showError, setShowError] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const updateValues = (patch: Partial<LoginFormValues>) => {
-    setValues((current) => ({ ...current, ...patch }));
-    setShowError(false);
-  };
+  const sessionExpired = searchParams.get("reason") === "session_expired";
+  const registered = searchParams.get("registered") === "1";
+  const reset = searchParams.get("reset") === "1";
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!isLoginFormValid(values)) {
-      setShowError(true);
-      return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login(email.trim(), password);
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("Invalid email or password");
+    } finally {
+      setSubmitting(false);
     }
-    router.push("/");
   };
-
-  const passwordInputClass = showError
-    ? `${inputClass} border-[#C53030]`
-    : inputClass;
 
   return (
     <div className="my-auto w-full max-w-[380px] pb-10 pt-8">
@@ -47,6 +50,22 @@ export function LoginForm() {
         </p>
       </div>
 
+      {sessionExpired ? (
+        <div className="mb-4 rounded-[6px] border border-[#E6C9A8] bg-[#FFF7ED] px-3 py-2 text-[13px] text-[#9A3412]">
+          Your session expired. Please sign in again.
+        </div>
+      ) : null}
+      {registered ? (
+        <div className="mb-4 rounded-[6px] border border-[#B7D8CF] bg-[#E8F1EE] px-3 py-2 text-[13px] text-[#175647]">
+          Account created. You can sign in now.
+        </div>
+      ) : null}
+      {reset ? (
+        <div className="mb-4 rounded-[6px] border border-[#B7D8CF] bg-[#E8F1EE] px-3 py-2 text-[13px] text-[#175647]">
+          Password reset. Please sign in with your new password.
+        </div>
+      ) : null}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="login_email" className={labelClass}>
@@ -55,10 +74,11 @@ export function LoginForm() {
           <input
             id="login_email"
             type="email"
-            value={values.email}
-            onChange={(event) => updateValues({ email: event.target.value })}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             className={inputClass}
             placeholder="you@company.pk"
+            autoComplete="email"
             required
           />
         </div>
@@ -79,54 +99,45 @@ export function LoginForm() {
           <input
             id="login_password"
             type={showPassword ? "text" : "password"}
-            value={values.password}
-            onChange={(event) => updateValues({ password: event.target.value })}
-            className={passwordInputClass}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className={error ? `${inputClass} border-[#C53030]` : inputClass}
             placeholder="••••••••"
+            autoComplete="current-password"
             required
-            aria-invalid={showError}
+            aria-invalid={Boolean(error)}
           />
-          {showError ? (
+          {error ? (
             <p className="mt-1.5 flex items-center gap-1 text-[12px] font-normal text-[#C53030]" role="alert">
-              Incorrect email or password.
+              {error}
             </p>
           ) : null}
         </div>
 
-        <div className="flex items-center justify-between pt-1">
-          <label htmlFor="keep_signed_in" className="flex cursor-pointer select-none items-center gap-2">
-            <input
-              id="keep_signed_in"
-              type="checkbox"
-              checked={values.keepSignedIn}
-              onChange={(event) => updateValues({ keepSignedIn: event.target.checked })}
-              className="h-4 w-4 cursor-pointer rounded border-[#E6E3DC] accent-[#1F6F5C] focus:ring-0 focus:ring-offset-0"
-            />
-            <span className="text-[13px] text-[#1C1917]">Keep me signed in</span>
-          </label>
-
-          <a
-            href="#"
+        <div className="flex items-center justify-end pt-1">
+          <Link
+            href="/forgot-password"
             className="text-[13px] font-medium text-[#1F6F5C] hover:text-[#185949] focus:outline-none focus:underline"
           >
             Forgot password?
-          </a>
+          </Link>
         </div>
 
         <div className="pt-2">
           <button
             type="submit"
-            className="h-[40px] w-full rounded-[6px] bg-[#1F6F5C] text-[13.5px] font-medium text-white shadow-sm transition-colors hover:bg-[#185949] active:bg-[#13473a] focus:outline-none focus:ring-2 focus:ring-[#1F6F5C] focus:ring-offset-2"
+            disabled={submitting}
+            className="h-[40px] w-full rounded-[6px] bg-[#1F6F5C] text-[13.5px] font-medium text-white shadow-sm transition-colors hover:bg-[#185949] active:bg-[#13473a] focus:outline-none focus:ring-2 focus:ring-[#1F6F5C] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign in
+            {submitting ? "Signing in..." : "Sign in"}
           </button>
         </div>
 
         <div className="pt-2 text-left">
           <p className="text-[13px] text-[#68645C]">
-            Don&apos;t have an account?{" "}
+            Have an invite?{" "}
             <Link href="/register" className="ml-0.5 font-medium text-[#1F6F5C] hover:underline">
-              Create business account
+              Accept invitation
             </Link>
           </p>
         </div>

@@ -32,7 +32,14 @@ async function sendEmail({ to, subject, html, text }) {
     html,
     text,
   });
-  if (error) throw new Error(`Resend rejected email: ${error.message || error}`);
+  if (error) {
+    const detail = error.message || String(error);
+    const hint =
+      /verify a domain|own email address|testing emails/i.test(detail)
+        ? " Verify a domain in Resend and set EMAIL_FROM, or use the Resend account owner email for testing."
+        : "";
+    throw new Error(`Resend rejected email: ${detail}.${hint}`);
+  }
   return { delivered: true, id: data?.id || null };
 }
 

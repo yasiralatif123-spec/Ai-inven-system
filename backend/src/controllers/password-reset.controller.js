@@ -6,6 +6,7 @@ const {
   issuePasswordResetToken,
   consumePasswordResetToken,
   rollbackPasswordResetToken,
+  passwordResetTtlMs,
 } = require("../services/password-reset.service");
 const { revokeAllSessionsForUser } = require("../services/session.service");
 const { normalizeEmail } = require("../middlewares/rate-limit.middleware");
@@ -15,18 +16,27 @@ async function forgotPassword(req, res, next) {
     const email = normalizeEmail(req.body.email);
     const user = await User.findOne({ email, isActive: true });
     if (user) {
+      let token;
       try {
-        const token = await issuePasswordResetToken(user._id);
-        await sendEmail({
+        token = await issuePasswordResetToken(user._id);
+        const emailResult = await sendEmail({
           to: user.email,
           ...passwordResetEmail({
             name: user.name,
             token,
-            expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+            expiresAt: new Date(Date.now() + passwordResetTtlMs()),
           }),
         });
+        if (!emailResult?.delivered && process.env.NODE_ENV !== "production") {
+          const baseUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+          console.info(`[password reset preview] ${baseUrl}/reset-password?token=${token}`);
+        }
       } catch (error) {
         console.error("Password reset email failed:", error.message);
+        if (token && process.env.NODE_ENV !== "production") {
+          const baseUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+          console.info(`[password reset preview] ${baseUrl}/reset-password?token=${token}`);
+        }
       }
     }
     return res.status(202).json({ message: "If the account exists, a reset link has been sent" });

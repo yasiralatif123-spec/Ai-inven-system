@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { DashboardPreview } from "./DashboardPreview";
 import { LoginForm } from "./LoginForm";
 
@@ -16,7 +17,9 @@ export function LoginView() {
             </Link>
           </div>
 
-          <LoginForm />
+          <Suspense fallback={<div className="my-auto w-full max-w-[380px] pb-10 pt-8 text-[13px] text-[#68645C]">Loading...</div>}>
+            <LoginForm />
+          </Suspense>
 
           <footer className="pt-6 text-[12px] text-[#8C877D]">
             <span>

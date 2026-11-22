@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useAuth } from "../../features/auth/hooks/useAuth";
 
 type NavItem = {
   label: string;
@@ -30,10 +33,19 @@ const systemMenu: NavItem[] = [
   { label: "Staff & Roles", icon: "badge", href: "#", path: "staff-and-roles" },
   { label: "Settings", icon: "settings", href: "#", path: "settings" },
   { label: "Help & Support", icon: "help", href: "#", path: "help-and-support" },
-  { label: "Logout", icon: "logout", href: "#", path: "login", danger: true },
 ];
 
-function NavGroup({ title, items, activePath }: { title: string; items: NavItem[]; activePath: string }) {
+function NavGroup({
+  title,
+  items,
+  activePath,
+  onLogout,
+}: {
+  title: string;
+  items: NavItem[];
+  activePath: string;
+  onLogout?: () => void;
+}) {
   return (
     <div className="flex flex-col gap-y-1">
       <div className="px-2 py-1 font-label-caps text-label-caps uppercase tracking-wider text-secondary">{title}</div>
@@ -41,14 +53,15 @@ function NavGroup({ title, items, activePath }: { title: string; items: NavItem[
         const active = item.path === activePath;
         if (item.danger) {
           return (
-            <Link
+            <button
               key={item.path}
-              href={item.href}
-              className="flex items-center rounded px-3 py-1.5 font-body-default text-body-default text-error transition-colors hover:bg-error-container hover:text-on-error-container"
+              type="button"
+              onClick={onLogout}
+              className="flex items-center rounded px-3 py-1.5 text-left font-body-default text-body-default text-error transition-colors hover:bg-error-container hover:text-on-error-container"
             >
               <span className="material-symbols-outlined mr-2.5 text-[18px] text-error">{item.icon}</span>
               {item.label}
-            </Link>
+            </button>
           );
         }
         if (active) {
@@ -93,7 +106,17 @@ function NavGroup({ title, items, activePath }: { title: string; items: NavItem[
   );
 }
 
+function roleLabel(role: string | null | undefined) {
+  if (!role) return "User";
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
 export function AppShell({ activePath, children }: { activePath: string; children: ReactNode }) {
+  const { user, loading, logout } = useAuth();
+  const displayName = user?.name || (loading ? "Loading..." : "Signed out");
+  const displayRole = roleLabel(user?.role);
+  const displayId = user?.id ? `ID #${user.id.slice(-4).toUpperCase()}` : "";
+
   return (
     <div className="min-h-screen bg-surface-container-low">
       <aside className="fixed left-0 top-0 z-50 flex h-full w-60 flex-col justify-between overflow-y-auto border-r border-outline-variant bg-surface-container-high">
@@ -108,6 +131,16 @@ export function AppShell({ activePath, children }: { activePath: string; childre
             <NavGroup title="Main Menu" items={mainMenu} activePath={activePath} />
             <NavGroup title="Intelligence" items={intelligenceMenu} activePath={activePath} />
             <NavGroup title="System" items={systemMenu} activePath={activePath} />
+            <div className="flex flex-col gap-y-1">
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="flex items-center rounded px-3 py-1.5 text-left font-body-default text-body-default text-error transition-colors hover:bg-error-container hover:text-on-error-container"
+              >
+                <span className="material-symbols-outlined mr-2.5 text-[18px] text-error">logout</span>
+                Logout
+              </button>
+            </div>
           </nav>
         </div>
       </aside>
@@ -147,12 +180,12 @@ export function AppShell({ activePath, children }: { activePath: string; childre
               </div>
               <div className="flex flex-col text-left">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-body-medium text-body-medium leading-tight text-on-surface">Tariq M.</span>
+                  <span className="font-body-medium text-body-medium leading-tight text-on-surface">{displayName}</span>
                   <span className="rounded border border-outline-variant bg-secondary-container px-1.5 py-0.5 font-label-caps text-label-caps uppercase text-on-secondary-container">
-                    Owner
+                    {displayRole}
                   </span>
                 </div>
-                <span className="font-mono-data-sm text-mono-data-sm leading-tight text-secondary">ID #001</span>
+                {displayId ? <span className="font-mono-data-sm text-mono-data-sm leading-tight text-secondary">{displayId}</span> : null}
               </div>
             </div>
           </div>

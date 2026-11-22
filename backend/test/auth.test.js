@@ -61,6 +61,45 @@ describe("auth routes", () => {
     expect(await RefreshSession.countDocuments()).toBe(0);
   });
 
+  test("login works when app loads without Business model pre-registered", async () => {
+    const business = await createBusiness({ name: "Acme Wholesale" });
+    const user = await createUser({ business, email: "owner@example.com" });
+
+    let isolatedApp;
+    let isolatedMongoose;
+    jest.isolateModules(() => {
+      isolatedMongoose = require("mongoose");
+      isolatedApp = require("../src/app");
+    });
+
+    const uri = process.env.MONGODB_TEST_URI;
+    const dbName = uri ? new URL(uri).pathname.replace(/^\//, "").split("/")[0] : undefined;
+    if (isolatedMongoose.connection.readyState === 0) {
+      await isolatedMongoose.connect(uri, { dbName });
+    }
+
+    try {
+      const response = await request(isolatedApp).post("/api/auth/login").send({
+        email: "owner@example.com",
+        password: "Password123!",
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.body.user).toMatchObject({
+        id: String(user._id),
+        name: "Test Owner",
+        email: "owner@example.com",
+        role: "owner",
+        businessId: String(business._id),
+        businessName: "Acme Wholesale",
+        emailVerified: true,
+      });
+      expect(response.body.user).not.toHaveProperty("password");
+    } finally {
+      await isolatedMongoose.disconnect();
+    }
+  });
+
   test("login sets HTTP-only cookies and returns a safe user DTO", async () => {
     const business = await createBusiness({ name: "Acme Wholesale" });
     const user = await createUser({ business, email: "Owner@Example.com" });

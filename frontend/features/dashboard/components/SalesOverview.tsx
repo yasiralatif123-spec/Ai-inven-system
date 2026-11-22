@@ -73,89 +73,95 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
 
       <div className="relative h-56 w-full pt-2">
         {hasData ? (
-          <div
-            className="pointer-events-none absolute top-[10%] z-10 -translate-x-1/2 rounded border border-outline bg-on-surface px-2.5 py-1.5 text-left text-surface-container-lowest shadow"
-            style={{ left: `${Math.min(88, Math.max(12, (geometry.points[currentIndex].x / 800) * 100))}%` }}
-          >
-            <div className="flex items-center justify-between gap-3 font-label-caps text-label-caps uppercase text-surface-variant">
-              <span>{tooltipBucket.label}</span>
-              {tooltipBucket.isCurrent ? <span className="text-primary-fixed">TODAY</span> : null}
+          <>
+            <div
+              className="pointer-events-none absolute top-[10%] z-10 -translate-x-1/2 rounded border border-outline bg-on-surface px-2.5 py-1.5 text-left text-surface-container-lowest shadow"
+              style={{ left: `${Math.min(88, Math.max(12, (geometry.points[currentIndex].x / 800) * 100))}%` }}
+            >
+              <div className="flex items-center justify-between gap-3 font-label-caps text-label-caps uppercase text-surface-variant">
+                <span>{tooltipBucket.label}</span>
+                {tooltipBucket.isCurrent ? <span className="text-primary-fixed">TODAY</span> : null}
+              </div>
+              <div className="mt-0.5 font-mono-data text-mono-data font-semibold text-surface">
+                {formatRs(tooltipBucket.amount)}
+              </div>
+              <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-primary-fixed">
+                {tooltipChange >= 0 ? "+" : ""}
+                {tooltipChange.toFixed(1)}% vs prior ({formatRs(tooltipBucket.priorAmount)})
+              </div>
             </div>
-            <div className="mt-0.5 font-mono-data text-mono-data font-semibold text-surface">
-              {formatRs(tooltipBucket.amount)}
-            </div>
-            <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-primary-fixed">
-              {tooltipChange >= 0 ? "+" : ""}
-              {tooltipChange.toFixed(1)}% vs prior ({formatRs(tooltipBucket.priorAmount)})
-            </div>
-          </div>
+
+            <svg className="h-full w-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 800 200">
+              <g stroke="#E5E2DB" strokeDasharray="2 2" strokeWidth="1">
+                {geometry.gridValues.map((value, index) => (
+                  <line
+                    key={value}
+                    x1="45"
+                    x2="790"
+                    y1={180 - (value / geometry.niceMax) * 160}
+                    y2={180 - (value / geometry.niceMax) * 160}
+                    opacity={index === geometry.gridValues.length - 1 ? 1 : 0.9}
+                  />
+                ))}
+              </g>
+              <g className="text-[10px]" fill="#6F7975" textAnchor="end" dominantBaseline="middle">
+                {geometry.gridValues.map((value) => (
+                  <text key={value} x="40" y={180 - (value / geometry.niceMax) * 160}>
+                    {formatCompactRs(value).replace("Rs. ", "")}
+                  </text>
+                ))}
+              </g>
+
+              <path
+                d={`M ${priorPoints.map((point) => `${point.x} ${point.y}`).join(" L ")}`}
+                fill="none"
+                stroke="#BEC9C4"
+                strokeDasharray="4 3"
+                strokeWidth="1.5"
+              />
+              <path d={geometry.currentPath} fill="none" stroke="#1F6F5C" strokeWidth="1.75" />
+
+              {geometry.points.map((point, index) => (
+                <circle
+                  key={buckets[index].key}
+                  cx={point.x}
+                  cy={point.y}
+                  fill="#1F6F5C"
+                  opacity={buckets[index].isCurrent ? 1 : 0.6}
+                  r={buckets[index].isCurrent ? 5 : 3}
+                  stroke={buckets[index].isCurrent ? "#FFFFFF" : "none"}
+                  strokeWidth={buckets[index].isCurrent ? 2 : 0}
+                />
+              ))}
+              {buckets[currentIndex] ? (
+                <line
+                  opacity="0.4"
+                  stroke="#1F6F5C"
+                  strokeDasharray="2 2"
+                  strokeWidth="1"
+                  x1={geometry.points[currentIndex].x}
+                  x2={geometry.points[currentIndex].x}
+                  y1="20"
+                  y2="180"
+                />
+              ) : null}
+            </svg>
+          </>
         ) : (
           <div className="flex h-full items-center justify-center font-body-dense text-body-dense text-secondary">
             No sales recorded in this period yet.
           </div>
         )}
-
-        <svg className="h-full w-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 800 200">
-          <g stroke="#E5E2DB" strokeDasharray="2 2" strokeWidth="1">
-            {geometry.gridValues.map((value, index) => (
-              <line
-                key={value}
-                x1="45"
-                x2="790"
-                y1={180 - (value / geometry.niceMax) * 160}
-                y2={180 - (value / geometry.niceMax) * 160}
-                opacity={index === geometry.gridValues.length - 1 ? 1 : 0.9}
-              />
-            ))}
-          </g>
-          <g className="text-[10px]" fill="#6F7975" textAnchor="end">
-            {geometry.gridValues.map((value, index) => (
-              <text key={value} x="40" y={24 + index * 40}>
-                {formatCompactRs(value).replace("Rs. ", "")}
-              </text>
-            ))}
-          </g>
-
-          <path
-            d={`M ${priorPoints.map((point) => `${point.x} ${point.y}`).join(" L ")}`}
-            fill="none"
-            stroke="#BEC9C4"
-            strokeDasharray="4 3"
-            strokeWidth="1.5"
-          />
-          <path d={geometry.currentPath} fill="none" stroke="#1F6F5C" strokeWidth="1.75" />
-
-          {geometry.points.map((point, index) => (
-            <circle
-              key={buckets[index].key}
-              cx={point.x}
-              cy={point.y}
-              fill="#1F6F5C"
-              opacity={buckets[index].isCurrent ? 1 : 0.6}
-              r={buckets[index].isCurrent ? 5 : 3}
-              stroke={buckets[index].isCurrent ? "#FFFFFF" : "none"}
-              strokeWidth={buckets[index].isCurrent ? 2 : 0}
-            />
-          ))}
-          {buckets[currentIndex] ? (
-            <line
-              opacity="0.4"
-              stroke="#1F6F5C"
-              strokeDasharray="2 2"
-              strokeWidth="1"
-              x1={geometry.points[currentIndex].x}
-              x2={geometry.points[currentIndex].x}
-              y1="20"
-              y2="180"
-            />
-          ) : null}
-        </svg>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant pt-1 font-mono-data-sm text-mono-data-sm text-secondary">
+      <div className="border-t border-outline-variant pt-1 font-mono-data-sm text-mono-data-sm text-secondary">
         <div
-          className="grid w-full max-w-[720px] text-center"
-          style={{ gridTemplateColumns: `repeat(${buckets.length}, minmax(0, 1fr))` }}
+          className="grid text-center"
+          style={{
+            gridTemplateColumns: `repeat(${buckets.length}, minmax(0, 1fr))`,
+            paddingLeft: "5.625%",
+            paddingRight: "1.25%",
+          }}
         >
           {buckets.map((bucket) => (
             <span key={bucket.key} className={bucket.isCurrent ? "font-semibold text-primary" : ""}>
@@ -163,7 +169,7 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
             </span>
           ))}
         </div>
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="mt-2 flex shrink-0 items-center justify-end gap-3">
           <div className="flex items-center gap-1.5">
             <span className="inline-block h-0.5 w-3 bg-primary-container"></span>
             <span className="text-on-surface">Current Period</span>

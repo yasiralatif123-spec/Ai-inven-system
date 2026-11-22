@@ -1,4 +1,6 @@
 const mongoose = require("mongoose");
+require("./Business");
+require("./User");
 
 const refreshSessionSchema = new mongoose.Schema(
   {
