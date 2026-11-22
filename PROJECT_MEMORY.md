@@ -823,7 +823,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
   - `frontend/features/auth/components/AccountStep.tsx`
   - `PROJECT_MEMORY.md`
 - **No dependencies added. No backend/DB/auth changes. `stich ui/` untouched.**
-- **Git:** User ki approval par branch `auth-pages-ui` par commit + push kiya gaya aur `main` me merge kiya gaya.
+- **Git:** User ki approval par branch `auth-pages-ui` par commit `bdb4f6d` push kiya gaya aur `main` me merge commit `a53c4f5` ke saath merge kiya gaya.
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (18 routes, `/login` aur `/register` dono included).
 - **Side effects/risks:** Login purely client-side hai; koi credential verification nahi hoti. Prefilled demo error state pehle jaisa hi dikhne ke liye rakha gaya hai.
 
@@ -853,7 +853,7 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
   - `frontend/features/auth/components/WorkspacePanel.tsx`
 - **Files modified:** `PROJECT_MEMORY.md` only.
 - **No dependencies added. No backend/DB changes. `stich ui/` untouched.**
-- **Git:** Branch `register-page-ui` banaya gaya tha, baad me dono auth pages ko `auth-pages-ui` me combine karke push + `main` merge kiya gaya.
+- **Git:** Branch `register-page-ui` banaya gaya tha, baad me dono auth pages ko `auth-pages-ui` (commit `bdb4f6d`) me combine karke push aur `main` me merge (`a53c4f5`) kiya gaya.
 - **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning in `app/layout.tsx`); `npm run build` ✅ (17 routes, `/register` included).
 - **Side effects/risks:** None known. Password validation client-side hai; koi real registration backend abhi wired nahi hai.
 
