@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (New Sale Order me flavor-wise stock display + zero/low-stock warnings add karke `main` me merge kiya gaya).
+> Last updated: **2026-11-21** (`/register` aur `/login` dono auth pages Stitch references se ban kar push aur `main` me merge kiye gaye).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -799,7 +799,65 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Flavor stock display + warnings in New Sale Order (in progress 2026-11-21)
+### Latest task: Login page from Stitch reference (completed and merged to main 2026-11-21)
+
+- **User request:** `stich ui/login/` me diye gaye `code.html` aur `screen.png` ke mutabik login page banayein.
+- **Reference note:** Folder actual me `login` hai (purana `sign_in_stockflow` ab nahi hai). Screenshot model me view nahi ho paya, is liye implementation poori tarah `code.html` se ki gayi.
+- **Implementation:**
+  - Naya route `frontend/app/login/page.tsx` (Server Component + route metadata).
+  - Existing `features/auth/` feature ko reuse kiya gaya; naye components: `LoginView`, `LoginForm`, `DashboardPreview`.
+  - `types.ts` me `LoginFormValues`, `constants.ts` me `INITIAL_LOGIN_VALUES`, dashboard preview KPI/order data aur `utils.ts` me `isLoginFormValid()` add kiye gaye.
+  - Left side: StockFlow B2B wordmark, heading, prefilled email/password, red `Incorrect email or password.` state, Show/Hide toggle, `Keep me signed in`, Forgot password, Sign in button, Create business account link, security notice aur footer.
+  - Right side: warm panel, top metadata, tilted dashboard mock (stat strip + recent dispatches table), quote.
+  - `router.push("/")` on valid submit — koi real auth API call nahi.
+  - Register page ka `Sign in` link ab `/login` par point karta hai.
+- **Files created:**
+  - `frontend/app/login/page.tsx`
+  - `frontend/features/auth/components/LoginView.tsx`
+  - `frontend/features/auth/components/LoginForm.tsx`
+  - `frontend/features/auth/components/DashboardPreview.tsx`
+- **Files modified:**
+  - `frontend/features/auth/types.ts`
+  - `frontend/features/auth/constants.ts`
+  - `frontend/features/auth/utils.ts`
+  - `frontend/features/auth/components/AccountStep.tsx`
+  - `PROJECT_MEMORY.md`
+- **No dependencies added. No backend/DB/auth changes. `stich ui/` untouched.**
+- **Git:** User ki approval par branch `auth-pages-ui` par commit + push kiya gaya aur `main` me merge kiya gaya.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning); `npm run build` ✅ (18 routes, `/login` aur `/register` dono included).
+- **Side effects/risks:** Login purely client-side hai; koi credential verification nahi hoti. Prefilled demo error state pehle jaisa hi dikhne ke liye rakha gaya hai.
+
+### Previous task: Register page from Stitch reference (completed and merged to main 2026-11-21)
+
+- **User request:** `stich ui/register/` me diye gaye `code.html` aur `screen.png` ke mutabik register page banayein.
+- **Reference:** Dono files mili. Screenshot model me view nahi ho paya (`image input` unsupported), is liye poori implementation diye gaye `code.html` se ki gayi — usmein dono steps, prefilled demo values, focus/error states aur right-side product panel sab maujood the.
+- **Implementation:**
+  - Naya route `frontend/app/register/page.tsx` (Server Component + route-specific `metadata`).
+  - Feature code `frontend/features/auth/` me isolate kiya gaya: `types.ts`, `constants.ts`, `utils.ts` aur 5 chote components (`RegisterView`, `RegisterStepIndicator`, `AccountStep`, `BusinessStep`, `DoneStep`, `WorkspacePanel`).
+  - Step 1 Account: full name, email (active focus ring), phone with `+92`, password with Show/Hide aur strength bar, confirm password with live mismatch error, Terms checkbox, disabled/enabled Continue, Sign in link.
+  - Step 2 Business: business name/type/city/currency/timezone selects, Back aur Create workspace buttons.
+  - Step 3 Done: simple local success panel with `Edit business details`.
+  - Right-side warm panel, checklist, quote, footer aur colors exact reference se replicate kiye gaye.
+  - Demo values reference jaisi hi rakhi gayi hain (Tariq Mahmood etc.) taake screenshot jaisa state dikhe; user chahe to blank production form par badal sakta hai.
+  - Koi API/auth/backend integration nahi kiya gaya — ye sirf UI page hai.
+- **Files created:**
+  - `frontend/app/register/page.tsx`
+  - `frontend/features/auth/types.ts`
+  - `frontend/features/auth/constants.ts`
+  - `frontend/features/auth/utils.ts`
+  - `frontend/features/auth/components/RegisterView.tsx`
+  - `frontend/features/auth/components/RegisterStepIndicator.tsx`
+  - `frontend/features/auth/components/AccountStep.tsx`
+  - `frontend/features/auth/components/BusinessStep.tsx`
+  - `frontend/features/auth/components/DoneStep.tsx`
+  - `frontend/features/auth/components/WorkspacePanel.tsx`
+- **Files modified:** `PROJECT_MEMORY.md` only.
+- **No dependencies added. No backend/DB changes. `stich ui/` untouched.**
+- **Git:** Branch `register-page-ui` banaya gaya tha, baad me dono auth pages ko `auth-pages-ui` me combine karke push + `main` merge kiya gaya.
+- **Verification:** `npx tsc --noEmit` ✅; `npm run lint` ✅ (0 errors, 1 pre-existing warning in `app/layout.tsx`); `npm run build` ✅ (17 routes, `/register` included).
+- **Side effects/risks:** None known. Password validation client-side hai; koi real registration backend abhi wired nahi hai.
+
+### Previous task: Flavor stock display + warnings in New Sale Order (completed and merged to main 2026-11-21)
 
 - **User request:** New Sale Order ke Order Items me flavor stocks dikhein — pehle total stock, phir us product ke saare flavor stocks. Kisi selected flavor ka stock `0` ho to red me "Stock not available for {flavor} flavor." aur quantity flavor stock se zyada ho to "Only {available} available for {flavor} flavor." message dikhe. `Available stock:` line me product ke saare flavor dikhein; product create me flavor hi na ho to flavor lines na dikhein.
 - **Approved implementation (create mode only):**
