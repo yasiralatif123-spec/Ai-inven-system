@@ -90,3 +90,24 @@ No behavior change in Phase 5. In Phase 6, generators must be scoped by tenant a
 6. Re-run migration to confirm idempotency (modified counts should be 0).
 
 Do **not** run against production without backup. Do **not** run `create-owner` as part of this migration.
+
+## Phase 6 Part A - Products & Inventory tenant enforcement (implemented)
+
+- **Routes:** `enforceTenantAuth` middleware (`src/middlewares/enforcement.middleware.js`) applied to product and inventory routes.
+  - `AUTH_ENFORCEMENT=false`: behave as before (no auth required, no tenant scoping).
+  - `AUTH_ENFORCEMENT=true`: authenticate required.
+  - `TENANT_ENFORCEMENT=true` (with auth): controllers scope by `req.auth.businessId`.
+- **Controllers:** `product.controller.js` and `inventory.controller.js` use tenant helpers (`tenantFilter`, `findOwned`) for list/detail-by-id/detail-by-SKU/create/update/delete/search/adjust-stock/movements/delete-movement. `businessId` and `createdByUserId` are set from `req.auth` on create; any `businessId` in body is ignored; `businessId` cannot be changed on update. Cross-business IDs return **404**.
+- **Flavor stock:** `utils/flavor-stock.js` accepts optional `businessId` for tenant-scoped product reads/writes; backward compatible for existing callers (purchases/sale orders not tenant-enforced yet).
+- **SKU index:** Product schema declares compound unique `{ businessId: 1, sku: 1 }`; old global `sku.unique` removed from schema. Old global `sku_1` unique index must be dropped only via one-time script (never on app start).
+
+### Index migration script (one-time, real DB only when you choose)
+
+```bash
+cd backend
+# Backup DB first
+npm run migrate:indexes -- --dry-run
+npm run migrate:indexes -- --confirm
+```
+
+Script: `scripts/migrate-indexes.js`. Prints DB name first, requires `--confirm` for real run, drops old global `sku_1` unique index only if present, creates `businessId_1_sku_1` unique index if missing. Idempotent.

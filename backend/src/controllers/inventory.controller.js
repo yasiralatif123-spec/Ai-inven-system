@@ -1,10 +1,30 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const StockMovement = require("../models/StockMovement");
+const { tenantFilter, findOwned } = require("../utils/tenant");
 const {
   applyFlavorStockChange,
   cleanFlavor,
 } = require("../utils/flavor-stock");
+
+function isTenantEnforced(req) {
+  return req.tenantEnforced === true && Boolean(req.auth?.businessId);
+}
+
+function scopedFilter(req, extra = {}) {
+  if (!isTenantEnforced(req)) return { ...extra };
+  return tenantFilter(req, extra);
+}
+
+async function findOwnedProduct(id, req) {
+  if (!isTenantEnforced(req)) return Product.findById(id);
+  return findOwned(Product, id, req);
+}
+
+async function findOwnedMovement(id, req) {
+  if (!isTenantEnforced(req)) return StockMovement.findById(id);
+  return findOwned(StockMovement, id, req);
+}
 
 function cleanString(value) {
   return value === undefined || value === null ? "" : String(value).trim();
@@ -28,7 +48,7 @@ async function adjustStock(req, res, next) {
       return res.status(400).json({ message: "quantity must be a positive whole number" });
     }
 
-    const current = await Product.findById(id).lean();
+    const current = await Product.findOne(scopedFilter(req, { _id: id })).lean();
     if (!current) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -47,7 +67,7 @@ async function adjustStock(req, res, next) {
     const flavor = matchingRow ? matchingRow.flavor : requestedFlavor;
 
     const delta = direction === "add" ? qty : -qty;
-    const filter = { _id: id };
+    const filter = scopedFilter(req, { _id: id });
     if (direction === "deduct") {
       // Guard against concurrent deductions driving the balance below zero.
       filter.openingStock = { $gte: qty };
@@ -61,15 +81,21 @@ async function adjustStock(req, res, next) {
     );
 
     if (!product) {
+      const latest = await Product.findOne(scopedFilter(req, { _id: id })).lean();
+      if (!latest) {
+        return res.status(404).json({ message: "Product not found" });
+      }
       return res.status(400).json({
         message: `Cannot deduct more than the available stock (${Number(
-          current.openingStock || 0
+          latest.openingStock || 0
         )})`,
       });
     }
 
     compensations.push(async () => {
-      await Product.findByIdAndUpdate(id, { $inc: { openingStock: -delta } });
+      await Product.findOneAndUpdate(scopedFilter(req, { _id: id }), {
+        $inc: { openingStock: -delta },
+      });
     });
 
     try {
@@ -79,6 +105,7 @@ async function adjustStock(req, res, next) {
           flavor,
           delta,
           compensations,
+          ...(isTenantEnforced(req) ? { businessId: req.auth.businessId } : {}),
         });
       }
     } catch (error) {
@@ -107,6 +134,9 @@ async function adjustStock(req, res, next) {
         performedBy: cleanString(performedBy) || "Admin",
         flavor,
         flavorBreakdown: flavor ? [{ flavor, quantity: qty }] : [],
+        ...(isTenantEnforced(req)
+          ? { businessId: req.auth.businessId, createdByUserId: req.auth.id }
+          : {}),
       });
     } catch (movementError) {
       // Roll the stock change back so the ledger and stock balance never drift apart.
@@ -120,7 +150,7 @@ async function adjustStock(req, res, next) {
 
     return res.status(201).json({
       message: "Stock adjusted successfully",
-      product: await Product.findById(id),
+      product: await Product.findOne(scopedFilter(req, { _id: id })),
       movement,
     });
   } catch (error) {
@@ -135,7 +165,8 @@ async function getMovements(req, res, next) {
       ? Math.min(Math.max(Math.floor(requestedLimit), 1), 200)
       : 100;
 
-    const movements = await StockMovement.find().sort({ createdAt: -1 }).limit(limit);
+    const filter = scopedFilter(req);
+    const movements = await StockMovement.find(filter).sort({ createdAt: -1 }).limit(limit);
     return res.status(200).json({ movements });
   } catch (error) {
     return next(error);
@@ -149,7 +180,7 @@ async function deleteStockMovement(req, res, next) {
       return res.status(400).json({ message: "Invalid movement id" });
     }
 
-    const movement = await StockMovement.findById(id);
+    const movement = await findOwnedMovement(id, req);
     if (!movement) {
       return res.status(404).json({ message: "Stock movement not found" });
     }
@@ -159,7 +190,7 @@ async function deleteStockMovement(req, res, next) {
 
     // Removing an adjustment must also undo its effect on the product balance.
     const reversal = movement.direction === "in" ? -movement.quantity : movement.quantity;
-    const filter = { _id: movement.product };
+    const filter = scopedFilter(req, { _id: movement.product });
     if (reversal < 0) {
       filter.openingStock = { $gte: movement.quantity };
     }
@@ -171,7 +202,7 @@ async function deleteStockMovement(req, res, next) {
     );
 
     if (!product) {
-      const current = await Product.findById(movement.product).lean();
+      const current = await Product.findOne(scopedFilter(req, { _id: movement.product })).lean();
       if (!current) {
         return res.status(404).json({ message: "Linked product no longer exists" });
       }
@@ -184,7 +215,7 @@ async function deleteStockMovement(req, res, next) {
 
     const compensations = [
       async () => {
-        await Product.findByIdAndUpdate(movement.product, {
+        await Product.findOneAndUpdate(scopedFilter(req, { _id: movement.product }), {
           $inc: { openingStock: -reversal },
         });
       },
@@ -204,10 +235,11 @@ async function deleteStockMovement(req, res, next) {
           flavor: entry.flavor,
           delta: reversal < 0 ? -Number(entry.quantity) : Number(entry.quantity),
           compensations,
+          ...(isTenantEnforced(req) ? { businessId: req.auth.businessId } : {}),
         });
       }
 
-      await StockMovement.findByIdAndDelete(id);
+      await StockMovement.findOneAndDelete(scopedFilter(req, { _id: id }));
     } catch (deleteError) {
       for (const compensate of compensations.reverse()) {
         await compensate().catch((revertError) => {
@@ -219,7 +251,7 @@ async function deleteStockMovement(req, res, next) {
 
     return res.status(200).json({
       message: "Stock adjustment deleted",
-      product: await Product.findById(movement.product),
+      product: await Product.findOne(scopedFilter(req, { _id: movement.product })),
       movement,
     });
   } catch (error) {

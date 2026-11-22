@@ -5,7 +5,7 @@ require("./User");
 const productSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
-    sku: { type: String, required: true, trim: true, unique: true },
+    sku: { type: String, required: true, trim: true },
     barcode: { type: String, trim: true, default: "" },
     category: { type: String, required: true, trim: true },
     brand: { type: String, required: true, trim: true },
@@ -60,5 +60,9 @@ const productSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Phase 6: SKU uniqueness is scoped per business. The old global sku unique
+// index must be dropped only via scripts/migrate-indexes.js (never on app start).
+productSchema.index({ businessId: 1, sku: 1 }, { unique: true });
 
 module.exports = mongoose.model("Product", productSchema);

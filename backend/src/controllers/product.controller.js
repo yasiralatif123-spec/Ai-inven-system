@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const { ensureCloudinaryConfigured } = require("../config/cloudinary");
+const { tenantFilter, findOwned } = require("../utils/tenant");
 
 function uploadBufferToCloudinary(buffer, folder = "inv_system/products") {
   const cloudinary = ensureCloudinaryConfigured();
@@ -64,6 +65,20 @@ function normalizeFlavors(value) {
   return flavors;
 }
 
+function isTenantEnforced(req) {
+  return req.tenantEnforced === true && Boolean(req.auth?.businessId);
+}
+
+function productFilter(req, extra = {}) {
+  if (!isTenantEnforced(req)) return { ...extra };
+  return tenantFilter(req, extra);
+}
+
+async function findOwnedProduct(id, req) {
+  if (!isTenantEnforced(req)) return Product.findById(id);
+  return findOwned(Product, id, req);
+}
+
 async function createProduct(req, res, next) {
   try {
     const {
@@ -95,7 +110,11 @@ async function createProduct(req, res, next) {
       return res.status(400).json({ message: "title, sku, category, and brand are required" });
     }
 
-    const existing = await Product.findOne({ sku: String(sku).trim() });
+    const normalizedSku = String(sku).trim();
+    const existingSkuFilter = isTenantEnforced(req)
+      ? { sku: normalizedSku, businessId: req.auth.businessId }
+      : { sku: normalizedSku };
+    const existing = await Product.findOne(existingSkuFilter);
     if (existing) {
       return res.status(409).json({ message: "A product with this SKU already exists" });
     }
@@ -110,7 +129,7 @@ async function createProduct(req, res, next) {
 
     const product = await Product.create({
       title: String(title).trim(),
-      sku: String(sku).trim(),
+      sku: normalizedSku,
       barcode: barcode ? String(barcode).trim() : "",
       category: String(category).trim(),
       brand: String(brand).trim(),
@@ -133,6 +152,10 @@ async function createProduct(req, res, next) {
       halalPsqcaCertified: toBoolean(halalPsqcaCertified),
       imageUrl,
       imagePublicId,
+      // Tenant boundary: always from auth context, never from request body.
+      ...(isTenantEnforced(req)
+        ? { businessId: req.auth.businessId, createdByUserId: req.auth.id }
+        : {}),
     });
 
     return res.status(201).json({ message: "Product created", product });
@@ -143,8 +166,51 @@ async function createProduct(req, res, next) {
 
 async function getProducts(req, res, next) {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
+    const filter = productFilter(req);
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { sku: { $regex: search, $options: "i" } },
+        { brand: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } },
+      ];
+    }
+    const products = await Product.find(filter).sort({ createdAt: -1 });
     return res.status(200).json({ products });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getProductById(req, res, next) {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid product id" });
+    }
+    const product = await findOwnedProduct(id, req);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    return res.status(200).json({ product });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getProductBySku(req, res, next) {
+  try {
+    const sku = typeof req.params.sku === "string" ? req.params.sku.trim() : "";
+    if (!sku) {
+      return res.status(400).json({ message: "sku is required" });
+    }
+    const filter = productFilter(req, { sku });
+    const product = await Product.findOne(filter);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    return res.status(200).json({ product });
   } catch (error) {
     return next(error);
   }
@@ -157,7 +223,7 @@ async function updateProduct(req, res, next) {
       return res.status(400).json({ message: "Invalid product id" });
     }
 
-    const product = await Product.findById(id);
+    const product = await findOwnedProduct(id, req);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -190,7 +256,10 @@ async function updateProduct(req, res, next) {
     }
 
     const normalizedSku = String(sku).trim();
-    const existing = await Product.findOne({ sku: normalizedSku, _id: { $ne: product._id } });
+    const existingSkuFilter = isTenantEnforced(req)
+      ? { sku: normalizedSku, businessId: req.auth.businessId, _id: { $ne: product._id } }
+      : { sku: normalizedSku, _id: { $ne: product._id } };
+    const existing = await Product.findOne(existingSkuFilter);
     if (existing) {
       return res.status(409).json({ message: "A product with this SKU already exists" });
     }
@@ -256,7 +325,7 @@ async function deleteProduct(req, res, next) {
       return res.status(400).json({ message: "Invalid product id" });
     }
 
-    const product = await Product.findById(id);
+    const product = await findOwnedProduct(id, req);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -273,4 +342,11 @@ async function deleteProduct(req, res, next) {
   }
 }
 
-module.exports = { createProduct, getProducts, updateProduct, deleteProduct };
+module.exports = {
+  createProduct,
+  getProducts,
+  getProductById,
+  getProductBySku,
+  updateProduct,
+  deleteProduct,
+};

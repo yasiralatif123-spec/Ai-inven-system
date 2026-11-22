@@ -63,11 +63,15 @@ async function applyFlavorStockChange({
   delta,
   session,
   compensations = [],
+  businessId = null,
 }) {
   const name = cleanFlavor(flavor);
   if (!name || !Number.isFinite(delta) || delta === 0) return null;
 
-  const product = await Product.findById(productId).session(session);
+  const scope = businessId ? { _id: productId, businessId } : { _id: productId };
+  const query = Product.findOne(scope);
+  if (session) query.session(session);
+  const product = await query;
   if (!product) {
     throw new FlavorStockError("The product linked to this line no longer exists");
   }
@@ -92,7 +96,9 @@ async function applyFlavorStockChange({
   await product.save({ session });
 
   compensations.push(async () => {
-    const current = await Product.findById(productId).session(session);
+    const compensationQuery = Product.findOne(scope);
+    if (session) compensationQuery.session(session);
+    const current = await compensationQuery;
     if (!current) return;
     const target = findFlavorEntry(current.flavorStocks, name);
     if (!target) return;
@@ -109,6 +115,7 @@ async function applyFlavorStockChanges({
   delta,
   session,
   compensations = [],
+  businessId = null,
 }) {
   const results = [];
   for (const flavor of uniqueFlavors(flavors)) {
@@ -118,6 +125,7 @@ async function applyFlavorStockChanges({
       delta,
       session,
       compensations,
+      businessId,
     });
     if (result) results.push(result);
   }
