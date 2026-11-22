@@ -3,11 +3,13 @@ require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 const http = require("http");
 const app = require("./app");
 const connectDB = require("./config/db");
+const { validateAuthEnv } = require("./config/env");
 
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   try {
+    validateAuthEnv();
     await connectDB();
 
     const server = http.createServer(app);

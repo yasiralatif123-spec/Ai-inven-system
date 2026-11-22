@@ -1,0 +1,536 @@
+openapi: 3.1.0
+info:
+  title: StockFlow Auth API
+  version: 0.3.0
+  description: |
+    Local contract for the invite-only StockFlow authentication API.
+
+    Phase 3 (implemented): session, invite, password reset, and workspace user
+    management endpoints. Sessions are HTTP-only cookies only. Tokens are never
+    returned in JSON and must never be stored in localStorage. The frontend
+    calls these endpoints through a same-origin `/api` rewrite, so
+    `SameSite=Lax` cookies work and unsafe methods are additionally checked
+    against Origin/Referer.
+servers:
+  - url: http://localhost:3000/api
+    description: Next.js same-origin proxy (preferred)
+  - url: http://localhost:5000/api
+    description: Direct Express access (development only)
+tags:
+  - name: session
+    description: Login, refresh, logout and current-user lookup.
+  - name: invites
+    description: Owner/admin invite management and public invite acceptance.
+  - name: password-reset
+    description: Public forgot/reset password flow.
+  - name: users
+    description: Workspace user management (owner/admin).
+paths:
+  /auth/login:
+    post:
+      tags: [session]
+      summary: Exchange email and password for an access session
+      operationId: login
+      description: |
+        On success sets `accessToken` (15m) and `refreshToken` (7d) HTTP-only
+        cookies and creates a DB-backed RefreshSession. Every successful login
+        creates a new independent session; other sessions remain valid.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              valid:
+                value:
+                  email: owner@example.com
+                  password: "CorrectHorse9!"
+      responses:
+        "200":
+          description: Signed in.
+          headers:
+            Set-Cookie:
+              description: accessToken and refreshToken, both HttpOnly.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "429":
+          description: Too many login attempts for this IP + email.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      x-rate-limit: 10 per 15 minutes per IP + normalized email
+
+  /auth/refresh:
+    post:
+      tags: [session]
+      summary: Rotate the refresh token and issue a new access token
+      operationId: refresh
+      description: |
+        Reads `refreshToken` from the HTTP-only cookie, verifies its signature,
+        looks up the matching active RefreshSession, then revokes the old token
+        and issues a rotated pair. A reused/rotated-away token is rejected.
+      responses:
+        "200":
+          description: Session rotated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "401":
+          description: Missing, invalid, expired or already-rotated refresh token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          description: Too many refresh attempts for this IP.
+      x-rate-limit: 60 per hour per IP
+
+  /auth/logout:
+    post:
+      tags: [session]
+      summary: Revoke the current refresh session and clear auth cookies
+      operationId: logout
+      description: |
+        Idempotent. Clears cookies and marks the current RefreshSession revoked,
+        so the access token stops being accepted on the next authenticated call.
+      responses:
+        "200":
+          description: Logged out.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out
+
+  /auth/me:
+    get:
+      tags: [session]
+      summary: Return the authenticated user DTO
+      operationId: me
+      description: Requires a valid access token whose RefreshSession is still active.
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Current user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/UserDto"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /auth/invites:
+    get:
+      tags: [invites]
+      summary: List invites for the current business
+      operationId: listInvites
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Invites for the authenticated user's business.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invites:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/InviteDto"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          description: Insufficient permissions.
+    post:
+      tags: [invites]
+      summary: Create and email an invite
+      operationId: createInvite
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteCreateRequest"
+      responses:
+        "201":
+          description: Invitation created and email sent.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  invite:
+                    $ref: "#/components/schemas/InviteDto"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          description: Insufficient permissions.
+        "409":
+          description: Account or pending invite already exists for this email.
+        "502":
+          description: Invitation email could not be sent; invite is not left pending.
+
+  /auth/invites/validate:
+    post:
+      tags: [invites]
+      summary: Validate an invite token before showing the registration form
+      operationId: validateInvite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              additionalProperties: false
+              properties:
+                token: { type: string }
+      responses:
+        "200":
+          description: Invite is valid.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invite:
+                    $ref: "#/components/schemas/InviteDto"
+        "400":
+          description: Invalid or expired invite.
+      x-rate-limit: 20 per hour per IP
+
+  /auth/invites/accept:
+    post:
+      tags: [invites]
+      summary: Accept an invite and create the invited user
+      operationId: acceptInvite
+      description: |
+        Atomically consumes a Pending invite, requires an exact email match, sets
+        `emailVerified: true`, and creates the user in the inviter's business.
+        No public registration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteAcceptRequest"
+      responses:
+        "201":
+          description: User created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          description: Invite invalid/expired/used, or email already registered.
+
+  /auth/invites/{id}/revoke:
+    post:
+      tags: [invites]
+      summary: Revoke a pending invite
+      operationId: revokeInvite
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Invite revoked.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          description: Insufficient permissions.
+        "404":
+          description: Invitation not found.
+
+  /auth/forgot-password:
+    post:
+      tags: [password-reset]
+      summary: Send a password-reset email
+      operationId: forgotPassword
+      description: Always returns 202 to avoid account enumeration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              additionalProperties: false
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "202":
+          description: Accepted regardless of whether the email exists.
+        "400":
+          $ref: "#/components/responses/ValidationError"
+      x-rate-limit: 3 per hour per IP
+
+  /auth/reset-password:
+    post:
+      tags: [password-reset]
+      summary: Reset a password with a single-use token
+      operationId: resetPassword
+      description: Consumes a single-use reset token, updates password, bumps tokenVersion, and revokes sessions.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Password reset; sessions revoked.
+        "400":
+          description: Invalid/expired token or validation error.
+
+  /auth/users:
+    get:
+      tags: [users]
+      summary: List users in the current business
+      operationId: listUsers
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Workspace users.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserDto"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          description: Insufficient permissions.
+
+  /auth/users/{id}/role:
+    patch:
+      tags: [users]
+      summary: Change a user's role
+      operationId: changeUserRole
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleRequest"
+      responses:
+        "200":
+          description: Role updated; sessions revoked.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          description: Insufficient permissions or guarded target.
+        "404":
+          description: User not found.
+
+  /auth/users/{id}/deactivate:
+    patch:
+      tags: [users]
+      summary: Deactivate a user
+      operationId: deactivateUser
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: User deactivated; sessions revoked.
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          description: Insufficient permissions or guarded target.
+        "404":
+          description: User not found.
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: accessToken
+      description: HTTP-only access token cookie. Refresh uses the separate refreshToken cookie.
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+    UserDto:
+      type: object
+      description: Safe projection of the user record. Never includes password or token hashes.
+      required: [id, name, email, role]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [owner, admin, user]
+        businessId:
+          type: string
+          nullable: true
+        businessName:
+          type: string
+          nullable: true
+        emailVerified:
+          type: boolean
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+    SessionResponse:
+      type: object
+      required: [message, user]
+      properties:
+        message:
+          type: string
+          example: Login successful
+        user:
+          $ref: "#/components/schemas/UserDto"
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Authentication required
+        errors:
+          type: array
+          description: Field-level details when the failure is input validation.
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+                example: email
+              message:
+                type: string
+                example: Invalid email
+    InviteDto:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [admin, user] }
+        businessId: { type: string }
+        businessName: { type: string, nullable: true }
+        status: { type: string, enum: [Pending, Accepted, Revoked] }
+        expiresAt: { type: string, format: date-time }
+        acceptedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+    InviteCreateRequest:
+      type: object
+      required: [email, role]
+      additionalProperties: false
+      properties:
+        email: { type: string, format: email }
+        role: { type: string, enum: [admin, user] }
+    InviteAcceptRequest:
+      type: object
+      required: [token, name, email, password, confirmPassword]
+      additionalProperties: false
+      properties:
+        token: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        confirmPassword: { type: string }
+    ResetPasswordRequest:
+      type: object
+      required: [token, password, confirmPassword]
+      additionalProperties: false
+      properties:
+        token: { type: string }
+        password: { type: string, minLength: 8 }
+        confirmPassword: { type: string }
+    UserRoleRequest:
+      type: object
+      required: [role]
+      additionalProperties: false
+      properties:
+        role: { type: string, enum: [admin, user] }
+  responses:
+    ValidationError:
+      description: Request body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: Invalid request
+            errors:
+              - path: email
+                message: Invalid email
+    InvalidCredentials:
+      description: Email or password is incorrect (deliberately generic).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: Invalid email or password
+    Unauthenticated:
+      description: Missing, expired or revoked session.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            message: Authentication required

@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-21** (`/register` aur `/login` dono auth pages Stitch references se ban kar push aur `main` me merge kiye gaye).
+> Last updated: **2026-11-22** (Auth + Authorization plan approved with changes; Phases 1-2 implemented locally; not committed/pushed).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -1443,4 +1443,107 @@ Live API smoke tests have been performed against `http://localhost:5000`, includ
 
 ---
 
-**End of baseline memory.**
+---
+
+## 17. Auth + Authorization - Phases 1 & 2 (2026-11-22)
+
+User approved implementation with changes. Scope was explicitly limited to
+Phases 1-2; work stopped after Phase 2 for review. No commit, push, migration,
+data deletion, or business controller/model changes were made.
+
+### Approved decisions that differ from the original plan
+
+1. No email-verification flow at all: accepting an invite to the exact email is
+   proof of inbox ownership. `emailVerified = true` is set at invite acceptance.
+   Removed verify-email endpoint, resend-verification, related pages/template,
+   and the `EMAIL_NOT_VERIFIED` login case. `AuthToken` will be used only for
+   password reset.
+2. Idempotent `npm run create-owner` bootstrap for the first owner/business;
+   credentials come from CLI/env only, never hardcoded.
+3. No Mongo transactions. Invite acceptance will use an atomic
+   `findOneAndUpdate` plus a compensating rollback (Phase 3).
+4. Deferred to Phase 8: AuditLog, logout-all endpoint, refresh family reuse
+   detection. Double-submit CSRF replaced by Origin/Referer checks on unsafe
+   methods; same-origin `/api` proxy + SameSite cookies are the primary defense.
+5. `AUTH_ENFORCEMENT` / `TENANT_ENFORCEMENT` flags retained. TODO: enable in
+   staging immediately after Phase 5, then remove the flags and conditionals.
+6. `express-session` removed completely. Startup config validation crashes the
+   server if `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, or `TOKEN_PEPPER` is
+   missing, < 32 chars, or a placeholder.
+7. Admin may invite only users; only Owner may invite admins; nobody invites owners.
+8. Resend test sender in dev; verified domain required before production.
+9. Local OpenAPI artifact only; nothing pushed to a Postman workspace.
+10. Tenant boundary is `businessId`; invited users share the owner's business.
+
+### Phase 1 (contract + scaffolding)
+
+- Added Jest + supertest (`backend/jest.config.js`, `backend/test/setup.js`,
+  `backend/test/helpers/test-db.js`, `backend/test/helpers/auth.js`).
+- Tests require `MONGODB_TEST_URI`; its DB name must contain `test` and differ
+  from `MONGODB_URI`. A throwaway local mongod on port 27019 was used for the
+  test run and stopped afterwards. Real DB was never used.
+- Added `backend/docs/openapi-auth.yaml` (auth endpoints; Phase 3-4 operations
+  explicitly tagged `planned`) and `backend/docs/auth-api.md`.
+- Rewrote `backend/.env.example` (new secrets, Resend, flags, rate limits,
+  `MONGODB_TEST_URI`, owner bootstrap vars) and cleaned the duplicated
+  Cloudinary block. Added `coverage` to `backend/.gitignore`.
+
+### Phase 2 (auth foundation)
+
+New: `src/config/env.js`, `src/models/Business.js`,
+`src/models/RefreshSession.js`, `src/services/token.service.js`,
+`src/services/session.service.js`, `src/utils/user.dto.js`,
+`src/validators/auth.validator.js`, `src/middlewares/validate.middleware.js`,
+`src/middlewares/rate-limit.middleware.js`,
+`src/middlewares/origin.middleware.js`, `scripts/create-owner.js`.
+
+Modified: `src/app.js` (helmet, numeric trust proxy, no express-session,
+Origin/Referer guard), `src/server.js` (env validation), `src/models/User.js`
+(owner|admin|user, `businessId`, `emailVerified`, `tokenVersion`,
+`passwordChangedAt`, `lastLoginAt`; global unique email left in place until the
+Phase 5 compound index), `src/middlewares/auth.middleware.js` (access JWT +
+active RefreshSession + tokenVersion checks; `requireRole`),
+`src/controllers/auth.controller.js` (login/refresh/logout/me only; safe DTO),
+`src/routes/auth.routes.js` (public register removed), `backend/README.md`,
+`backend/package.json`, `backend/package-lock.json`.
+
+Deleted: `src/utils/token.js` (replaced by `src/services/token.service.js`).
+
+Implemented endpoints: `POST /api/auth/login`, `POST /api/auth/refresh`,
+`POST /api/auth/logout`, `GET /api/auth/me`. Refresh tokens are JWTs signed with
+`JWT_REFRESH_SECRET`, stored as HMAC-SHA256 hashes peppered with `TOKEN_PEPPER`;
+rotation uses an atomic `findOneAndUpdate` so old tokens cannot be reused.
+Logout revokes only the current session. `AUTH_ENFORCEMENT=false` and
+`TENANT_ENFORCEMENT=false` are unchanged; business routes remain public.
+
+### Dependencies
+
+Installed: `resend`, `express-rate-limit`, `helmet`, `zod`; dev `jest`,
+`supertest`. Removed `express-session`. Kept `bcryptjs` (no native bcrypt).
+Did not install `mongodb-memory-server` (not in the approved list).
+
+### Verification
+
+`npm test`: 7 suites, 48 tests passing. Covers login/refresh/logout/me DTO and
+cookies, token reuse rejection, session revocation, tokenVersion invalidation,
+rate limiting, validation, Origin checks, env validation, owner bootstrap, and
+the test-DB guard, `.env` auto-loading, and the fast-fail DB timeout. OpenAPI
+YAML parses (8 paths). Startup validation was confirmed to exit with code 1 on
+weak secrets. `npm audit` reports pre-existing moderate advisories (not
+addressed in this phase).
+
+Follow-up fix: `test/setup.js` now loads `backend/.env` by absolute path before
+test modules run, so `MONGODB_TEST_URI` no longer has to be exported in the
+shell. Auth secrets/flags are still forced to deterministic test values after
+`.env` loads. `test/helpers/test-db.js` uses
+`serverSelectionTimeoutMS: 3000` and throws a credential-safe error naming the
+host/database. Verified plain `npm test` (no env overrides) against the local
+`inv_system_test` database, and a refused-connection case failed in ~3.3s.
+
+### Still pending / next approval needed
+
+Phases 3-4 (invite acceptance with atomic rollback, password reset, Resend
+email templates, frontend wiring) have not started. Phase 5-6 (tenant
+enforcement, scoped queries, backfill into a legacy business) require separate
+explicit approval. Business controllers and all business models are untouched.
+No files were committed or pushed.

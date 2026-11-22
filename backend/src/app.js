@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const session = require("express-session");
+const helmet = require("helmet");
 
 const authRoutes = require("./routes/auth.routes");
 const productRoutes = require("./routes/product.routes");
@@ -11,8 +11,15 @@ const supplierRoutes = require("./routes/supplier.routes");
 const customerRoutes = require("./routes/customer.routes");
 const purchaseRoutes = require("./routes/purchase.routes");
 const errorHandler = require("./middlewares/error.middleware");
+const { checkOrigin } = require("./middlewares/origin.middleware");
 
 const app = express();
+
+// Required for correct client-IP rate limiting behind the Next.js /api rewrite.
+// Must be a numeric hop count, never `true`.
+app.set("trust proxy", Number(process.env.TRUST_PROXY ?? 1));
+
+app.use(helmet());
 
 const allowedOrigins = [
   process.env.CLIENT_URL,
@@ -35,23 +42,8 @@ app.use(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser(process.env.COOKIE_SECRET));
-
-app.use(
-  session({
-    name: process.env.SESSION_NAME || "inv.sid",
-    secret: process.env.SESSION_SECRET || "change_this_session_secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: process.env.SESSION_SECURE === "true",
-      sameSite: process.env.SESSION_SAME_SITE || "lax",
-      maxAge: Number(process.env.SESSION_MAX_AGE_MS) || 7 * 24 * 60 * 60 * 1000,
-    },
-    // TODO: configure a production session store (e.g. connect-mongo / Redis)
-  })
-);
+app.use(cookieParser());
+app.use(checkOrigin);
 
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", message: "API is running" });

@@ -1,73 +1,135 @@
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
-const { generateAccessToken, generateRefreshToken } = require("../utils/token");
+const { loginSchema } = require("../validators/auth.validator");
+const { verifyRefreshToken, durationToMs } = require("../services/token.service");
+const {
+  createSession,
+  rotateSession,
+  revokeSessionByRefreshToken,
+} = require("../services/session.service");
+const { toUserDto } = require("../utils/user.dto");
+const { normalizeEmail } = require("../middlewares/rate-limit.middleware");
 
-// Basic auth controller stubs (register/login/logout/me)
-// Extend with validation, refresh-token rotation, session persistence, etc.
+// Equalizes timing between "no such user" and "wrong password" paths.
+const DUMMY_PASSWORD_HASH = bcrypt.hashSync("not-a-real-password", 4);
 
-async function register(req, res, next) {
+function cookieOptions(maxAge) {
+  const options = {
+    httpOnly: true,
+    secure: process.env.COOKIE_SECURE === "true",
+    sameSite: process.env.COOKIE_SAME_SITE || "lax",
+    path: "/",
+    maxAge,
+  };
+  if (process.env.COOKIE_DOMAIN) options.domain = process.env.COOKIE_DOMAIN;
+  return options;
+}
+
+function setAuthCookies(res, { accessToken, refreshToken }) {
+  const accessName = process.env.ACCESS_COOKIE_NAME || "accessToken";
+  const refreshName = process.env.REFRESH_COOKIE_NAME || "refreshToken";
+  const accessMaxAge = durationToMs(
+    process.env.JWT_ACCESS_EXPIRES_IN,
+    15 * 60 * 1000,
+    "JWT_ACCESS_EXPIRES_IN"
+  );
+  const refreshMaxAge = durationToMs(
+    process.env.JWT_REFRESH_EXPIRES_IN,
+    7 * 24 * 60 * 60 * 1000,
+    "JWT_REFRESH_EXPIRES_IN"
+  );
+  res.cookie(accessName, accessToken, cookieOptions(accessMaxAge));
+  res.cookie(refreshName, refreshToken, cookieOptions(refreshMaxAge));
+}
+
+function clearAuthCookies(res) {
+  const clearOptions = cookieOptions(0);
+  delete clearOptions.maxAge;
+  res.clearCookie(process.env.ACCESS_COOKIE_NAME || "accessToken", clearOptions);
+  res.clearCookie(process.env.REFRESH_COOKIE_NAME || "refreshToken", clearOptions);
+}
+
+async function login(req, res, next) {
   try {
-    const { name, email, password } = req.body;
-
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(409).json({ message: "Email already in use" });
+    const parsed = loginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: "Invalid request",
+        errors: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword });
+    const email = normalizeEmail(parsed.data.email);
+    const user = await User.findOne({ email })
+      .select("+password")
+      .populate("businessId", "name");
 
-    return res.status(201).json({
-      message: "User registered",
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+    if (!user) {
+      await bcrypt.compare(parsed.data.password, DUMMY_PASSWORD_HASH);
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      parsed.data.password,
+      user.password
+    );
+    if (!passwordMatches) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    if (user.isActive === false) {
+      return res.status(403).json({ message: "Account is inactive" });
+    }
+
+    user.lastLoginAt = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    const tokens = await createSession({ user, req });
+    setAuthCookies(res, tokens);
+
+    return res.status(200).json({
+      message: "Login successful",
+      user: toUserDto(user),
     });
   } catch (error) {
     return next(error);
   }
 }
 
-async function login(req, res, next) {
+async function refresh(req, res, next) {
   try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email }).select("+password");
-    if (!user) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    const refreshName = process.env.REFRESH_COOKIE_NAME || "refreshToken";
+    const refreshToken = req.cookies?.[refreshName];
+    if (!refreshToken) {
+      return res.status(401).json({ message: "No active session" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    let payload;
+    try {
+      payload = verifyRefreshToken(refreshToken);
+    } catch {
+      return res.status(401).json({ message: "Invalid or expired session" });
+    }
+    if (!payload.sub || !payload.sid) {
+      return res.status(401).json({ message: "Invalid or expired session" });
     }
 
-    const payload = { sub: user._id.toString(), role: user.role };
-    const accessToken = generateAccessToken(payload);
-    const refreshToken = generateRefreshToken(payload);
+    const user = await User.findById(payload.sub).populate("businessId", "name");
+    if (!user || user.isActive === false) {
+      return res.status(401).json({ message: "Invalid or expired session" });
+    }
 
-    // Store auth context in session (basic example)
-    req.session.userId = user._id.toString();
-    req.session.role = user.role;
+    const tokens = await rotateSession(refreshToken, user);
+    if (!tokens) {
+      return res.status(401).json({ message: "Session has been rotated or revoked" });
+    }
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === "true",
-      sameSite: process.env.COOKIE_SAME_SITE || "lax",
-      domain: process.env.COOKIE_DOMAIN || undefined,
-      maxAge: 15 * 60 * 1000,
-    });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === "true",
-      sameSite: process.env.COOKIE_SAME_SITE || "lax",
-      domain: process.env.COOKIE_DOMAIN || undefined,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
+    setAuthCookies(res, tokens);
     return res.status(200).json({
-      message: "Login successful",
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      message: "Session refreshed",
+      user: toUserDto(user),
     });
   } catch (error) {
     return next(error);
@@ -76,21 +138,20 @@ async function login(req, res, next) {
 
 async function logout(req, res, next) {
   try {
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
-
-    if (req.session) {
-      req.session.destroy(() => {});
+    const refreshName = process.env.REFRESH_COOKIE_NAME || "refreshToken";
+    const refreshToken = req.cookies?.[refreshName];
+    if (refreshToken) {
+      await revokeSessionByRefreshToken(refreshToken);
     }
-
+    clearAuthCookies(res);
     return res.status(200).json({ message: "Logged out" });
   } catch (error) {
     return next(error);
   }
 }
 
-async function me(req, res) {
-  return res.status(200).json({ user: req.user || null, session: req.session || null });
+function me(req, res) {
+  return res.status(200).json({ user: req.user || null });
 }
 
-module.exports = { register, login, logout, me };
+module.exports = { login, refresh, logout, me };
