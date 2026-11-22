@@ -8,8 +8,6 @@ const customerSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
-      index: true,
     },
     name: { type: String, required: true, trim: true },
     businessName: { type: String, required: true, trim: true },
@@ -72,5 +70,10 @@ const customerSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Phase 6B: ledgerCode uniqueness scoped per business. Old global index
+// dropped only via scripts/migrate-indexes.js (never on app start).
+customerSchema.index({ businessId: 1, ledgerCode: 1 }, { unique: true });
+customerSchema.index({ businessId: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Customer", customerSchema);

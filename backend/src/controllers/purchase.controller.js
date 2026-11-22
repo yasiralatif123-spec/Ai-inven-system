@@ -4,12 +4,26 @@ const Product = require("../models/Product");
 const StockMovement = require("../models/StockMovement");
 const Supplier = require("../models/Supplier");
 const { runWithSession } = require("../utils/db");
+const { tenantFilter, findOwned } = require("../utils/tenant");
 const {
   applyFlavorStockChanges,
   flavorBreakdown,
   totalStockDelta,
   uniqueFlavors,
 } = require("../utils/flavor-stock");
+
+function isTenantEnforced(req) {
+  return req.tenantEnforced === true && Boolean(req.auth?.businessId);
+}
+
+function scopedFilter(req, extra = {}) {
+  if (!isTenantEnforced(req)) return { ...extra };
+  return tenantFilter(req, extra);
+}
+
+function tenantBusinessId(req) {
+  return isTenantEnforced(req) ? req.auth.businessId : null;
+}
 
 const PURCHASE_STATUSES = [
   "Draft",
@@ -82,10 +96,11 @@ function toWholeNumber(value) {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
-async function findProductForPurchaseItem(item) {
+async function findProductForPurchaseItem(item, req = null) {
+  const scope = req ? scopedFilter(req) : {};
   const productId = cleanString(item?.productId);
   if (productId && mongoose.isValidObjectId(productId)) {
-    const byId = await Product.findById(productId)
+    const byId = await Product.findOne({ ...scope, _id: productId })
       .select("title sku purchasePrice flavors uom")
       .lean();
     if (byId) return byId;
@@ -93,7 +108,9 @@ async function findProductForPurchaseItem(item) {
 
   const sku = cleanString(item?.sku);
   if (!sku) return null;
-  return Product.findOne({ sku }).select("title sku purchasePrice flavors uom").lean();
+  return Product.findOne({ ...scope, sku })
+    .select("title sku purchasePrice flavors uom")
+    .lean();
 }
 
 function basePurchasePrice(product) {
@@ -129,8 +146,9 @@ function toDate(value, fallback) {
   return fallback;
 }
 
-async function generatePurchaseNumber(session) {
-  const query = Purchase.find({ purchaseNumber: /^PO-\d+$/ }).select("purchaseNumber");
+async function generatePurchaseNumber(req, session) {
+  const filter = scopedFilter(req, { purchaseNumber: /^PO-\d+$/ });
+  const query = Purchase.find(filter).select("purchaseNumber");
   if (session) query.session(session);
 
   const purchases = await query.lean();
@@ -143,13 +161,18 @@ async function generatePurchaseNumber(session) {
   return `PO-${highest + 1}`;
 }
 
-async function findPurchase(id) {
+async function findPurchase(id, req, session) {
   const key = cleanString(id);
+  const base = req ? scopedFilter(req) : {};
   if (mongoose.isValidObjectId(key)) {
-    const byId = await Purchase.findById(key);
+    const query = Purchase.findOne({ ...base, _id: key });
+    if (session) query.session(session);
+    const byId = await query;
     if (byId) return byId;
   }
-  return Purchase.findOne({ purchaseNumber: key });
+  const byNumber = Purchase.findOne({ ...base, purchaseNumber: key });
+  if (session) byNumber.session(session);
+  return byNumber;
 }
 
 function findExistingItem(bodyItem, index, existingItems) {
@@ -166,13 +189,14 @@ function findExistingItem(bodyItem, index, existingItems) {
   return existingItems[fallbackIndex] || null;
 }
 
-async function buildPurchaseChanges(body, existingPurchase = null) {
+async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
   const supplierId = cleanString(body.supplierId ?? body.supplier?.id);
   if (!mongoose.isValidObjectId(supplierId)) {
     throw new ValidationError("Select a supplier from the saved supplier list");
   }
 
-  const supplier = await Supplier.findById(supplierId).lean();
+  const supplierFilter = req ? scopedFilter(req, { _id: supplierId }) : { _id: supplierId };
+  const supplier = await Supplier.findOne(supplierFilter).lean();
   if (!supplier) {
     throw new ValidationError("The selected supplier no longer exists");
   }
@@ -221,7 +245,10 @@ async function buildPurchaseChanges(body, existingPurchase = null) {
       );
     }
 
-    const product = await findProductForPurchaseItem({ productId, sku });
+    const product = await findProductForPurchaseItem({ productId, sku }, req);
+    if ((productId || sku) && !product) {
+      throw new ValidationError("The selected product no longer exists");
+    }
     const productHasFlavors = Boolean(
       product && Array.isArray(product.flavors) && product.flavors.length > 0
     );
@@ -465,16 +492,18 @@ async function applyStockReceipt({
   partyName,
   session,
   productSnapshot = null,
+  businessId = null,
+  createdByUserId = null,
 }) {
   if (!delta || !mongoose.isValidObjectId(productId)) return null;
 
+  const scope = businessId ? { _id: productId, businessId } : { _id: productId };
+  const snapshotQuery = Product.findOne(scope).select("title sku uom openingStock");
+  if (session) snapshotQuery.session(session);
   const product =
     productSnapshot && productSnapshot._id
       ? productSnapshot
-      : await Product.findById(productId)
-          .select("title sku uom")
-          .session(session)
-          .lean();
+      : await snapshotQuery.lean();
 
   if (!product) {
     throw new ValidationError(`The product linked to ${itemName} no longer exists`);
@@ -484,7 +513,7 @@ async function applyStockReceipt({
   const totalDelta = delta * (selectedFlavors.length || 1);
   const targetId = String(product._id || productId);
   const updatedProduct = await Product.findOneAndUpdate(
-    { _id: targetId },
+    scope,
     { $inc: { openingStock: totalDelta } },
     { new: true, runValidators: true, session }
   );
@@ -494,11 +523,7 @@ async function applyStockReceipt({
   }
 
   compensations.push(async () => {
-    await Product.findByIdAndUpdate(
-      targetId,
-      { $inc: { openingStock: -totalDelta } },
-      { session }
-    );
+    await Product.findOneAndUpdate(scope, { $inc: { openingStock: -totalDelta } }, { session });
   });
 
   if (selectedFlavors.length > 0) {
@@ -508,6 +533,7 @@ async function applyStockReceipt({
       delta,
       session,
       compensations,
+      businessId,
     });
   }
 
@@ -531,6 +557,7 @@ async function applyStockReceipt({
         partyName: cleanString(partyName),
         flavor: selectedFlavors.length === 1 ? selectedFlavors[0] : "",
         flavorBreakdown: flavorBreakdown(selectedFlavors, delta),
+        ...(businessId ? { businessId, createdByUserId } : {}),
       },
     ],
     { session }
@@ -589,9 +616,9 @@ function resolveReceiptItem(purchase, rawItem, index) {
   throw new ValidationError("Each received item needs a valid item reference");
 }
 
-async function getNextPurchaseCode(_req, res, next) {
+async function getNextPurchaseCode(req, res, next) {
   try {
-    return res.status(200).json({ code: await generatePurchaseNumber() });
+    return res.status(200).json({ code: await generatePurchaseNumber(req) });
   } catch (error) {
     return next(error);
   }
@@ -604,7 +631,15 @@ async function getPurchases(req, res, next) {
       return res.status(400).json({ message: "Invalid supplierId" });
     }
 
-    const filter = supplierId ? { "supplier.id": supplierId } : {};
+    const filter = scopedFilter(req, supplierId ? { "supplier.id": supplierId } : {});
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    if (search) {
+      filter.$or = [
+        { purchaseNumber: { $regex: search, $options: "i" } },
+        { "supplier.name": { $regex: search, $options: "i" } },
+        { invoiceNumber: { $regex: search, $options: "i" } },
+      ];
+    }
     const purchases = await Purchase.find(filter).sort({ purchaseDate: -1, createdAt: -1 });
     return res.status(200).json({ purchases });
   } catch (error) {
@@ -614,7 +649,9 @@ async function getPurchases(req, res, next) {
 
 async function createPurchase(req, res, next) {
   try {
-    const { changes, stockUpdates } = await buildPurchaseChanges(req.body || {});
+    const { changes, stockUpdates } = await buildPurchaseChanges(req.body || {}, null, req);
+    const businessId = tenantBusinessId(req);
+    const createdByUserId = isTenantEnforced(req) ? req.auth.id : null;
     const purchase = await runWithSession(async (session, useTransaction) => {
       const compensations = [];
       let created;
@@ -624,8 +661,9 @@ async function createPurchase(req, res, next) {
             const [document] = await Purchase.create(
               [
                 {
-                  purchaseNumber: await generatePurchaseNumber(session),
+                  purchaseNumber: await generatePurchaseNumber(req, session),
                   ...changes,
+                  ...(businessId ? { businessId, createdByUserId } : {}),
                 },
               ],
               { session }
@@ -652,6 +690,8 @@ async function createPurchase(req, res, next) {
             partyName: changes.supplier.name,
             productSnapshot: update.product,
             session,
+            businessId,
+            createdByUserId,
           });
         }
 
@@ -673,7 +713,23 @@ async function createPurchase(req, res, next) {
 
 async function getPurchaseById(req, res, next) {
   try {
-    const purchase = await findPurchase(req.params.id);
+    const purchase = await findPurchase(req.params.id, req);
+    if (!purchase) {
+      return res.status(404).json({ message: "Purchase not found" });
+    }
+    return res.status(200).json({ purchase });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getPurchaseByNumber(req, res, next) {
+  try {
+    const purchaseNumber = cleanString(req.params.purchaseNumber);
+    if (!purchaseNumber) {
+      return res.status(400).json({ message: "purchaseNumber is required" });
+    }
+    const purchase = await Purchase.findOne(scopedFilter(req, { purchaseNumber }));
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
@@ -685,12 +741,14 @@ async function getPurchaseById(req, res, next) {
 
 async function updatePurchase(req, res, next) {
   try {
-    const purchase = await findPurchase(req.params.id);
+    const purchase = await findPurchase(req.params.id, req);
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
 
-    const { changes, stockUpdates } = await buildPurchaseChanges(req.body || {}, purchase);
+    const { changes, stockUpdates } = await buildPurchaseChanges(req.body || {}, purchase, req);
+    const businessId = tenantBusinessId(req);
+    const createdByUserId = isTenantEnforced(req) ? req.auth.id : null;
     const previousState = {
       status: purchase.status,
       items: purchase.items.map((item) =>
@@ -734,6 +792,8 @@ async function updatePurchase(req, res, next) {
             partyName: changes.supplier.name,
             productSnapshot: update.product,
             session,
+            businessId,
+            createdByUserId,
           });
         }
 
@@ -752,7 +812,7 @@ async function updatePurchase(req, res, next) {
 
 async function updatePurchaseStatus(req, res, next) {
   try {
-    const purchase = await findPurchase(req.params.id);
+    const purchase = await findPurchase(req.params.id, req);
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
@@ -777,7 +837,7 @@ async function updatePurchaseStatus(req, res, next) {
 
 async function receivePurchase(req, res, next) {
   try {
-    const purchase = await findPurchase(req.params.id);
+    const purchase = await findPurchase(req.params.id, req);
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
@@ -956,6 +1016,8 @@ async function receivePurchase(req, res, next) {
             flavors: update.item.flavor || [],
             itemName: update.item.name,
             unit: update.item.unit,
+            businessId: tenantBusinessId(req),
+            createdByUserId: isTenantEnforced(req) ? req.auth.id : null,
             reference: `${purchase.purchaseNumber} · ${receiptReference}`,
             notes: receiptNotes,
             performedBy,
@@ -1001,7 +1063,7 @@ async function receivePurchase(req, res, next) {
 
 async function recordPurchasePayment(req, res, next) {
   try {
-    const purchase = await findPurchase(req.params.id);
+    const purchase = await findPurchase(req.params.id, req);
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
@@ -1037,7 +1099,7 @@ async function recordPurchasePayment(req, res, next) {
 
 async function deletePurchase(req, res, next) {
   try {
-    const purchase = await findPurchase(req.params.id);
+    const purchase = await findPurchase(req.params.id, req);
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
@@ -1088,6 +1150,7 @@ async function deletePurchase(req, res, next) {
               delta: -received,
               session,
               compensations,
+              businessId: tenantBusinessId(req),
             });
           }
         }
@@ -1097,6 +1160,7 @@ async function deletePurchase(req, res, next) {
             type: "purchase",
             direction: "in",
             reference: { $in: Array.from(references) },
+            ...(tenantBusinessId(req) ? { businessId: tenantBusinessId(req) } : {}),
           };
           const movementQuery = StockMovement.find(movementFilter);
           movementQuery.session(session);
@@ -1147,6 +1211,7 @@ module.exports = {
   getNextPurchaseCode,
   getPurchases,
   getPurchaseById,
+  getPurchaseByNumber,
   createPurchase,
   updatePurchase,
   updatePurchaseStatus,

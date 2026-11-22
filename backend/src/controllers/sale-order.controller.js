@@ -4,10 +4,24 @@ const Product = require("../models/Product");
 const Customer = require("../models/Customer");
 const StockMovement = require("../models/StockMovement");
 const { runWithSession } = require("../utils/db");
+const { tenantFilter } = require("../utils/tenant");
 const {
   applyFlavorStockChange,
   uniqueFlavors,
 } = require("../utils/flavor-stock");
+
+function isTenantEnforced(req) {
+  return req.tenantEnforced === true && Boolean(req.auth?.businessId);
+}
+
+function scopedFilter(req, extra = {}) {
+  if (!isTenantEnforced(req)) return { ...extra };
+  return tenantFilter(req, extra);
+}
+
+function tenantBusinessId(req) {
+  return isTenantEnforced(req) ? req.auth.businessId : null;
+}
 
 const PAYMENT_STATUSES = ["paid", "partial", "unpaid"];
 const ORDER_STATUSES = [
@@ -96,20 +110,24 @@ function sameFlavorSet(left = [], right = []) {
   );
 }
 
-async function resolveCustomer(body, session = null) {
+async function resolveCustomer(body, session = null, req = null) {
   const customerInput = body?.customer;
   const customerIsObject = customerInput && typeof customerInput === "object";
   const explicitId = cleanString(
     body?.customerId ?? (customerIsObject ? customerInput.customerId : "")
   );
+  const scope = req ? scopedFilter(req) : {};
 
   if (explicitId && mongoose.isValidObjectId(explicitId)) {
-    const byIdQuery = Customer.findById(explicitId)
+    const byIdQuery = Customer.findOne({ ...scope, _id: explicitId })
       .select("_id name businessName phone")
       .lean();
     if (session) byIdQuery.session(session);
     const byId = await byIdQuery;
     if (byId) return byId;
+    if (req && isTenantEnforced(req)) {
+      throw new NotFoundError("The selected customer no longer exists");
+    }
   }
 
   const name = cleanString(
@@ -119,7 +137,7 @@ async function resolveCustomer(body, session = null) {
     customerIsObject ? customerInput.phone ?? body?.phone : body?.phone
   );
 
-  const candidatesQuery = Customer.find().select("_id name businessName phone").lean();
+  const candidatesQuery = Customer.find(scope).select("_id name businessName phone").lean();
   if (session) candidatesQuery.session(session);
   const candidates = await candidatesQuery;
 
@@ -166,22 +184,23 @@ function buildPaymentLabel(paymentStatus, paid, method) {
   return "Unpaid (Due on receipt)";
 }
 
-async function findOrder(id, session = null) {
-  if (mongoose.isValidObjectId(id)) {
-    const byIdQuery = SaleOrder.findById(id);
+async function findOrder(id, session = null, req = null) {
+  const scope = req ? scopedFilter(req) : {};
+  const key = cleanString(id);
+  if (mongoose.isValidObjectId(key)) {
+    const byIdQuery = SaleOrder.findOne({ ...scope, _id: key });
     if (session) byIdQuery.session(session);
     const byId = await byIdQuery;
     if (byId) return byId;
   }
-  const byNumberQuery = SaleOrder.findOne({ orderNumber: cleanString(id) });
+  const byNumberQuery = SaleOrder.findOne({ ...scope, orderNumber: key });
   if (session) byNumberQuery.session(session);
   return byNumberQuery;
 }
 
-async function generateOrderNumber(session) {
-  const query = SaleOrder.find({ orderNumber: /^SO-\d+$/ })
-    .select("orderNumber")
-    .lean();
+async function generateOrderNumber(session, req = null) {
+  const filter = req ? scopedFilter(req, { orderNumber: /^SO-\d+$/ }) : { orderNumber: /^SO-\d+$/ };
+  const query = SaleOrder.find(filter).select("orderNumber").lean();
   if (session) query.session(session);
   const orders = await query;
   const highest = orders.reduce((max, order) => {
@@ -191,10 +210,13 @@ async function generateOrderNumber(session) {
   return `SO-${highest + 1}`;
 }
 
-async function findProductForItem(item, session = null) {
+async function findProductForItem(item, session = null, req = null) {
+  const scope = req ? scopedFilter(req) : {};
   const productId = cleanString(item?.productId);
   if (productId && mongoose.isValidObjectId(productId)) {
-    const query = Product.findById(productId).select("sku title openingStock uom wholesalePrice flavors");
+    const query = Product.findOne({ ...scope, _id: productId }).select(
+      "sku title openingStock uom wholesalePrice flavors"
+    );
     if (session) query.session(session);
     return query.lean();
   }
@@ -202,7 +224,9 @@ async function findProductForItem(item, session = null) {
   const sku = cleanString(item?.sku);
   if (!sku) return null;
 
-  const query = Product.findOne({ sku }).select("sku title openingStock uom wholesalePrice flavors");
+  const query = Product.findOne({ ...scope, sku }).select(
+    "sku title openingStock uom wholesalePrice flavors"
+  );
   if (session) query.session(session);
   return query.lean();
 }
@@ -263,14 +287,14 @@ async function rollbackCompensations(compensations) {
   }
 }
 
-async function buildOrderChanges(body, existingOrder = null, session = null) {
+async function buildOrderChanges(body, existingOrder = null, session = null, req = null) {
   const customer = body.customer;
   const customerName = cleanString(typeof customer === "string" ? customer : customer?.name);
   const phone = cleanString(typeof customer === "string" ? body.phone : customer?.phone ?? body.phone);
   const location = cleanString(
     typeof customer === "string" ? body.location : customer?.location ?? body.location
   );
-  const matchedCustomer = await resolveCustomer(body, session);
+  const matchedCustomer = await resolveCustomer(body, session, req);
 
   if (!customerName) {
     throw new ValidationError("Customer name is required");
@@ -424,6 +448,7 @@ async function applyStockAdjustments({
   mode = "update",
   session,
   compensations = [],
+  req = null,
 }) {
   const include = (item) => item.stockDeducted === true;
   const previousTotals = sumStockQuantities(previousItems, include);
@@ -455,7 +480,7 @@ async function applyStockAdjustments({
     const representative =
       nextItems.find((item) => stockKey(item) === key) ||
       previousItems.find((item) => stockKey(item) === key);
-    const product = await findProductForItem(representative, session);
+    const product = await findProductForItem(representative, session, req);
     if (!product) {
       throw new ValidationError(
         `The product linked to ${representative?.name || key} no longer exists`
@@ -464,7 +489,7 @@ async function applyStockAdjustments({
 
     let newStock = toNumber(product.openingStock);
     if (delta !== 0) {
-      const filter = { _id: product._id };
+      const biz = tenantBusinessId(req); const filter = biz ? { _id: product._id, businessId: biz } : { _id: product._id };
       if (delta > 0) filter.openingStock = { $gte: delta };
 
       const updated = await Product.findOneAndUpdate(
@@ -474,7 +499,7 @@ async function applyStockAdjustments({
       );
 
       if (!updated) {
-        const current = await Product.findById(product._id).session(session).lean();
+        const current = await Product.findOne(biz ? { _id: product._id, businessId: biz } : { _id: product._id }).session(session).lean();
         const available = current ? toNumber(current.openingStock) : 0;
         throw new ValidationError(
           `Insufficient stock for ${representative.name}. Available: ${available}, requested: ${delta}`
@@ -482,7 +507,7 @@ async function applyStockAdjustments({
       }
 
       compensations.push(async () => {
-        await Product.findByIdAndUpdate(product._id, { $inc: { openingStock: delta } }, { session });
+        await Product.findOneAndUpdate(biz ? { _id: product._id, businessId: biz } : { _id: product._id }, { $inc: { openingStock: delta } }, { session });
       });
 
       newStock = toNumber(updated.openingStock);
@@ -495,6 +520,7 @@ async function applyStockAdjustments({
         delta: -flavorDelta.delta,
         session,
         compensations,
+        businessId: biz,
       });
     }
 
@@ -563,7 +589,7 @@ function handleControllerError(error, res, next) {
 async function createSaleOrder(req, res, next) {
   try {
     const order = await runWithSession(async (session, useTransaction) => {
-      const changes = await buildOrderChanges(req.body || {}, null, session);
+      const changes = await buildOrderChanges(req.body || {}, null, session, req);
       const compensations = [];
       let created;
 
@@ -573,8 +599,9 @@ async function createSaleOrder(req, res, next) {
             const [document] = await SaleOrder.create(
               [
                 {
-                  orderNumber: await generateOrderNumber(session),
+                  orderNumber: await generateOrderNumber(session, req),
                   ...changes,
+                  ...(tenantBusinessId(req) ? { businessId: tenantBusinessId(req), createdByUserId: req.auth.id } : {}),
                 },
               ],
               { session }
@@ -596,6 +623,7 @@ async function createSaleOrder(req, res, next) {
           mode: "create",
           session,
           compensations,
+          req,
         });
 
         return created;
@@ -618,18 +646,18 @@ async function createSaleOrder(req, res, next) {
 
 async function updateSaleOrder(req, res, next) {
   try {
-    const existing = await findOrder(req.params.id);
+    const existing = await findOrder(req.params.id, null, req);
     if (!existing) {
       return res.status(404).json({ message: "Sale order not found" });
     }
 
     const updated = await runWithSession(async (session, useTransaction) => {
-      const order = await SaleOrder.findById(existing._id).session(session);
+      const order = await SaleOrder.findOne(scopedFilter(req, { _id: existing._id })).session(session);
       if (!order) {
         throw new NotFoundError("Sale order not found");
       }
 
-      const changes = await buildOrderChanges(req.body || {}, order, session);
+      const changes = await buildOrderChanges(req.body || {}, order, session, req);
       const compensations = [];
 
       try {
@@ -642,6 +670,7 @@ async function updateSaleOrder(req, res, next) {
           mode: "update",
           session,
           compensations,
+          req,
         });
 
         Object.assign(order, changes);
@@ -666,7 +695,7 @@ async function getSaleOrders(req, res, next) {
       return res.status(400).json({ message: "Invalid customerId" });
     }
 
-    const filter = customerId ? { "customer.customerId": customerId } : {};
+    const filter = scopedFilter(req, customerId ? { "customer.customerId": customerId } : {});
     const orders = await SaleOrder.find(filter).sort({ createdAt: -1 }).limit(200).lean();
     return res.status(200).json({ orders });
   } catch (error) {
@@ -676,7 +705,7 @@ async function getSaleOrders(req, res, next) {
 
 async function updateSaleOrderStatus(req, res, next) {
   try {
-    const order = await findOrder(req.params.id);
+    const order = await findOrder(req.params.id, null, req);
     if (!order) {
       return res.status(404).json({ message: "Sale order not found" });
     }
@@ -696,7 +725,7 @@ async function updateSaleOrderStatus(req, res, next) {
 
 async function recordSaleOrderPayment(req, res, next) {
   try {
-    const order = await findOrder(req.params.id);
+    const order = await findOrder(req.params.id, null, req);
     if (!order) {
       return res.status(404).json({ message: "Sale order not found" });
     }
@@ -732,13 +761,13 @@ async function recordSaleOrderPayment(req, res, next) {
 
 async function deleteSaleOrder(req, res, next) {
   try {
-    const existing = await findOrder(req.params.id);
+    const existing = await findOrder(req.params.id, null, req);
     if (!existing) {
       return res.status(404).json({ message: "Sale order not found" });
     }
 
     await runWithSession(async (session, useTransaction) => {
-      const order = await SaleOrder.findById(existing._id).session(session);
+      const order = await SaleOrder.findOne(scopedFilter(req, { _id: existing._id })).session(session);
       if (!order) {
         throw new NotFoundError("Sale order not found");
       }
@@ -756,7 +785,7 @@ async function deleteSaleOrder(req, res, next) {
           compensations,
         });
 
-        await SaleOrder.deleteOne({ _id: order._id }, { session });
+        await SaleOrder.deleteOne(scopedFilter(req, { _id: order._id }), { session });
       } catch (error) {
         if (!useTransaction) await rollbackCompensations(compensations);
         throw error;
@@ -769,10 +798,40 @@ async function deleteSaleOrder(req, res, next) {
   }
 }
 
+async function getSaleOrderById(req, res, next) {
+  try {
+    const order = await findOrder(req.params.id, null, req);
+    if (!order) {
+      return res.status(404).json({ message: "Sale order not found" });
+    }
+    return res.status(200).json({ order });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
+async function getSaleOrderByNumber(req, res, next) {
+  try {
+    const orderNumber = cleanString(req.params.orderNumber);
+    if (!orderNumber) {
+      return res.status(400).json({ message: "orderNumber is required" });
+    }
+    const order = await SaleOrder.findOne(scopedFilter(req, { orderNumber })).lean();
+    if (!order) {
+      return res.status(404).json({ message: "Sale order not found" });
+    }
+    return res.status(200).json({ order });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
 module.exports = {
   createSaleOrder,
   updateSaleOrder,
   getSaleOrders,
+  getSaleOrderById,
+  getSaleOrderByNumber,
   updateSaleOrderStatus,
   recordSaleOrderPayment,
   deleteSaleOrder,

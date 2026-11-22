@@ -63,8 +63,12 @@ async function applyFlavorStockChange({
   delta,
   session,
   compensations = [],
-  businessId = null,
+  businessId = undefined,
+  requireBusinessId = false,
 }) {
+  if (businessId === undefined) {
+    throw new FlavorStockError("businessId is required for stock operations");
+  }
   const name = cleanFlavor(flavor);
   if (!name || !Number.isFinite(delta) || delta === 0) return null;
 
@@ -115,8 +119,12 @@ async function applyFlavorStockChanges({
   delta,
   session,
   compensations = [],
-  businessId = null,
+  businessId = undefined,
+  requireBusinessId = false,
 }) {
+  if (businessId === undefined) {
+    throw new FlavorStockError("businessId is required for stock operations");
+  }
   const results = [];
   for (const flavor of uniqueFlavors(flavors)) {
     const result = await applyFlavorStockChange({

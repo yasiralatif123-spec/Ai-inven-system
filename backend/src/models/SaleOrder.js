@@ -67,8 +67,6 @@ const saleOrderSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
-      index: true,
     },
     customer: {
       customerId: {
@@ -120,5 +118,10 @@ const saleOrderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Phase 6B: orderNumber uniqueness scoped per business. Old global index
+// dropped only via scripts/migrate-indexes.js (never on app start).
+saleOrderSchema.index({ businessId: 1, orderNumber: 1 }, { unique: true });
+saleOrderSchema.index({ businessId: 1, createdAt: -1 });
 
 module.exports = mongoose.model("SaleOrder", saleOrderSchema);

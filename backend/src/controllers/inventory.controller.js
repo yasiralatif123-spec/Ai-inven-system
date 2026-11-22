@@ -105,7 +105,7 @@ async function adjustStock(req, res, next) {
           flavor,
           delta,
           compensations,
-          ...(isTenantEnforced(req) ? { businessId: req.auth.businessId } : {}),
+          businessId: isTenantEnforced(req) ? req.auth.businessId : null,
         });
       }
     } catch (error) {
@@ -235,7 +235,7 @@ async function deleteStockMovement(req, res, next) {
           flavor: entry.flavor,
           delta: reversal < 0 ? -Number(entry.quantity) : Number(entry.quantity),
           compensations,
-          ...(isTenantEnforced(req) ? { businessId: req.auth.businessId } : {}),
+          businessId: isTenantEnforced(req) ? req.auth.businessId : null,
         });
       }
 

@@ -1,8 +1,10 @@
 const express = require("express");
+const { enforceTenantAuth } = require("../middlewares/enforcement.middleware");
 const {
   getNextSupplierCode,
   getSuppliers,
   getSupplierById,
+  getSupplierByCode,
   createSupplier,
   updateSupplier,
   deleteSupplier,
@@ -10,8 +12,11 @@ const {
 
 const router = express.Router();
 
+router.use(enforceTenantAuth);
+
 router.get("/next-code", getNextSupplierCode);
 router.get("/", getSuppliers);
+router.get("/code/:supplierCode", getSupplierByCode);
 router.get("/:id", getSupplierById);
 router.post("/", createSupplier);
 router.put("/:id", updateSupplier);

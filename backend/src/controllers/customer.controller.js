@@ -1,5 +1,15 @@
 const mongoose = require("mongoose");
 const Customer = require("../models/Customer");
+const { tenantFilter } = require("../utils/tenant");
+
+function isTenantEnforced(req) {
+  return req.tenantEnforced === true && Boolean(req.auth?.businessId);
+}
+
+function scopedFilter(req, extra = {}) {
+  if (!isTenantEnforced(req)) return { ...extra };
+  return tenantFilter(req, extra);
+}
 
 const CITIES = {
   Lahore: "Lahore (Central Punjab Hub)",
@@ -70,10 +80,9 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-async function generateLedgerCode() {
-  const customers = await Customer.find({ ledgerCode: /^C-\d+$/ })
-    .select("ledgerCode")
-    .lean();
+async function generateLedgerCode(req) {
+  const filter = scopedFilter(req, { ledgerCode: /^C-\d+$/ });
+  const customers = await Customer.find(filter).select("ledgerCode").lean();
 
   const highest = customers.reduce((max, customer) => {
     const value = Number(cleanString(customer.ledgerCode).replace("C-", ""));
@@ -174,7 +183,7 @@ function handleControllerError(error, res, next) {
 
 async function getNextCustomerCode(req, res, next) {
   try {
-    return res.status(200).json({ code: await generateLedgerCode() });
+    return res.status(200).json({ code: await generateLedgerCode(req) });
   } catch (error) {
     return next(error);
   }
@@ -182,7 +191,17 @@ async function getNextCustomerCode(req, res, next) {
 
 async function getCustomers(req, res, next) {
   try {
-    const customers = await Customer.find().sort({ createdAt: -1 }).lean();
+    const filter = scopedFilter(req);
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { businessName: { $regex: search, $options: "i" } },
+        { ledgerCode: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+      ];
+    }
+    const customers = await Customer.find(filter).sort({ createdAt: -1 }).lean();
     return res.status(200).json({ customers });
   } catch (error) {
     return next(error);
@@ -196,11 +215,27 @@ async function getCustomerById(req, res, next) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
-    const customer = await Customer.findById(id).lean();
+    const customer = await Customer.findOne(scopedFilter(req, { _id: id })).lean();
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
+    return res.status(200).json({ customer });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function getCustomerByCode(req, res, next) {
+  try {
+    const ledgerCode = cleanString(req.params.ledgerCode);
+    if (!ledgerCode) {
+      return res.status(400).json({ message: "ledgerCode is required" });
+    }
+    const customer = await Customer.findOne(scopedFilter(req, { ledgerCode })).lean();
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
     return res.status(200).json({ customer });
   } catch (error) {
     return next(error);
@@ -215,8 +250,11 @@ async function createCustomer(req, res, next) {
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
         customer = await Customer.create({
-          ledgerCode: await generateLedgerCode(),
+          ledgerCode: await generateLedgerCode(req),
           ...changes,
+          ...(isTenantEnforced(req)
+            ? { businessId: req.auth.businessId, createdByUserId: req.auth.id }
+            : {}),
         });
         break;
       } catch (error) {
@@ -238,7 +276,7 @@ async function updateCustomer(req, res, next) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
-    const existing = await Customer.findById(id).lean();
+    const existing = await Customer.findOne(scopedFilter(req, { _id: id })).lean();
     if (!existing) {
       return res.status(404).json({ message: "Customer not found" });
     }
@@ -260,7 +298,7 @@ async function updateCustomer(req, res, next) {
     delete changes.outstanding;
     delete changes.createdBy;
 
-    const customer = await Customer.findByIdAndUpdate(id, changes, {
+    const customer = await Customer.findOneAndUpdate(scopedFilter(req, { _id: id }), changes, {
       new: true,
       runValidators: true,
     });
@@ -278,7 +316,7 @@ async function deleteCustomer(req, res, next) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
-    const customer = await Customer.findByIdAndDelete(id);
+    const customer = await Customer.findOneAndDelete(scopedFilter(req, { _id: id }));
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
@@ -293,6 +331,7 @@ module.exports = {
   getNextCustomerCode,
   getCustomers,
   getCustomerById,
+  getCustomerByCode,
   createCustomer,
   updateCustomer,
   deleteCustomer,

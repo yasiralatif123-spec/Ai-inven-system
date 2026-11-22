@@ -1,6 +1,21 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Supplier = require("../models/Supplier");
+const { tenantFilter, findOwned } = require("../utils/tenant");
+
+function isTenantEnforced(req) {
+  return req.tenantEnforced === true && Boolean(req.auth?.businessId);
+}
+
+function scopedFilter(req, extra = {}) {
+  if (!isTenantEnforced(req)) return { ...extra };
+  return tenantFilter(req, extra);
+}
+
+async function findOwnedSupplier(id, req) {
+  if (!isTenantEnforced(req)) return Supplier.findById(id);
+  return findOwned(Supplier, id, req);
+}
 
 const HUBS = {
   karachi: {
@@ -71,10 +86,9 @@ function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-async function generateSupplierCode() {
-  const suppliers = await Supplier.find({ supplierCode: /^S-\d+$/ })
-    .select("supplierCode")
-    .lean();
+async function generateSupplierCode(req) {
+  const filter = scopedFilter(req, { supplierCode: /^S-\d+$/ });
+  const suppliers = await Supplier.find(filter).select("supplierCode").lean();
 
   const highest = suppliers.reduce((max, supplier) => {
     const value = Number(cleanString(supplier.supplierCode).replace("S-", ""));
@@ -84,7 +98,7 @@ async function generateSupplierCode() {
   return `S-${highest + 1}`;
 }
 
-async function normalizeSupplierProducts(value, existingIds = [], flavorValues = {}) {
+async function normalizeSupplierProducts(value, existingIds = [], flavorValues = {}, req = null) {
   if (value === undefined || value === null) return { productIds: [], productFlavors: {} };
   if (!Array.isArray(value)) {
     throw new ValidationError("Product selection must be a list");
@@ -97,7 +111,10 @@ async function normalizeSupplierProducts(value, existingIds = [], flavorValues =
     throw new ValidationError("One or more selected products are invalid");
   }
 
-  const foundProducts = await Product.find({ _id: { $in: ids } })
+  const productFilter = req && isTenantEnforced(req)
+    ? { _id: { $in: ids }, businessId: req.auth.businessId }
+    : { _id: { $in: ids } };
+  const foundProducts = await Product.find(productFilter)
     .select("_id flavors")
     .lean();
   const foundById = new Map(
@@ -155,7 +172,7 @@ async function normalizeSupplierProducts(value, existingIds = [], flavorValues =
   return { productIds, productFlavors };
 }
 
-async function buildSupplierChanges(body, options = {}) {
+async function buildSupplierChanges(body, options = {}, req = null) {
   const name = cleanString(body.name);
   if (!name) throw new ValidationError("Supplier name is required");
 
@@ -195,7 +212,8 @@ async function buildSupplierChanges(body, options = {}) {
   const { productIds, productFlavors } = await normalizeSupplierProducts(
     body.productIds,
     options.existingProductIds || [],
-    body.productFlavors
+    body.productFlavors,
+    req
   );
 
   const hub = HUBS[hubKey] || { label: "", region: "" };
@@ -235,7 +253,7 @@ function handleControllerError(error, res, next) {
 
 async function getNextSupplierCode(req, res, next) {
   try {
-    return res.status(200).json({ code: await generateSupplierCode() });
+    return res.status(200).json({ code: await generateSupplierCode(req) });
   } catch (error) {
     return next(error);
   }
@@ -243,7 +261,17 @@ async function getNextSupplierCode(req, res, next) {
 
 async function getSuppliers(req, res, next) {
   try {
-    const suppliers = await Supplier.find().sort({ createdAt: -1 }).lean();
+    const filter = scopedFilter(req);
+    const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { supplierCode: { $regex: search, $options: "i" } },
+        { contactPerson: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } },
+      ];
+    }
+    const suppliers = await Supplier.find(filter).sort({ createdAt: -1 }).lean();
     return res.status(200).json({ suppliers });
   } catch (error) {
     return next(error);
@@ -257,7 +285,9 @@ async function getSupplierById(req, res, next) {
       return res.status(404).json({ message: "Supplier not found" });
     }
 
-    const supplier = await Supplier.findById(id).lean();
+    const supplier = isTenantEnforced(req)
+      ? await Supplier.findOne(scopedFilter(req, { _id: id })).lean()
+      : await Supplier.findById(id).lean();
     if (!supplier) {
       return res.status(404).json({ message: "Supplier not found" });
     }
@@ -268,16 +298,35 @@ async function getSupplierById(req, res, next) {
   }
 }
 
+async function getSupplierByCode(req, res, next) {
+  try {
+    const supplierCode = cleanString(req.params.supplierCode);
+    if (!supplierCode) {
+      return res.status(400).json({ message: "supplierCode is required" });
+    }
+    const supplier = await Supplier.findOne(scopedFilter(req, { supplierCode })).lean();
+    if (!supplier) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+    return res.status(200).json({ supplier });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function createSupplier(req, res, next) {
   try {
-    const changes = await buildSupplierChanges(req.body || {});
+    const changes = await buildSupplierChanges(req.body || {}, {}, req);
     let supplier;
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
         supplier = await Supplier.create({
-          supplierCode: await generateSupplierCode(),
+          supplierCode: await generateSupplierCode(req),
           ...changes,
+          ...(isTenantEnforced(req)
+            ? { businessId: req.auth.businessId, createdByUserId: req.auth.id }
+            : {}),
         });
         break;
       } catch (error) {
@@ -299,7 +348,9 @@ async function updateSupplier(req, res, next) {
       return res.status(404).json({ message: "Supplier not found" });
     }
 
-    const existing = await Supplier.findById(id).lean();
+    const existing = isTenantEnforced(req)
+      ? await Supplier.findOne(scopedFilter(req, { _id: id })).lean()
+      : await Supplier.findById(id).lean();
     if (!existing) {
       return res.status(404).json({ message: "Supplier not found" });
     }
@@ -318,9 +369,11 @@ async function updateSupplier(req, res, next) {
       createdBy: existing.createdBy,
     };
 
-    const changes = await buildSupplierChanges(merged, {
-      existingProductIds: Array.isArray(existing.productIds) ? existing.productIds : [],
-    });
+    const changes = await buildSupplierChanges(
+      merged,
+      { existingProductIds: Array.isArray(existing.productIds) ? existing.productIds : [] },
+      req
+    );
     delete changes.status;
     delete changes.openingBalance;
     delete changes.totalPurchases;
@@ -329,7 +382,7 @@ async function updateSupplier(req, res, next) {
     delete changes.payableTone;
     delete changes.createdBy;
 
-    const supplier = await Supplier.findByIdAndUpdate(id, changes, {
+    const supplier = await Supplier.findOneAndUpdate(scopedFilter(req, { _id: id }), changes, {
       new: true,
       runValidators: true,
     });
@@ -347,7 +400,7 @@ async function deleteSupplier(req, res, next) {
       return res.status(404).json({ message: "Supplier not found" });
     }
 
-    const supplier = await Supplier.findByIdAndDelete(id);
+    const supplier = await Supplier.findOneAndDelete(scopedFilter(req, { _id: id }));
     if (!supplier) {
       return res.status(404).json({ message: "Supplier not found" });
     }
@@ -362,6 +415,7 @@ module.exports = {
   getNextSupplierCode,
   getSuppliers,
   getSupplierById,
+  getSupplierByCode,
   createSupplier,
   updateSupplier,
   deleteSupplier,

@@ -58,8 +58,6 @@ const purchaseSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
-      index: true,
     },
     supplier: {
       id: { type: String, default: "", trim: true, index: true },
@@ -118,5 +116,10 @@ const purchaseSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Phase 6B: purchaseNumber uniqueness scoped per business. Old global index
+// dropped only via scripts/migrate-indexes.js (never on app start).
+purchaseSchema.index({ businessId: 1, purchaseNumber: 1 }, { unique: true });
+purchaseSchema.index({ businessId: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Purchase", purchaseSchema);

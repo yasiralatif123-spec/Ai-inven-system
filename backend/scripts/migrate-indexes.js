@@ -3,6 +3,43 @@ require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const mongoose = require("mongoose");
 const Product = require("../src/models/Product");
+const Supplier = require("../src/models/Supplier");
+const Customer = require("../src/models/Customer");
+const Purchase = require("../src/models/Purchase");
+const SaleOrder = require("../src/models/SaleOrder");
+
+const TARGETS = [
+  {
+    key: "products",
+    model: Product,
+    oldIndex: { name: "sku_1", key: { sku: 1 } },
+    newIndex: { name: "businessId_1_sku_1", key: { businessId: 1, sku: 1 } },
+  },
+  {
+    key: "suppliers",
+    model: Supplier,
+    oldIndex: { name: "supplierCode_1", key: { supplierCode: 1 } },
+    newIndex: { name: "businessId_1_supplierCode_1", key: { businessId: 1, supplierCode: 1 } },
+  },
+  {
+    key: "customers",
+    model: Customer,
+    oldIndex: { name: "ledgerCode_1", key: { ledgerCode: 1 } },
+    newIndex: { name: "businessId_1_ledgerCode_1", key: { businessId: 1, ledgerCode: 1 } },
+  },
+  {
+    key: "purchases",
+    model: Purchase,
+    oldIndex: { name: "purchaseNumber_1", key: { purchaseNumber: 1 } },
+    newIndex: { name: "businessId_1_purchaseNumber_1", key: { businessId: 1, purchaseNumber: 1 } },
+  },
+  {
+    key: "saleorders",
+    model: SaleOrder,
+    oldIndex: { name: "orderNumber_1", key: { orderNumber: 1 } },
+    newIndex: { name: "businessId_1_orderNumber_1", key: { businessId: 1, orderNumber: 1 } },
+  },
+];
 
 function parseArgs(argv) {
   const result = {};
@@ -31,33 +68,44 @@ function databaseNameFromUri(uri) {
   }
 }
 
-async function getProductIndexes() {
+async function getIndexes(model) {
   try {
-    return await Product.collection.indexes();
+    return await model.collection.indexes();
   } catch (error) {
     if (error?.codeName === "NamespaceNotFound") return [];
     throw error;
   }
 }
 
-function isOldGlobalSkuIndex(index) {
+function sameKey(a, b) {
+  const ak = Object.keys(a || {});
+  const bk = Object.keys(b || {});
+  if (ak.length !== bk.length) return false;
+  return ak.every((k) => a[k] === b[k]);
+}
+
+function findOldGlobalUniqueIndex(indexes, target) {
   return (
-    index?.name === "sku_1" &&
-    index?.unique === true &&
-    index?.key &&
-    Object.keys(index.key).length === 1 &&
-    index.key.sku === 1
+    indexes.find(
+      (idx) =>
+        idx?.unique === true &&
+        (idx.name === target.oldIndex.name || sameKey(idx.key, target.oldIndex.key))
+    ) || null
   );
 }
 
-function isCompoundBusinessSkuIndex(index) {
-  return (
-    index?.unique === true &&
-    index?.key &&
-    index.key.businessId === 1 &&
-    index.key.sku === 1 &&
-    Object.keys(index.key).length === 2
-  );
+function findCompoundUniqueIndex(indexes, target) {
+  return indexes.find((idx) => idx?.unique === true && sameKey(idx.key, target.newIndex.key)) || null;
+}
+
+async function planForTarget(target) {
+  const indexes = await getIndexes(target.model);
+  const oldIdx = findOldGlobalUniqueIndex(indexes, target);
+  const newIdx = findCompoundUniqueIndex(indexes, target);
+  const actions = [];
+  if (oldIdx) actions.push({ type: "drop", name: oldIdx.name, key: oldIdx.key });
+  if (!newIdx) actions.push({ type: "create", name: target.newIndex.name, key: target.newIndex.key });
+  return { key: target.key, indexes, oldIdx, newIdx, actions };
 }
 
 async function runMigration(options = {}) {
@@ -84,60 +132,61 @@ async function runMigration(options = {}) {
   }
 
   try {
-    const before = await getProductIndexes();
-    const oldSku = before.find(isOldGlobalSkuIndex) || null;
-    const compound = before.find(isCompoundBusinessSkuIndex) || null;
-
-    console.log("\nBefore indexes (products):");
-    for (const idx of before) {
-      console.log(`  - ${idx.name}: ${JSON.stringify(idx.key)}${idx.unique ? " unique" : ""}`);
+    const plans = [];
+    for (const target of TARGETS) {
+      plans.push({ target, ...(await planForTarget(target)) });
     }
 
-    const actions = [];
-    if (oldSku) actions.push({ type: "drop", name: oldSku.name });
-    if (!compound) actions.push({ type: "create", name: "businessId_1_sku_1" });
+    console.log("\nBefore indexes:");
+    for (const plan of plans) {
+      console.log(`  [${plan.key}]`);
+      for (const idx of plan.indexes) {
+        console.log(`    - ${idx.name}: ${JSON.stringify(idx.key)}${idx.unique ? " unique" : ""}`);
+      }
+    }
 
-    if (actions.length === 0) {
+    const flatActions = plans.flatMap((p) => p.actions.map((a) => ({ collection: p.key, ...a })));
+    if (flatActions.length === 0) {
       console.log("\nNo index changes needed.");
     } else {
       console.log(`\nPlanned actions (${dryRun ? "dry-run" : "real"}):`);
-      for (const action of actions) {
-        console.log(`  - ${action.type} ${action.name}`);
+      for (const action of flatActions) {
+        console.log(`  - ${action.collection}: ${action.type} ${action.name} ${JSON.stringify(action.key)}`);
       }
     }
 
-    const results = { droppedOldSku: false, createdCompound: false };
-
+    const results = [];
     if (!dryRun) {
-      if (oldSku) {
-        await Product.collection.dropIndex(oldSku.name);
-        results.droppedOldSku = true;
-        console.log(`Dropped index: ${oldSku.name}`);
-      }
-      if (!compound) {
-        await Product.collection.createIndex(
-          { businessId: 1, sku: 1 },
-          { unique: true, name: "businessId_1_sku_1" }
-        );
-        results.createdCompound = true;
-        console.log("Created index: businessId_1_sku_1");
+      for (const plan of plans) {
+        for (const action of plan.actions) {
+          if (action.type === "drop") {
+            await plan.target.model.collection.dropIndex(action.name);
+            results.push({ collection: plan.key, ...action, status: "dropped" });
+            console.log(`Dropped ${plan.key}.${action.name}`);
+          } else if (action.type === "create") {
+            await plan.target.model.collection.createIndex(action.key, { unique: true, name: action.name });
+            results.push({ collection: plan.key, ...action, status: "created" });
+            console.log(`Created ${plan.key}.${action.name}`);
+          }
+        }
       }
     }
 
-    const after = dryRun ? before : await getProductIndexes();
+    const after = [];
+    for (const target of TARGETS) {
+      const indexes = dryRun ? (plans.find((p) => p.key === target.key)?.indexes || []) : await getIndexes(target.model);
+      after.push({ key: target.key, indexes });
+    }
+
     console.log(`\n${dryRun ? "After (dry-run, unchanged):" : "After:"}`);
-    for (const idx of after) {
-      console.log(`  - ${idx.name}: ${JSON.stringify(idx.key)}${idx.unique ? " unique" : ""}`);
+    for (const entry of after) {
+      console.log(`  [${entry.key}]`);
+      for (const idx of entry.indexes) {
+        console.log(`    - ${idx.name}: ${JSON.stringify(idx.key)}${idx.unique ? " unique" : ""}`);
+      }
     }
 
-    return {
-      dryRun,
-      dbName,
-      before,
-      after,
-      actions,
-      results,
-    };
+    return { dryRun, dbName, plans, results, after };
   } finally {
     if (shouldConnect) {
       await mongoose.disconnect();
@@ -167,7 +216,10 @@ module.exports = {
   runMigration,
   parseArgs,
   databaseNameFromUri,
-  getProductIndexes,
-  isOldGlobalSkuIndex,
-  isCompoundBusinessSkuIndex,
+  getIndexes,
+  findOldGlobalUniqueIndex,
+  findCompoundUniqueIndex,
+  sameKey,
+  planForTarget,
+  TARGETS,
 };

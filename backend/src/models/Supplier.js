@@ -8,8 +8,6 @@ const supplierSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      unique: true,
-      index: true,
     },
     name: { type: String, required: true, trim: true },
     contactPerson: { type: String, required: true, trim: true },
@@ -80,5 +78,10 @@ const supplierSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Phase 6B: supplierCode uniqueness scoped per business. Old global index
+// dropped only via scripts/migrate-indexes.js (never on app start).
+supplierSchema.index({ businessId: 1, supplierCode: 1 }, { unique: true });
+supplierSchema.index({ businessId: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Supplier", supplierSchema);

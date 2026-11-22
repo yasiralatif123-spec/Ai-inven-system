@@ -1,8 +1,10 @@
 const express = require("express");
+const { enforceTenantAuth } = require("../middlewares/enforcement.middleware");
 const {
   getNextPurchaseCode,
   getPurchases,
   getPurchaseById,
+  getPurchaseByNumber,
   createPurchase,
   updatePurchase,
   updatePurchaseStatus,
@@ -13,8 +15,11 @@ const {
 
 const router = express.Router();
 
+router.use(enforceTenantAuth);
+
 router.get("/next-code", getNextPurchaseCode);
 router.get("/", getPurchases);
+router.get("/number/:purchaseNumber", getPurchaseByNumber);
 router.get("/:id", getPurchaseById);
 router.post("/", createPurchase);
 router.put("/:id", updatePurchase);
