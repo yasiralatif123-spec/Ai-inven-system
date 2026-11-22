@@ -218,7 +218,8 @@ async function findProductForItem(item, session = null, req = null) {
       "sku title openingStock uom wholesalePrice flavors"
     );
     if (session) query.session(session);
-    return query.lean();
+    const byId = await query.lean();
+    if (byId) return byId;
   }
 
   const sku = cleanString(item?.sku);
@@ -488,8 +489,9 @@ async function applyStockAdjustments({
     }
 
     let newStock = toNumber(product.openingStock);
+    const biz = tenantBusinessId(req);
     if (delta !== 0) {
-      const biz = tenantBusinessId(req); const filter = biz ? { _id: product._id, businessId: biz } : { _id: product._id };
+      const filter = biz ? { _id: product._id, businessId: biz } : { _id: product._id };
       if (delta > 0) filter.openingStock = { $gte: delta };
 
       const updated = await Product.findOneAndUpdate(
