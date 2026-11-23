@@ -2,10 +2,7 @@ const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const StockMovement = require("../models/StockMovement");
 const { tenantFilter, findOwned } = require("../utils/tenant");
-const {
-  applyFlavorStockChange,
-  cleanFlavor,
-} = require("../utils/flavor-stock");
+const { normalizeUnit, toBasePieces, isSupportedUnit } = require("../utils/units");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -14,11 +11,6 @@ function isTenantEnforced(req) {
 function scopedFilter(req, extra = {}) {
   if (!isTenantEnforced(req)) return { ...extra };
   return tenantFilter(req, extra);
-}
-
-async function findOwnedProduct(id, req) {
-  if (!isTenantEnforced(req)) return Product.findById(id);
-  return findOwned(Product, id, req);
 }
 
 async function findOwnedMovement(id, req) {
@@ -37,7 +29,7 @@ async function adjustStock(req, res, next) {
       return res.status(400).json({ message: "Invalid product id" });
     }
 
-    const { direction, quantity, reason, reference, notes, performedBy } = req.body || {};
+    const { direction, quantity, unit, reason, reference, notes, performedBy } = req.body || {};
 
     if (direction !== "add" && direction !== "deduct") {
       return res.status(400).json({ message: "direction must be either 'add' or 'deduct'" });
@@ -48,32 +40,21 @@ async function adjustStock(req, res, next) {
       return res.status(400).json({ message: "quantity must be a positive whole number" });
     }
 
-    const current = await Product.findOne(scopedFilter(req, { _id: id })).lean();
-    if (!current) {
-      return res.status(404).json({ message: "Product not found" });
+    const normalizedUnit = normalizeUnit(unit || "Piece");
+    if (!normalizedUnit || !isSupportedUnit(normalizedUnit)) {
+      return res.status(400).json({ message: "unit must be Carton, Box, or Piece" });
+    }
+    const baseQty = toBasePieces(qty, normalizedUnit);
+    if (!Number.isFinite(baseQty) || baseQty <= 0) {
+      return res.status(400).json({ message: "Invalid quantity/unit conversion" });
     }
 
-    const requestedFlavor = cleanFlavor(req.body?.flavor);
-    const flavorRows = Array.isArray(current.flavorStocks) ? current.flavorStocks : [];
-    if (flavorRows.length > 0 && !requestedFlavor) {
-      return res.status(400).json({ message: "Select a flavor to adjust this product" });
-    }
-
-    const matchingRow = requestedFlavor
-      ? flavorRows.find(
-          (row) => cleanFlavor(row.flavor).toLowerCase() === requestedFlavor.toLowerCase()
-        )
-      : null;
-    const flavor = matchingRow ? matchingRow.flavor : requestedFlavor;
-
-    const delta = direction === "add" ? qty : -qty;
+    const delta = direction === "add" ? baseQty : -baseQty;
     const filter = scopedFilter(req, { _id: id });
     if (direction === "deduct") {
-      // Guard against concurrent deductions driving the balance below zero.
-      filter.openingStock = { $gte: qty };
+      filter.openingStock = { $gte: baseQty };
     }
 
-    const compensations = [];
     const product = await Product.findOneAndUpdate(
       filter,
       { $inc: { openingStock: delta } },
@@ -86,31 +67,8 @@ async function adjustStock(req, res, next) {
         return res.status(404).json({ message: "Product not found" });
       }
       return res.status(400).json({
-        message: `Cannot deduct more than the available stock (${Number(
-          latest.openingStock || 0
-        )})`,
+        message: `Cannot deduct more than the available stock (${Number(latest.openingStock || 0)} pieces)`,
       });
-    }
-
-    compensations.push(async () => {
-      await Product.findOneAndUpdate(scopedFilter(req, { _id: id }), {
-        $inc: { openingStock: -delta },
-      });
-    });
-
-    try {
-      if (flavor) {
-        await applyFlavorStockChange({
-          productId: id,
-          flavor,
-          delta,
-          compensations,
-          businessId: isTenantEnforced(req) ? req.auth.businessId : null,
-        });
-      }
-    } catch (error) {
-      for (const compensate of compensations.reverse()) await compensate();
-      throw error;
     }
 
     const newStock = Number(product.openingStock || 0);
@@ -124,27 +82,27 @@ async function adjustStock(req, res, next) {
         productTitle: product.title,
         type: "adjustment",
         direction: direction === "add" ? "in" : "out",
-        quantity: qty,
+        quantity: baseQty,
+        originalQuantity: qty,
+        originalUnit: normalizedUnit,
+        baseQuantity: baseQty,
         previousStock,
         newStock,
-        unit: product.uom || "",
+        unit: normalizedUnit,
         reason: cleanString(reason),
         reference: cleanString(reference),
         notes: cleanString(notes),
         performedBy: cleanString(performedBy) || "Admin",
-        flavor,
-        flavorBreakdown: flavor ? [{ flavor, quantity: qty }] : [],
         ...(isTenantEnforced(req)
           ? { businessId: req.auth.businessId, createdByUserId: req.auth.id }
           : {}),
       });
     } catch (movementError) {
-      // Roll the stock change back so the ledger and stock balance never drift apart.
-      for (const compensate of compensations.reverse()) {
-        await compensate().catch((revertError) => {
-          console.error("Failed to revert stock after movement error:", revertError.message);
-        });
-      }
+      await Product.findOneAndUpdate(scopedFilter(req, { _id: id }), {
+        $inc: { openingStock: -delta },
+      }).catch((revertError) => {
+        console.error("Failed to revert stock after movement error:", revertError.message);
+      });
       throw movementError;
     }
 
@@ -188,7 +146,6 @@ async function deleteStockMovement(req, res, next) {
       return res.status(400).json({ message: "Only stock adjustment entries can be deleted" });
     }
 
-    // Removing an adjustment must also undo its effect on the product balance.
     const reversal = movement.direction === "in" ? -movement.quantity : movement.quantity;
     const filter = scopedFilter(req, { _id: movement.product });
     if (reversal < 0) {
@@ -213,39 +170,14 @@ async function deleteStockMovement(req, res, next) {
       });
     }
 
-    const compensations = [
-      async () => {
-        await Product.findOneAndUpdate(scopedFilter(req, { _id: movement.product }), {
-          $inc: { openingStock: -reversal },
-        });
-      },
-    ];
-
     try {
-      const flavorEntries =
-        Array.isArray(movement.flavorBreakdown) && movement.flavorBreakdown.length > 0
-          ? movement.flavorBreakdown
-          : cleanFlavor(movement.flavor)
-            ? [{ flavor: movement.flavor, quantity: movement.quantity }]
-            : [];
-
-      for (const entry of flavorEntries) {
-        await applyFlavorStockChange({
-          productId: movement.product,
-          flavor: entry.flavor,
-          delta: reversal < 0 ? -Number(entry.quantity) : Number(entry.quantity),
-          compensations,
-          businessId: isTenantEnforced(req) ? req.auth.businessId : null,
-        });
-      }
-
       await StockMovement.findOneAndDelete(scopedFilter(req, { _id: id }));
     } catch (deleteError) {
-      for (const compensate of compensations.reverse()) {
-        await compensate().catch((revertError) => {
-          console.error("Failed to revert stock after movement delete error:", revertError.message);
-        });
-      }
+      await Product.findOneAndUpdate(scopedFilter(req, { _id: movement.product }), {
+        $inc: { openingStock: -reversal },
+      }).catch((revertError) => {
+        console.error("Failed to revert stock after movement delete error:", revertError.message);
+      });
       throw deleteError;
     }
 

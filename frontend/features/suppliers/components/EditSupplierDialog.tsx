@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { toFlavorArray } from "../../../app/lib/flavors";
 import {
   GRACE_DAY_OPTIONS,
   HUB_OPTIONS,
@@ -46,15 +45,9 @@ function toInput(supplier: Supplier): UpdateSupplierInput {
     paymentTerms: supplier.paymentTerms,
     graceDays: supplier.graceDays,
     notes: supplier.notes,
-    productIds,
-    productFlavors: Object.fromEntries(
-      Object.entries(supplier.productFlavors || {})
-        .filter(([productId]) => productIds.includes(productId))
-        .map(([productId, flavors]) => [productId, toFlavorArray(flavors)])
-        .filter(([, flavors]) => flavors.length > 0)
-    ),
+    productIds,}
   };
-}
+
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -105,20 +98,7 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
     setForm((current) => ({
       ...current,
       productIds: ids,
-      productFlavors: Object.fromEntries(
-        Object.entries(current.productFlavors).filter(([productId]) => ids.includes(productId))
-      ),
     }));
-    setError(null);
-  }
-
-  function handleProductFlavorChange(productId: string, flavors: string[]) {
-    setForm((current) => {
-      const productFlavors = { ...current.productFlavors };
-      if (flavors.length > 0) productFlavors[productId] = flavors;
-      else delete productFlavors[productId];
-      return { ...current, productFlavors };
-    });
     setError(null);
   }
 
@@ -156,12 +136,6 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
       const updated = await updateSupplier(supplier.id, {
         ...form,
         productIds: selectedProductIds,
-        productFlavors: Object.fromEntries(
-          Object.entries(form.productFlavors)
-            .filter(([productId]) => selectedProductIds.includes(productId))
-            .map(([productId, flavors]) => [productId, toFlavorArray(flavors)])
-            .filter(([, flavors]) => flavors.length > 0)
-        ),
         name: form.name.trim(),
         contactPerson: form.contactPerson.trim(),
         email: form.email.trim(),
@@ -334,11 +308,7 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
               <Field label="Supplied Products">
                 <div className="flex flex-col gap-1">
                   <ProductMultiSelect
-                    selectedIds={selectedProductIds}
-                    selectedFlavors={form.productFlavors}
-                    onChange={handleProductIdsChange}
-                    onFlavorChange={handleProductFlavorChange}
-                    products={products}
+                    selectedIds={selectedProductIds}                    onChange={handleProductIdsChange}                    products={products}
                     loading={productsLoading}
                     error={productsError}
                   />

@@ -14,12 +14,11 @@ export type OrderItem = {
   name: string;
   sku: string;
   productId?: string | null;
-  flavor?: string[];
   stockDeducted?: boolean;
   quantity: number;
+  baseQuantity?: number;
   unitLabel: string;
   basePrice?: number;
-  flavorCount?: number;
   unitPrice: number;
   available: number;
   lineTotal: number;
@@ -68,11 +67,9 @@ export type HubFilter = "all" | string;
 export type DraftOrderItemInput = {
   name: string;
   sku: string;
-  flavor?: string[];
   quantity: number;
   unitLabel: string;
   basePrice?: number;
-  flavorCount?: number;
   unitPrice: number;
 };
 

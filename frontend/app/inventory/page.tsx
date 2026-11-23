@@ -14,7 +14,8 @@ import {
   fetchInventoryProducts,
   fetchStockMovements,
 } from "./services/inventory.service";
-import { formatFlavorLabel, formatNumber, movementToEntry, toStockRows } from "./utils";
+import { formatNumber, movementToEntry, toStockRows } from "./utils";
+import { toBasePieces } from "../lib/units";
 
 function isToday(value: string) {
   const date = new Date(value);
@@ -34,15 +35,8 @@ function isAlertRow(row: StockRow) {
   return row.status === "critical" || row.status === "low";
 }
 
-function refreshedStockRow(product: Product, previous: StockRow | null) {
-  const options = toStockRows(product);
-  return (
-    options.find((row) =>
-      previous?.flavor ? row.flavor === previous.flavor : !row.flavor
-    ) ??
-    options[0] ??
-    null
-  );
+function refreshedStockRow(product: Product, _previous: StockRow | null) {
+  return toStockRows(product)[0] ?? null;
 }
 
 const ACTIVE_TAB_CLASS =
@@ -98,7 +92,7 @@ export default function InventoryPage() {
   const rows = useMemo(() => products.flatMap(toStockRows), [products]);
 
   useEffect(() => {
-    // Dashboard links can deep-link to a tab or open Adjust Stock for a product/flavor.
+    // Dashboard links can deep-link to a tab or open Adjust Stock for a product.
     const params = new URLSearchParams(window.location.search);
     const requestedTab = params.get("tab");
     const validTabs: InventoryTab[] = [
@@ -122,17 +116,8 @@ export default function InventoryPage() {
     }
 
     const requestedProduct = params.get("product");
-    const requestedFlavor = params.get("flavor");
     if (requestedProduct && !deepLinkHandled.current.product) {
-      const exactFlavorRow = requestedFlavor
-        ? rows.find(
-            (candidate) =>
-              candidate.productId === requestedProduct &&
-              candidate.flavor === requestedFlavor
-          )
-        : undefined;
-      const row =
-        exactFlavorRow ?? rows.find((candidate) => candidate.productId === requestedProduct);
+      const row = rows.find((candidate) => candidate.productId === requestedProduct);
       if (row) {
         deepLinkHandled.current.product = true;
         timeouts.push(
@@ -169,18 +154,22 @@ export default function InventoryPage() {
   const alertRows = useMemo(() => filteredRows.filter(isAlertRow), [filteredRows]);
 
   const summary = useMemo(() => {
+    const productById = new Map(products.map((product) => [product._id, product]));
     return depotRows.reduce(
       (acc, row) => {
+        const product = productById.get(row.productId);
+        const unitFactor = toBasePieces(1, product?.uom || "Piece") || 1;
+        const pricePerPiece = Number(row.purchasePrice || 0) / unitFactor;
         acc.totalUnits += row.available;
         acc.reservedUnits += row.reserved;
-        acc.stockValue += row.available * row.purchasePrice;
+        acc.stockValue += row.available * pricePerPiece;
         if (row.status === "critical") acc.criticalCount += 1;
         if (row.status === "low") acc.lowCount += 1;
         return acc;
       },
       { totalUnits: 0, reservedUnits: 0, stockValue: 0, criticalCount: 0, lowCount: 0 }
     );
-  }, [depotRows]);
+  }, [depotRows, products]);
 
   const movementEntries = useMemo(() => movements.map(movementToEntry), [movements]);
   const adjustmentEntries = useMemo(
@@ -238,7 +227,6 @@ export default function InventoryPage() {
     {
       key: "transfers",
       label: "Transfers",
-      // Transfers are not modelled yet; the tab shows its empty state until records exist.
       badge: "0 transit",
       badgeClass:
         "rounded bg-secondary-container px-1.5 py-0.5 font-mono-data-sm text-[10px] text-on-secondary-container",
@@ -302,7 +290,6 @@ export default function InventoryPage() {
     const header = [
       "SKU",
       "Product",
-      "Flavor",
       "Brand",
       "Warehouse",
       "Location",
@@ -316,7 +303,6 @@ export default function InventoryPage() {
     const lines = exportRows.map((row) => [
       row.sku,
       row.name,
-      formatFlavorLabel(row.flavor),
       row.brand,
       row.warehouse,
       row.location,
@@ -351,7 +337,6 @@ export default function InventoryPage() {
   return (
     <AppShell activePath="inventory">
       <div className="flex flex-col gap-4 text-on-surface">
-        {/* Page header & action bar */}
         <div className="flex flex-col justify-between gap-3 border-b border-outline-variant pb-2 md:flex-row md:items-center">
           <div className="flex flex-col">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -406,7 +391,6 @@ export default function InventoryPage() {
           skuCount={depotRows.length}
         />
 
-        {/* Ledger sub-tabs & filter bar */}
         <div className="flex flex-col items-stretch justify-between gap-3 pt-1 lg:flex-row lg:items-center">
           <div
             role="tablist"
@@ -442,8 +426,8 @@ export default function InventoryPage() {
                   className="h-8 w-full rounded border border-outline-variant bg-surface-container-lowest pl-8 pr-12 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container"
                   placeholder={
                     activeTab === "alerts"
-                      ? "Filter alerts by SKU, product, bay…"
-                      : "Filter by SKU, product, bay…"
+                      ? "Filter alerts by SKU, product, bay..."
+                      : "Filter by SKU, product, bay..."
                   }
                   type="text"
                 />
@@ -488,7 +472,6 @@ export default function InventoryPage() {
           ) : null}
         </div>
 
-        {/* Compliance audit notice */}
         <div className="flex w-full items-center justify-between rounded border border-outline-variant bg-surface-container-high px-3 py-2 text-secondary">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-primary">verified_user</span>
@@ -503,7 +486,7 @@ export default function InventoryPage() {
             <span>
               Products: <strong>{products.length}</strong>
             </span>
-            <span>•</span>
+            <span>|</span>
             <span>
               Movements: <strong>{movements.length}</strong>
             </span>
@@ -531,7 +514,7 @@ export default function InventoryPage() {
               progress_activity
             </span>
             <p className="font-body-medium text-body-medium font-semibold text-on-surface">
-              Loading inventory from MongoDB…
+              Loading inventory from MongoDB...
             </p>
             <p className="font-body-dense text-body-dense text-secondary">
               Fetching products and the latest stock movements.

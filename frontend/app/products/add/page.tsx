@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppShell } from "../../components/AppShell";
-import { FlavorInput } from "../components/FlavorInput";
 import { apiFetch } from "../../lib/api";
 import { PRODUCT_CATEGORIES, STOCK_UNITS, TAX_BRACKETS, WAREHOUSES } from "../product-options";
 
@@ -15,14 +14,13 @@ const initialForm = {
   category: "Cooking Oil & Ghee",
   brand: "",
   description: "",
-  flavors: [] as string[],
   purchasePrice: "",
   wholesalePrice: "",
   retailPrice: "",
   taxBracket: "Standard Sales Tax (18% FBR SRO)",
   uom: "Carton / Master Case",
   openingStock: "0",
-  reorderThreshold: "0",
+  reorderThreshold: "",
   warehouse: "Lahore Central Warehouse (Depot 01 - Kot Lakhpat)",
   rackBay: "",
   catalogStatus: "active",
@@ -31,7 +29,7 @@ const initialForm = {
 };
 
 function blankForm() {
-  return { ...initialForm, flavors: [...initialForm.flavors] };
+  return { ...initialForm };
 }
 
 export default function AddProductPage() {
@@ -183,10 +181,6 @@ function AddProductForm() {
               <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="description">Commercial Specs &amp; Invoice Note</label>
               <textarea id="description" value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} className="w-full rounded border border-outline-variant bg-surface-container-lowest p-2.5 font-body-default focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="Packaging, storage, composition, etc." />
             </div>
-            <div className="flex flex-col gap-1.5 border-t border-outline-variant pt-2">
-              <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="flavors">Available Flavors <span className="font-normal text-secondary">(Optional)</span></label>
-              <FlavorInput id="flavors" value={form.flavors} onChange={(flavors) => set("flavors", flavors)} />
-            </div>
           </div>
 
           {/* B. Pricing */}
@@ -241,12 +235,23 @@ function AddProductForm() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="font-label-caps text-label-caps uppercase tracking-wider">Opening Stock</label>
+                <label className="font-label-caps text-label-caps uppercase tracking-wider">Opening Stock (Base Pieces)</label>
                 <input type="number" min={0} value={form.openingStock} onChange={(e) => set("openingStock", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data focus:border-primary-container focus:outline-none" />
+                <span className="font-mono-data-sm text-mono-data-sm text-secondary">Stored internally as pieces. 1 Carton = 24 pcs, 1 Box = 12 pcs.</span>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="font-label-caps text-label-caps uppercase tracking-wider">Reorder Alert Threshold</label>
-                <input type="number" min={0} value={form.reorderThreshold} onChange={(e) => set("reorderThreshold", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data focus:border-primary-container focus:outline-none" />
+                <label className="font-label-caps text-label-caps uppercase tracking-wider">
+                  Reorder Alert Threshold (Pieces) <span className="text-error">*</span>
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  required
+                  value={form.reorderThreshold || 0}
+                  onChange={(e) => set("reorderThreshold", e.target.value)}
+                  className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data focus:border-primary-container focus:outline-none"
+                />
+                <span className="font-mono-data-sm text-mono-data-sm text-secondary">Alert when available stock falls below this number of pieces.</span>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 border-t border-outline-variant pt-2 md:grid-cols-2">

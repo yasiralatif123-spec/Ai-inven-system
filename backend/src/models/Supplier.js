@@ -37,11 +37,6 @@ const supplierSchema = new mongoose.Schema(
         index: true,
       },
     ],
-    productFlavors: {
-      type: Map,
-      of: [String],
-      default: () => ({}),
-    },
     status: {
       type: String,
       enum: ["Active", "On Hold", "Inactive"],

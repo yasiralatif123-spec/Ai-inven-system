@@ -17,11 +17,9 @@ export type PurchaseDelivery = {
 export type PurchaseLine = {
   name: string;
   sku: string;
-  flavors: string[];
   quantity: number;
   receivedQuantity: number;
   basePrice: number;
-  flavorCount: number;
   unitPrice: number;
   lineTotal: number;
   unit: string;

@@ -20,7 +20,7 @@ async function loginAs(email, password = "Password123!") {
 }
 
 async function createProduct(cookie, overrides = {}) {
-  const payload = { title: "P", sku: `SKU-${Math.random().toString(36).slice(2, 8)}`, category: "Cat", brand: "Brand", openingStock: 20, wholesalePrice: 100, purchasePrice: 80, ...overrides };
+  const payload = { title: "P", sku: `SKU-${Math.random().toString(36).slice(2, 8)}`, category: "Cat", brand: "Brand", openingStock: 20, reorderThreshold: 10, wholesalePrice: 100, purchasePrice: 80, ...overrides };
   const res = await request(app).post("/api/products").set("Cookie", cookie).send(payload);
   expect(res.status).toBe(201);
   return res.body.product;
@@ -123,7 +123,7 @@ describe("Phase 6 Part B - supplier/customer/purchase/sale tenant enforcement", 
 
     const saleRes = await request(app).post("/api/sale-orders").set("Cookie", cookieB).send({
       customer: { customerId: cusB._id, name: cusB.name, phone: cusB.phone }, paymentStatus: "unpaid", status: "Pending Approval",
-      items: [{ productId: prodB._id, sku: prodB.sku, name: prodB.title, quantity: 1, unitPrice: 100, flavor: [] }],
+      items: [{ productId: prodB._id, sku: prodB.sku, name: prodB.title, quantity: 1, unitPrice: 100 }],
     });
     expect(saleRes.status).toBe(201);
     const saleB = saleRes.body.order;
@@ -163,13 +163,13 @@ describe("Phase 6 Part B - supplier/customer/purchase/sale tenant enforcement", 
     const cusA = await createCustomer(cookieA, { name: "CusA", businessName: "CusA Biz" });
     const saleBadCus = await request(app).post("/api/sale-orders").set("Cookie", cookieA).send({
       customer: { customerId: cusB._id, name: cusB.name, phone: cusB.phone }, paymentStatus: "unpaid", status: "Pending Approval",
-      items: [{ productId: prodA._id, sku: prodA.sku, name: prodA.title, quantity: 1, unitPrice: 100, flavor: [] }],
+      items: [{ productId: prodA._id, sku: prodA.sku, name: prodA.title, quantity: 1, unitPrice: 100 }],
     });
     expect([400, 404, 422]).toContain(saleBadCus.status);
 
     const saleBadProd = await request(app).post("/api/sale-orders").set("Cookie", cookieA).send({
       customer: { customerId: cusA._id, name: cusA.name, phone: cusA.phone }, paymentStatus: "unpaid", status: "Pending Approval",
-      items: [{ productId: prodB._id, sku: prodB.sku, name: prodB.title, quantity: 1, unitPrice: 100, flavor: [] }],
+      items: [{ productId: prodB._id, sku: prodB.sku, name: prodB.title, quantity: 1, unitPrice: 100 }],
     });
     expect([400, 404, 422]).toContain(saleBadProd.status);
 
@@ -205,11 +205,11 @@ describe("Phase 6 Part B - supplier/customer/purchase/sale tenant enforcement", 
 
     const saleA = await request(app).post("/api/sale-orders").set("Cookie", cookieA).send({
       customer: { customerId: cusA._id, name: cusA.name, phone: cusA.phone }, paymentStatus: "unpaid", status: "Pending Approval",
-      items: [{ productId: prodA._id, sku: prodA.sku, name: prodA.title, quantity: 1, unitPrice: 100, flavor: [] }],
+      items: [{ productId: prodA._id, sku: prodA.sku, name: prodA.title, quantity: 1, unitPrice: 100 }],
     });
     const saleB = await request(app).post("/api/sale-orders").set("Cookie", cookieB).send({
       customer: { customerId: cusB._id, name: cusB.name, phone: cusB.phone }, paymentStatus: "unpaid", status: "Pending Approval",
-      items: [{ productId: prodB._id, sku: prodB.sku, name: prodB.title, quantity: 1, unitPrice: 100, flavor: [] }],
+      items: [{ productId: prodB._id, sku: prodB.sku, name: prodB.title, quantity: 1, unitPrice: 100 }],
     });
     expect(saleA.status).toBe(201);
     expect(saleB.status).toBe(201);

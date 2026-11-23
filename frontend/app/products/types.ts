@@ -6,8 +6,6 @@ export type Product = {
   category: string;
   brand: string;
   description?: string;
-  flavors?: string[];
-  flavorStocks?: Array<{ flavor: string; quantity: number }>;
   purchasePrice?: number;
   wholesalePrice?: number;
   retailPrice?: number;

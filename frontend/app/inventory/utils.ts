@@ -1,5 +1,6 @@
 import type { Product } from "../products/types";
 import type { MovementEntry, StockMovementDto, StockRow, StockStatus } from "./data";
+import { formatStockWithPieces, normalizeUnit } from "../lib/units";
 
 export function formatRs(value: number) {
   return `Rs. ${Number(value || 0).toLocaleString("en-PK")}`;
@@ -40,58 +41,35 @@ export function deriveStockStatus(stock: number, reorderThreshold: number): Stoc
   return "optimal";
 }
 
-export function formatFlavorLabel(flavor?: string) {
-  if (!flavor) return "—";
-  return `${flavor.charAt(0).toUpperCase()}${flavor.slice(1)}`;
-}
-
-function buildStockRow(
-  product: Product,
-  flavor?: string,
-  flavorStock?: number
-): StockRow {
-  const stock = Number(flavorStock ?? product.openingStock ?? 0);
-  const reorderThreshold = Number(product.reorderThreshold || 0);
+export function toStockRows(product: Product): StockRow[] {
+  const stock = Math.max(0, Math.trunc(Number(product.openingStock ?? 0)));
+  const reorderThreshold = Math.max(0, Math.trunc(Number(product.reorderThreshold || 0)));
   const warehouse = product.warehouse || "Unassigned";
 
-  return {
-    id: flavor ? `${product._id}::${encodeURIComponent(flavor)}` : product._id,
-    productId: product._id,
-    flavor,
-    name: product.title,
-    sku: product.sku,
-    brand: product.brand || "Unbranded",
-    pack: product.uom || product.category || "—",
-    location: product.rackBay || warehouse,
-    warehouse,
-    available: stock,
-    reserved: 0,
-    unit: getUnitShort(product.uom),
-    minSafety: reorderThreshold,
-    status: deriveStockStatus(stock, reorderThreshold),
-    purchasePrice: Number(product.purchasePrice || 0),
-  };
-}
-
-/**
- * Flavored products expand to one row per received flavor. Products without
- * flavor stock (including legacy products) keep their single product row.
- */
-export function toStockRows(product: Product): StockRow[] {
-  const flavorRows = (product.flavorStocks || []).filter(
-    (entry) => Boolean(entry?.flavor) && Number.isFinite(Number(entry.quantity))
-  );
-
-  if (flavorRows.length === 0) return [buildStockRow(product)];
-
-  return flavorRows.map((entry) =>
-    buildStockRow(product, entry.flavor, Number(entry.quantity))
-  );
+  return [
+    {
+      id: product._id,
+      productId: product._id,
+      name: product.title,
+      sku: product.sku,
+      brand: product.brand || "Unbranded",
+      pack: product.uom || product.category || "-",
+      location: product.rackBay || warehouse,
+      warehouse,
+      available: stock,
+      reserved: 0,
+      unit: "pcs",
+      stockDisplay: formatStockWithPieces(stock),
+      minSafety: reorderThreshold,
+      status: deriveStockStatus(stock, reorderThreshold),
+      purchasePrice: Number(product.purchasePrice || 0),
+    },
+  ];
 }
 
 export function formatMovementTime(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "-";
 
   const now = new Date();
   const time = date.toLocaleTimeString("en-PK", {
@@ -117,10 +95,16 @@ const MOVEMENT_LABELS: Record<StockMovementDto["type"], string> = {
 };
 
 export function movementToEntry(movement: StockMovementDto): MovementEntry {
-  const unit = getUnitShort(movement.unit);
-  const stockLine = `Stock ${formatNumber(movement.previousStock)} → ${formatNumber(
+  const baseQty = Math.max(0, Number(movement.baseQuantity || movement.quantity) || 0);
+  const originalQty = Math.max(0, Number(movement.originalQuantity) || 0);
+  const originalUnit = normalizeUnit(movement.originalUnit || movement.unit);
+  const qtyLabel =
+    originalQty > 0 && originalUnit
+      ? `${formatNumber(originalQty)} ${originalUnit.toLowerCase()}${originalQty === 1 ? "" : "s"} (${formatNumber(baseQty)} pcs)`
+      : `${formatNumber(baseQty)} pcs`;
+  const stockLine = `Stock ${formatNumber(movement.previousStock)} -> ${formatNumber(
     movement.newStock
-  )} ${unit}`;
+  )} pcs`;
   const detail = movement.reason || movement.notes;
   const reference = movement.reference || "";
   const partyName = movement.partyName || "";
@@ -130,11 +114,11 @@ export function movementToEntry(movement: StockMovementDto): MovementEntry {
   return {
     id: movement._id,
     kind: movement.type,
-    qty: `${movement.direction === "in" ? "+" : "-"}${formatNumber(movement.quantity)} ${unit}`,
+    qty: `${movement.direction === "in" ? "+" : "-"}${qtyLabel}`,
     title: `${MOVEMENT_LABELS[movement.type] || "Stock Movement"}: ${movement.productTitle}`,
     sku: movement.sku,
-    ref: reference || "—",
-    reason: detail ? `${stockLine} • ${detail}` : `${stockLine} • No reason recorded`,
+    ref: reference || "-",
+    reason: detail ? `${stockLine} | ${detail}` : `${stockLine} | No reason recorded`,
     user: movement.performedBy || "Admin",
     time: formatMovementTime(movement.createdAt),
     partyLabel,

@@ -80,7 +80,7 @@ export function ProductAutocomplete({
 
     return products
       .filter((product) =>
-        [product.title, product.sku, product.barcode, product.brand, product.category, ...(product.flavors || [])]
+        [product.title, product.sku, product.barcode, product.brand, product.category]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()
@@ -204,9 +204,7 @@ export function ProductAutocomplete({
                 <span className="flex items-center justify-between gap-2 font-body-dense text-body-dense text-secondary">
                   <span className="truncate">
                     {[product.brand, product.category].filter(Boolean).join(" · ")}
-                    {product.flavors && product.flavors.length > 0
-                      ? ` · ${product.flavors.join(", ")}`
-                      : ""}
+
                   </span>
                   <span className="shrink-0 font-mono-data-sm text-mono-data-sm">
                     Stock {Math.max(Number(product.openingStock) || 0, 0)} · Rs.{" "}

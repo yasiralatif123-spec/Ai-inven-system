@@ -1,4 +1,3 @@
-import { toFlavorArray } from "../../app/lib/flavors";
 import type { Product } from "../../app/products/types";
 import type {
   HubKey,
@@ -58,9 +57,9 @@ export function purchasesToCsv(rows: PurchaseRecord[]): string {
 }
 
 export function formatDate(value: string | Date): string {
-  if (!value) return "—";
+  if (!value) return "-";
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
@@ -90,17 +89,9 @@ export function purchaseBasePrice(product: Product): number {
   return Number.isFinite(value) ? Math.max(value, 0) : 0;
 }
 
-export function flavorAdjustedPurchasePrice(product: Product, flavors: string[]): number {
-  const count = toFlavorArray(flavors).length;
-  const multiplier = (product.flavors?.length || 0) > 0 ? count : 1;
-  return purchaseBasePrice(product) * multiplier;
-}
-
 function effectiveLineUnitPrice(item: PurchaseLineItem): number {
   if (item.lowStock && item.productId) {
-    return roundAmount(
-      Math.max(Number(item.basePrice) || 0, 0) * Math.max(Number(item.flavorCount) || 1, 1)
-    );
+    return roundAmount(Math.max(Number(item.basePrice) || 0, 0));
   }
   return Math.max(Number(item.unitPrice) || 0, 0);
 }
@@ -168,19 +159,10 @@ export function purchaseItemsSummary(dto: PurchaseDto): string {
     .map((item) => {
       const ordered = Number(item.quantity) || 0;
       const received = Number(item.receivedQuantity) || 0;
-      const flavors = toFlavorArray(item.flavor);
-      const flavorSuffix = flavors.length
-        ? ` · ${flavors.join(", ")} (${Number(item.flavorCount) || flavors.length} flavor${
-            (Number(item.flavorCount) || flavors.length) === 1 ? "" : "s"
-          })`
-        : "";
-      const baseNote =
-        flavors.length && Number(item.basePrice) > 0
-          ? ` [${formatRs(Number(item.basePrice))}/flavor]`
-          : "";
-      return `${item.name}${flavorSuffix} (${received}/${ordered} ${item.unit || "units"}) · ${formatRs(
-        item.unitPrice
-      )}${baseNote}`;
+      const unit = item.unit || "units";
+      const baseQty = Number(item.baseQuantity) || 0;
+      const base = baseQty > 0 ? `, ${baseQty} pcs` : "";
+      return `${item.name} (${received}/${ordered} ${unit}${base}) - ${formatRs(item.unitPrice)}`;
     })
     .join("; ");
 }
@@ -193,11 +175,11 @@ export function toPurchaseRecord(dto: PurchaseDto): PurchaseRecord {
   const total = Number(dto.financials?.total) || 0;
   const paid = Number(dto.paidAmount) || 0;
   const orderedQuantity = (dto.items || []).reduce(
-    (sum, item) => sum + (Number(item.quantity) || 0),
+    (sum, item) => sum + (Number(item.baseQuantity) || Number(item.quantity) || 0),
     0
   );
   const receivedQuantity = (dto.items || []).reduce(
-    (sum, item) => sum + (Number(item.receivedQuantity) || 0),
+    (sum, item) => sum + (Number(item.receivedBaseQuantity) || Number(item.receivedQuantity) || 0),
     0
   );
 
@@ -207,7 +189,7 @@ export function toPurchaseRecord(dto: PurchaseDto): PurchaseRecord {
     supplierId: dto.supplier?.id || "",
     account: [dto.supplier?.code && `#${dto.supplier.code}`, dto.invoiceNumber]
       .filter(Boolean)
-      .join(" · ") || dto.supplier?.hub || "Saved purchase",
+      .join(" - ") || dto.supplier?.hub || "Saved purchase",
     date: formatDate(dto.purchaseDate),
     sortDate: toIsoDate(dto.purchaseDate),
     total,
@@ -273,14 +255,6 @@ export function purchaseSupplierToSupplier(dto: PurchaseDto): Supplier {
     productIds: Array.isArray(dto.supplier?.productIds)
       ? dto.supplier.productIds.map(String)
       : [],
-    productFlavors:
-      dto.supplier?.productFlavors && typeof dto.supplier.productFlavors === "object"
-        ? Object.fromEntries(
-            Object.entries(dto.supplier.productFlavors)
-              .map(([productId, flavors]) => [productId, toFlavorArray(flavors)] as const)
-              .filter(([, flavors]) => flavors.length > 0)
-          )
-        : {},
   };
 }
 
@@ -289,10 +263,10 @@ export function matchesDateRange(
   range: string,
   todayIso: string
 ): boolean {
-  if (!todayIso || range === "Custom Date Range…") return true;
+  if (!todayIso || range === "Custom Date Range...") return true;
   const date = purchase.sortDate;
 
-  if (range === "This Month · Nov 2026") {
+  if (range === "This Month - Nov 2026") {
     return date.slice(0, 7) === todayIso.slice(0, 7);
   }
 

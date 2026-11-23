@@ -5,7 +5,7 @@ import type { StockMovementDto } from "../data";
 export type AdjustStockPayload = {
   direction: "add" | "deduct";
   quantity: number;
-  flavor?: string;
+  unit?: "Carton" | "Box" | "Piece";
   reason?: string;
   reference?: string;
   notes?: string;

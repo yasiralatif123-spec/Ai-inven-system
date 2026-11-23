@@ -8,7 +8,8 @@ import {
   type StockMovementDto,
   type StockRow,
 } from "../data";
-import { formatFlavorLabel, formatNumber, formatRs, getUnitShort } from "../utils";
+import { formatNumber, formatRs } from "../utils";
+import { STOCK_UNITS, toBasePieces, type StockUnit } from "../../lib/units";
 
 type AdjustStockPanelProps = {
   row: StockRow;
@@ -20,7 +21,8 @@ type Direction = "deduct" | "add";
 
 export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelProps) {
   const [direction, setDirection] = useState<Direction>("deduct");
-  const [quantity, setQuantity] = useState(() => Math.min(2, Math.max(1, row.available)));
+  const [unit, setUnit] = useState<StockUnit>("Piece");
+  const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState<string>(ADJUSTMENT_REASONS[0]);
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
@@ -28,19 +30,23 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const maxQuantity = direction === "deduct" ? row.available : null;
+  const quantityInPieces = useMemo(() => toBasePieces(quantity, unit), [quantity, unit]);
+  const maxQuantity =
+    direction === "deduct"
+      ? Math.max(0, Math.floor(row.available / (toBasePieces(1, unit) || 1)))
+      : null;
 
   const projected = useMemo(() => {
-    if (direction === "deduct") return Math.max(0, row.available - quantity);
-    return row.available + quantity;
-  }, [direction, quantity, row.available]);
+    if (direction === "deduct") return Math.max(0, row.available - quantityInPieces);
+    return row.available + quantityInPieces;
+  }, [direction, quantityInPieces, row.available]);
 
-  const delta = direction === "deduct" ? `-${quantity}` : `+${quantity}`;
+  const delta = direction === "deduct" ? `-${quantityInPieces}` : `+${quantityInPieces}`;
   const belowMin = row.available < row.minSafety;
 
   function clampQuantity(value: number, minimum = 1) {
     const next = Math.max(minimum, Math.floor(value));
-    return maxQuantity === null ? next : Math.min(next, maxQuantity);
+    return maxQuantity === null ? next : Math.min(next, Math.max(maxQuantity, minimum));
   }
 
   function changeQuantity(value: string) {
@@ -59,8 +65,26 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
   function changeDirection(next: Direction) {
     setDirection(next);
     setQuantity((current) => {
-      if (next === "deduct") return Math.max(1, Math.min(current || 1, row.available));
-      return Math.max(1, current || 1);
+      const limit =
+        next === "deduct"
+          ? Math.max(1, Math.floor(row.available / (toBasePieces(1, unit) || 1)))
+          : null;
+      const base = Math.max(1, current || 1);
+      return limit === null ? base : Math.min(base, Math.max(limit, 1));
+    });
+    setError(null);
+    setSuccess(null);
+  }
+
+  function changeUnit(next: StockUnit) {
+    setUnit(next);
+    setQuantity((current) => {
+      const limit =
+        direction === "deduct"
+          ? Math.max(0, Math.floor(row.available / (toBasePieces(1, next) || 1)))
+          : null;
+      const base = Math.max(1, current || 1);
+      return limit === null ? base : Math.min(base, Math.max(limit, 1));
     });
     setError(null);
     setSuccess(null);
@@ -75,8 +99,12 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
       setError("Enter a quantity of at least 1.");
       return;
     }
-    if (direction === "deduct" && quantity > row.available) {
-      setError(`You can deduct at most ${formatNumber(row.available)} ${row.unit}.`);
+    if (quantityInPieces < 1) {
+      setError("Selected quantity converts to 0 pieces.");
+      return;
+    }
+    if (direction === "deduct" && quantityInPieces > row.available) {
+      setError(`You can deduct at most ${formatNumber(row.available)} pieces.`);
       return;
     }
     if (!reference.trim()) {
@@ -93,27 +121,17 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
       const result = await adjustStock(row.productId, {
         direction,
         quantity,
-        flavor: row.flavor,
+        unit,
         reason,
         reference: reference.trim(),
         notes: notes.trim(),
       });
 
-      const updatedFlavor = row.flavor
-        ? result.product.flavorStocks?.find(
-            (entry) => entry.flavor.toLowerCase() === row.flavor?.toLowerCase()
-          )
-        : undefined;
-      const updatedStock = Number(
-        updatedFlavor ? updatedFlavor.quantity : result.product.openingStock || 0
-      );
-      const unit = getUnitShort(result.product.uom);
+      const updatedStock = Number(result.product.openingStock || 0);
       setSuccess(
-        `Adjustment committed: ${formatNumber(row.available)} → ${formatNumber(
-          updatedStock
-        )} ${unit}. Logged to the stock ledger.`
+        `Adjustment committed: ${formatNumber(row.available)} -> ${formatNumber(updatedStock)} pcs. Logged to the stock ledger.`
       );
-      setQuantity(Math.min(2, Math.max(1, updatedStock)));
+      setQuantity(1);
       setReference("");
       setNotes("");
       onAdjusted(result.product, result.movement);
@@ -168,11 +186,6 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
           <span className="truncate font-body-medium text-body-medium font-semibold text-on-surface">
             {row.name}
           </span>
-          {row.flavor ? (
-            <span className="font-mono-data-sm text-mono-data-sm text-primary">
-              Flavor: {formatFlavorLabel(row.flavor)}
-            </span>
-          ) : null}
           <div className="flex items-center justify-between gap-2 border-t border-outline-variant pt-1 font-mono-data-sm text-mono-data-sm">
             <span className="truncate text-secondary">
               Depot: <strong className="text-on-surface">{row.warehouse}</strong>
@@ -189,8 +202,9 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               Current Physical Balance
             </span>
             <span className="mt-1 block font-mono-data text-[15px] font-bold text-on-surface">
-              {formatNumber(row.available)} {row.unit}
+              {formatNumber(row.available)} pcs
             </span>
+            <span className="block font-mono-data-sm text-[10px] text-secondary">{row.stockDisplay}</span>
             <span
               className={`font-mono-data-sm text-[10px] font-semibold ${
                 belowMin ? "text-error" : "text-primary"
@@ -208,10 +222,10 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               New Projected Stock
             </span>
             <span className="mt-1 block font-mono-data text-[15px] font-bold text-primary">
-              {formatNumber(projected)} {row.unit}
+              {formatNumber(projected)} pcs
             </span>
             <span className="font-mono-data-sm text-[10px] font-medium text-secondary">
-              Δ {delta} {row.unit} (Net)
+              {delta} pcs (Net)
             </span>
           </div>
         </div>
@@ -252,42 +266,56 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
           <label className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
             Quantity to {direction === "deduct" ? "Deduct" : "Add"} <span className="text-error">*</span>
           </label>
-          <div className="flex h-[34px] w-full overflow-hidden rounded border border-outline-variant bg-surface-container-lowest focus-within:border-primary-container focus-within:ring-1 focus-within:ring-primary-container">
-            <input
-              className="h-full min-w-0 flex-1 bg-transparent px-3 font-mono-data text-base font-bold text-on-surface focus:outline-none disabled:opacity-60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              max={maxQuantity ?? undefined}
-              min={1}
-              step={1}
-              type="number"
-              value={quantity}
-              onChange={(event) => changeQuantity(event.target.value)}
-              disabled={saving}
-              aria-label={`Quantity to ${direction === "deduct" ? "deduct" : "add"}`}
-            />
-            <span className="flex items-center pr-2 font-mono-data-sm text-mono-data-sm text-secondary">
-              {row.unit}
-            </span>
-            <div className="flex w-8 flex-col border-l border-outline-variant">
-              <button
-                type="button"
-                onClick={() => stepQuantity(1)}
-                disabled={saving || (maxQuantity !== null && quantity >= maxQuantity)}
-                aria-label="Increase quantity by one"
-                className="flex h-1/2 items-center justify-center text-secondary transition-colors hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-secondary"
-              >
-                <span className="material-symbols-outlined text-[16px]">keyboard_arrow_up</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => stepQuantity(-1)}
-                disabled={saving || quantity <= 1}
-                aria-label="Decrease quantity by one"
-                className="flex h-1/2 items-center justify-center border-t border-outline-variant text-secondary transition-colors hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-secondary"
-              >
-                <span className="material-symbols-outlined text-[16px]">keyboard_arrow_down</span>
-              </button>
+          <div className="grid grid-cols-[1fr_120px] gap-2">
+            <div className="flex h-[34px] w-full overflow-hidden rounded border border-outline-variant bg-surface-container-lowest focus-within:border-primary-container focus-within:ring-1 focus-within:ring-primary-container">
+              <input
+                className="h-full min-w-0 flex-1 bg-transparent px-3 font-mono-data text-base font-bold text-on-surface focus:outline-none disabled:opacity-60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                max={maxQuantity ?? undefined}
+                min={1}
+                step={1}
+                type="number"
+                value={quantity}
+                onChange={(event) => changeQuantity(event.target.value)}
+                disabled={saving}
+                aria-label={`Quantity to ${direction === "deduct" ? "deduct" : "add"}`}
+              />
+              <div className="flex w-8 flex-col border-l border-outline-variant">
+                <button
+                  type="button"
+                  onClick={() => stepQuantity(1)}
+                  disabled={saving || (maxQuantity !== null && quantity >= maxQuantity)}
+                  aria-label="Increase quantity by one"
+                  className="flex h-1/2 items-center justify-center text-secondary transition-colors hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <span className="material-symbols-outlined text-[16px]">keyboard_arrow_up</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => stepQuantity(-1)}
+                  disabled={saving || quantity <= 1}
+                  aria-label="Decrease quantity by one"
+                  className="flex h-1/2 items-center justify-center border-t border-outline-variant text-secondary transition-colors hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  <span className="material-symbols-outlined text-[16px]">keyboard_arrow_down</span>
+                </button>
+              </div>
             </div>
+            <select
+              value={unit}
+              onChange={(event) => changeUnit(event.target.value as StockUnit)}
+              disabled={saving}
+              className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2 font-mono-data text-sm focus:border-primary-container focus:outline-none"
+            >
+              {STOCK_UNITS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
           </div>
+          <p className="mt-1 font-mono-data-sm text-mono-data-sm text-secondary">
+            1 {unit} = {toBasePieces(1, unit)} pieces. Equivalent: {formatNumber(quantityInPieces)} pcs.
+          </p>
         </div>
 
         <div>

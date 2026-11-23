@@ -1,4 +1,3 @@
-import { toFlavorArray } from "../../app/lib/flavors";
 import type { PurchaseDto } from "../purchases/types";
 import { PAYMENT_TERM_OPTIONS } from "./constants";
 import type {
@@ -63,18 +62,15 @@ function toPurchase(purchase: PurchaseDto): Purchase {
   const total = Math.max(Number(purchase.financials?.total) || 0, 0);
   const status = toStatus(purchase.status);
   const lines = purchase.items.map((item) => {
-    const flavors = toFlavorArray(item.flavor);
     const quantity = Math.max(Number(item.quantity) || 0, 0);
     const unitPrice = Math.max(Number(item.unitPrice) || 0, 0);
     return {
       name: item.name,
       sku: item.sku || "",
-      flavors,
-      quantity,
+quantity,
       receivedQuantity: Math.max(Number(item.receivedQuantity) || 0, 0),
       basePrice: Number(item.basePrice) || unitPrice,
-      flavorCount: Number(item.flavorCount) || flavors.length || 1,
-      unitPrice,
+unitPrice,
       lineTotal: Number(item.lineTotal) || quantity * unitPrice,
       unit: item.unit || "units",
       date: formatDate(purchase.purchaseDate),

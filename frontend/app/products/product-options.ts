@@ -14,13 +14,7 @@ export const TAX_BRACKETS = [
   "3rd Schedule Retail Tax Item",
 ] as const;
 
-export const STOCK_UNITS = [
-  "Carton / Master Case",
-  "Piece / Individual Unit",
-  "Drum",
-  "Kilogram (kg)",
-  "Bale / Shrink Bundle",
-] as const;
+export const STOCK_UNITS = ["Carton", "Box", "Piece"] as const;
 
 export const WAREHOUSES = [
   "Lahore Central Warehouse (Depot 01 - Kot Lakhpat)",

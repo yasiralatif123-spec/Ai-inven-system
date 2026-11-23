@@ -4,13 +4,8 @@ const Product = require("../models/Product");
 const StockMovement = require("../models/StockMovement");
 const Supplier = require("../models/Supplier");
 const { runWithSession } = require("../utils/db");
-const { tenantFilter, findOwned } = require("../utils/tenant");
-const {
-  applyFlavorStockChanges,
-  flavorBreakdown,
-  totalStockDelta,
-  uniqueFlavors,
-} = require("../utils/flavor-stock");
+const { tenantFilter } = require("../utils/tenant");
+const { normalizeUnit, toBasePieces, isSupportedUnit } = require("../utils/units");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -56,34 +51,7 @@ function cleanString(value) {
   return value === undefined || value === null ? "" : String(value).trim();
 }
 
-function normalizeFlavorValues(value) {
-  const raw = Array.isArray(value)
-    ? value
-    : value === undefined || value === null || value === ""
-      ? []
-      : [value];
-  const result = [];
-  for (const entry of raw) {
-    for (const part of String(entry).split(/[\n,]/)) {
-      const label = cleanString(part).replace(/\s+/g, " ");
-      if (!label) continue;
-      if (label.length > 120) {
-        throw new ValidationError("Flavor cannot exceed 120 characters");
-      }
-      if (!result.some((existing) => existing.toLowerCase() === label.toLowerCase())) {
-        result.push(label);
-      }
-      if (result.length >= 24) return result;
-    }
-  }
-  return result;
-}
 
-function toPlainMap(value) {
-  if (value instanceof Map) return Object.fromEntries(value.entries());
-  if (value && typeof value === "object" && !Array.isArray(value)) return value;
-  return {};
-}
 
 function toNumber(value, fallback = 0) {
   if (value === undefined || value === null || value === "") return fallback;
@@ -101,7 +69,7 @@ async function findProductForPurchaseItem(item, req = null) {
   const productId = cleanString(item?.productId);
   if (productId && mongoose.isValidObjectId(productId)) {
     const byId = await Product.findOne({ ...scope, _id: productId })
-      .select("title sku purchasePrice flavors uom")
+      .select("title sku purchasePrice uom")
       .lean();
     if (byId) return byId;
   }
@@ -109,7 +77,7 @@ async function findProductForPurchaseItem(item, req = null) {
   const sku = cleanString(item?.sku);
   if (!sku) return null;
   return Product.findOne({ ...scope, sku })
-    .select("title sku purchasePrice flavors uom")
+    .select("title sku purchasePrice uom")
     .lean();
 }
 
@@ -117,19 +85,7 @@ function basePurchasePrice(product) {
   return Math.max(toNumber(product?.purchasePrice), 0);
 }
 
-function sameFlavorSet(left, right) {
-  const normalize = (values) =>
-    (Array.isArray(values) ? values : [])
-      .map((value) => cleanString(value).toLowerCase())
-      .filter(Boolean)
-      .sort();
 
-  const first = normalize(left);
-  const second = normalize(right);
-  return (
-    first.length === second.length && first.every((value, index) => value === second[index])
-  );
-}
 
 function round(value) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -237,45 +193,45 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
     const submittedUnitPrice = toNumber(rawItem?.unitPrice);
     const productId = cleanString(rawItem?.productId);
     const sku = cleanString(rawItem?.sku);
-    const flavors = normalizeFlavorValues(rawItem?.flavor);
-
+    const rawUnit = cleanString(rawItem?.unit) || cleanString(rawItem?.unitLabel) || "Carton";
+    const unit = normalizeUnit(rawUnit);
     if (!name || quantity <= 0 || submittedUnitPrice < 0) {
       throw new ValidationError(
         `Item ${index + 1} needs a name, a positive quantity, and a non-negative unit price`
       );
+    }
+    if (!unit || !isSupportedUnit(unit)) {
+      throw new ValidationError(
+        `Item ${index + 1} has an invalid unit. Use Carton, Box, or Piece`
+      );
+    }
+    const baseQuantity = toBasePieces(quantity, unit);
+    if (!Number.isFinite(baseQuantity) || baseQuantity <= 0) {
+      throw new ValidationError(`Item ${index + 1} has an invalid quantity/unit conversion`);
     }
 
     const product = await findProductForPurchaseItem({ productId, sku }, req);
     if ((productId || sku) && !product) {
       throw new ValidationError("The selected product no longer exists");
     }
-    const productHasFlavors = Boolean(
-      product && Array.isArray(product.flavors) && product.flavors.length > 0
-    );
 
     if (product && basePurchasePrice(product) <= 0) {
       throw new ValidationError(`Set a purchase price for ${product.title} before purchasing`);
     }
-    if (productHasFlavors && flavors.length === 0) {
-      throw new ValidationError(`Select at least one flavor for ${product.title}`);
-    }
 
     const existingItem = findExistingItem(rawItem, index, existingItems);
-    const previousFlavors = existingItem ? normalizeFlavorValues(existingItem.flavor) : [];
-    const flavorsChanged = !existingItem || !sameFlavorSet(previousFlavors, flavors);
-    const flavorCount = productHasFlavors ? flavors.length : 1;
-    const basePrice = product
-      ? !existingPurchase || flavorsChanged
-        ? basePurchasePrice(product)
-        : Number(existingItem?.basePrice) || basePurchasePrice(product)
-      : submittedUnitPrice;
+    const basePrice = product ? basePurchasePrice(product) : submittedUnitPrice;
     const unitPrice = product
-      ? !existingPurchase || flavorsChanged
-        ? basePrice * flavorCount
-        : Number(existingItem?.unitPrice) || submittedUnitPrice
+      ? existingItem
+        ? Number(existingItem?.unitPrice) || basePrice
+        : basePrice
       : submittedUnitPrice;
 
     const previousReceived = Math.max(0, Number(existingItem?.receivedQuantity) || 0);
+    const previousReceivedBase = Math.max(
+      0,
+      Number(existingItem?.receivedBaseQuantity) || toBasePieces(previousReceived, normalizeUnit(existingItem?.unit) || unit) || 0
+    );
     const availableStock = Math.max(
       0,
       Number(
@@ -319,11 +275,14 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
 
       receivedQuantity = quantity;
       const delta = receivedQuantity - previousReceived;
+      const baseDelta = baseQuantity - previousReceivedBase;
       if (delta > 0) {
         receipts.push(
           createReceiptEntry({
             quantity: delta,
             receivedQuantity,
+            baseQuantity: baseDelta,
+            receivedBaseQuantity: baseQuantity,
             reference: receiptReference,
             notes: receiptNotes,
             receivedAt,
@@ -335,10 +294,11 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
         if (product && mongoose.isValidObjectId(resolvedProductId)) {
           stockUpdates.push({
             productId: resolvedProductId,
-            delta,
-            flavors,
+            delta: baseDelta,
             itemName: name,
-            unit: cleanString(rawItem?.unit) || "Carton",
+            unit,
+            originalQuantity: delta,
+            originalUnit: unit,
             product,
           });
         }
@@ -350,6 +310,15 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
         `Received quantity for ${name} cannot exceed the ordered quantity`
       );
     }
+    const receivedBaseQuantity =
+      status === "Received"
+        ? baseQuantity
+        : Math.max(
+            0,
+            Number(existingItem?.receivedBaseQuantity) ||
+              toBasePieces(receivedQuantity, normalizeUnit(existingItem?.unit) || unit) ||
+              0
+          );
 
     const itemSubtotal = round(quantity * unitPrice);
     const discount = clamp(toNumber(rawItem?.discount), 0, itemSubtotal);
@@ -361,14 +330,14 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       productId: product?._id ? String(product._id) : productId,
       name,
       sku,
-      flavor: flavors,
       quantity,
-      availableStock,
+      baseQuantity,
+      availableStock: product ? Math.max(0, Number(product.openingStock) || 0) : availableStock,
       receivedQuantity,
+      receivedBaseQuantity,
       receipts,
-      unit: cleanString(rawItem?.unit) || "Carton",
+      unit,
       basePrice,
-      flavorCount,
       unitPrice,
       discount,
       taxRate,
@@ -404,6 +373,11 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       }]
     : [];
 
+  const wasCancelled = existingPurchase?.status === "Cancelled";
+  if (wasCancelled && status !== "Cancelled") {
+    throw new ValidationError("Cancelled purchases cannot be reactivated");
+  }
+
   const anyReceived = items.some((item) => item.receivedQuantity > 0);
   const allReceived = items.every((item) => item.receivedQuantity >= item.quantity);
   const derivedStatus = status === "Cancelled"
@@ -415,6 +389,29 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
         : ["Draft", "Ordered"].includes(status)
           ? status
           : "Draft";
+
+  if (derivedStatus === "Cancelled" && !wasCancelled) {
+    for (const item of existingItems) {
+      const received = Math.max(0, Number(item.receivedQuantity) || 0);
+      const receivedBase = Math.max(
+        0,
+        Number(item.receivedBaseQuantity) ||
+          toBasePieces(received, normalizeUnit(item.unit) || "Piece") ||
+          received
+      );
+      const productId = cleanString(item.productId);
+      if (receivedBase <= 0 || !mongoose.isValidObjectId(productId)) continue;
+      stockUpdates.push({
+        productId,
+        delta: -receivedBase,
+        itemName: cleanString(item.name),
+        unit: normalizeUnit(item.unit) || item.unit || "Piece",
+        originalQuantity: received,
+        originalUnit: normalizeUnit(item.unit) || item.unit || "Piece",
+        product: null,
+      });
+    }
+  }
 
   return {
     changes: {
@@ -431,7 +428,6 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
         productIds: Array.isArray(supplier.productIds)
           ? supplier.productIds.map(String)
           : [],
-        productFlavors: toPlainMap(supplier.productFlavors),
       },
       purchaseDate,
       expectedDelivery,
@@ -468,10 +464,21 @@ function itemKey(item, index) {
   return item._id ? item._id.toString() : `index:${index}`;
 }
 
-function createReceiptEntry({ quantity, receivedQuantity, reference, notes, receivedAt, performedBy }) {
+function createReceiptEntry({
+  quantity,
+  receivedQuantity,
+  baseQuantity = 0,
+  receivedBaseQuantity = 0,
+  reference,
+  notes,
+  receivedAt,
+  performedBy,
+}) {
   return {
     quantity,
     receivedQuantity,
+    baseQuantity: Math.max(0, Math.floor(Number(baseQuantity) || 0)),
+    receivedBaseQuantity: Math.max(0, Math.floor(Number(receivedBaseQuantity) || 0)),
     reference,
     notes: cleanString(notes),
     receivedAt,
@@ -483,9 +490,10 @@ async function applyStockReceipt({
   compensations = [],
   productId,
   delta,
-  flavors = [],
   itemName,
   unit,
+  originalQuantity = null,
+  originalUnit = "",
   reference,
   notes,
   performedBy,
@@ -509,12 +517,10 @@ async function applyStockReceipt({
     throw new ValidationError(`The product linked to ${itemName} no longer exists`);
   }
 
-  const selectedFlavors = uniqueFlavors(flavors);
-  const totalDelta = delta * (selectedFlavors.length || 1);
   const targetId = String(product._id || productId);
   const updatedProduct = await Product.findOneAndUpdate(
     scope,
-    { $inc: { openingStock: totalDelta } },
+    { $inc: { openingStock: delta } },
     { new: true, runValidators: true, session }
   );
 
@@ -523,21 +529,12 @@ async function applyStockReceipt({
   }
 
   compensations.push(async () => {
-    await Product.findOneAndUpdate(scope, { $inc: { openingStock: -totalDelta } }, { session });
+    await Product.findOneAndUpdate(scope, { $inc: { openingStock: -delta } }, { session });
   });
 
-  if (selectedFlavors.length > 0) {
-    await applyFlavorStockChanges({
-      productId: targetId,
-      flavors: selectedFlavors,
-      delta,
-      session,
-      compensations,
-      businessId,
-    });
-  }
-
   const newStock = Number(updatedProduct.openingStock) || 0;
+  const baseDelta = Math.max(0, Math.floor(Math.abs(Number(delta) || 0)));
+  const movementUnit = normalizeUnit(originalUnit || unit) || cleanString(unit) || "";
   const [movement] = await StockMovement.create(
     [
       {
@@ -545,18 +542,22 @@ async function applyStockReceipt({
         sku: product.sku,
         productTitle: product.title,
         type: "purchase",
-        direction: "in",
-        quantity: totalDelta,
-        previousStock: newStock - totalDelta,
+        direction: delta >= 0 ? "in" : "out",
+        quantity: baseDelta,
+        originalQuantity: Math.max(
+          0,
+          Number(originalQuantity) || toBasePieces(baseDelta, "Piece") || baseDelta
+        ),
+        originalUnit: movementUnit,
+        baseQuantity: baseDelta,
+        previousStock: newStock - delta,
         newStock,
-        unit: product.uom || unit || "",
-        reason: "Purchase goods receipt",
+        unit: movementUnit || product.uom || "",
+        reason: delta >= 0 ? "Purchase goods receipt" : "Purchase stock reversal",
         reference,
         notes: cleanString(notes),
         performedBy: cleanString(performedBy) || DEFAULT_RECEIVED_BY,
         partyName: cleanString(partyName),
-        flavor: selectedFlavors.length === 1 ? selectedFlavors[0] : "",
-        flavorBreakdown: flavorBreakdown(selectedFlavors, delta),
         ...(businessId ? { businessId, createdByUserId } : {}),
       },
     ],
@@ -681,10 +682,11 @@ async function createPurchase(req, res, next) {
             compensations,
             productId: update.productId,
             delta: update.delta,
-            flavors: update.flavors,
             itemName: update.itemName,
             unit: update.unit,
-            reference: `${created.purchaseNumber} · ${STATUS_RECEIPT_REFERENCE}`,
+            originalQuantity: update.originalQuantity,
+            originalUnit: update.originalUnit || update.unit,
+            reference: `${created.purchaseNumber} - ${STATUS_RECEIPT_REFERENCE}`,
             notes: STATUS_RECEIPT_NOTES,
             performedBy: changes.createdBy,
             partyName: changes.supplier.name,
@@ -783,10 +785,11 @@ async function updatePurchase(req, res, next) {
             compensations,
             productId: update.productId,
             delta: update.delta,
-            flavors: update.flavors,
             itemName: update.itemName,
             unit: update.unit,
-            reference: `${purchase.purchaseNumber} · ${STATUS_RECEIPT_REFERENCE}`,
+            originalQuantity: update.originalQuantity,
+            originalUnit: update.originalUnit || update.unit,
+            reference: `${purchase.purchaseNumber} - ${STATUS_RECEIPT_REFERENCE}`,
             notes: STATUS_RECEIPT_NOTES,
             performedBy: changes.createdBy,
             partyName: changes.supplier.name,
@@ -825,6 +828,54 @@ async function updatePurchaseStatus(req, res, next) {
       throw new ValidationError(
         "Use the Receive Goods action to update partial or full receiving status"
       );
+    }
+
+    if (status === "Cancelled" && purchase.status !== "Cancelled") {
+      const businessId = tenantBusinessId(req);
+      const createdByUserId = isTenantEnforced(req) ? req.auth.id : null;
+      const updated = await runWithSession(async (session, useTransaction) => {
+        const compensations = [];
+        try {
+          for (const item of purchase.items || []) {
+            const received = Math.max(0, Number(item.receivedQuantity) || 0);
+            const receivedBase = Math.max(
+              0,
+              Number(item.receivedBaseQuantity) ||
+                toBasePieces(received, normalizeUnit(item.unit) || "Piece") ||
+                received
+            );
+            const productId = cleanString(item.productId);
+            if (receivedBase <= 0 || !mongoose.isValidObjectId(productId)) continue;
+            await applyStockReceipt({
+              compensations,
+              productId,
+              delta: -receivedBase,
+              itemName: item.name,
+              unit: normalizeUnit(item.unit) || item.unit || "Piece",
+              originalQuantity: received,
+              originalUnit: normalizeUnit(item.unit) || item.unit || "Piece",
+              reference: `${purchase.purchaseNumber} - CANCELLED`,
+              notes: "Stock reversed due to purchase cancellation",
+              performedBy: cleanString(req.body?.performedBy) || DEFAULT_RECEIVED_BY,
+              partyName: purchase.supplier?.name,
+              session,
+              businessId,
+              createdByUserId,
+            });
+          }
+          purchase.status = "Cancelled";
+          await purchase.save({ session });
+          return purchase;
+        } catch (error) {
+          if (!useTransaction) await runCompensations(compensations);
+          throw error;
+        }
+      });
+      return res.status(200).json({ message: "Purchase status updated", purchase: updated });
+    }
+
+    if (purchase.status === "Cancelled" && status !== "Cancelled") {
+      throw new ValidationError("Cancelled purchases cannot be reactivated");
     }
 
     purchase.status = status;
@@ -882,12 +933,24 @@ async function receivePurchase(req, res, next) {
         );
       }
 
+      const itemUnit = normalizeUnit(target.item.unit) || "Piece";
+      const itemBaseQty = Math.max(0, Number(target.item.baseQuantity) || toBasePieces(ordered, itemUnit) || 0);
+      const previousReceivedBase = Math.max(
+        0,
+        Number(target.item.receivedBaseQuantity) || toBasePieces(previousReceived, itemUnit) || 0
+      );
+      const desiredBase = desired >= ordered ? itemBaseQty || toBasePieces(desired, itemUnit) || 0 : toBasePieces(desired, itemUnit) || 0;
+      const baseDelta = Math.max(0, desiredBase - previousReceivedBase);
       updates.push({
         ...target,
         ordered,
         previousReceived,
+        previousReceivedBase,
         desired,
+        desiredBase,
         delta: desired - previousReceived,
+        baseDelta,
+        itemUnit,
       });
     });
 
@@ -923,6 +986,8 @@ async function receivePurchase(req, res, next) {
           const receipt = createReceiptEntry({
             quantity: update.delta,
             receivedQuantity: update.desired,
+            baseQuantity: update.baseDelta,
+            receivedBaseQuantity: update.desiredBase,
             reference: receiptReference,
             notes: receiptNotes,
             receivedAt,
@@ -950,7 +1015,10 @@ async function receivePurchase(req, res, next) {
           const receiptResult = await Purchase.updateOne(
             casFilter,
             {
-              $set: { [`${update.path}.receivedQuantity`]: update.desired },
+              $set: {
+                [`${update.path}.receivedQuantity`]: update.desired,
+                [`${update.path}.receivedBaseQuantity`]: update.desiredBase,
+              },
               $push: { [`${update.path}.receipts`]: receipt },
             },
             options
@@ -996,7 +1064,10 @@ async function receivePurchase(req, res, next) {
             await Purchase.updateOne(
               rollbackFilter,
               {
-                $set: { [`${update.path}.receivedQuantity`]: update.previousReceived },
+                $set: {
+                  [`${update.path}.receivedQuantity`]: update.previousReceived,
+                  [`${update.path}.receivedBaseQuantity`]: update.previousReceivedBase,
+                },
                 $pull: {
                   [`${update.path}.receipts`]: {
                     quantity: update.delta,
@@ -1012,13 +1083,14 @@ async function receivePurchase(req, res, next) {
           await applyStockReceipt({
             compensations,
             productId: cleanString(update.item.productId),
-            delta: update.delta,
-            flavors: update.item.flavor || [],
+            delta: update.baseDelta,
             itemName: update.item.name,
-            unit: update.item.unit,
+            unit: normalizeUnit(update.item.unit) || update.item.unit || "Piece",
+            originalQuantity: update.delta,
+            originalUnit: normalizeUnit(update.item.unit) || update.item.unit || "Piece",
             businessId: tenantBusinessId(req),
             createdByUserId: isTenantEnforced(req) ? req.auth.id : null,
-            reference: `${purchase.purchaseNumber} · ${receiptReference}`,
+            reference: `${purchase.purchaseNumber} - ${receiptReference}`,
             notes: receiptNotes,
             performedBy,
             partyName: purchase.supplier?.name,
@@ -1111,22 +1183,31 @@ async function deletePurchase(req, res, next) {
         const references = new Set();
         for (const item of purchase.items) {
           const received = Math.max(0, Number(item.receivedQuantity) || 0);
+          const receivedBase = Math.max(
+            0,
+            Number(item.receivedBaseQuantity) ||
+              toBasePieces(received, normalizeUnit(item.unit) || "Piece") ||
+              received
+          );
           const productId = cleanString(item.productId);
 
           for (const receipt of item.receipts || []) {
             const reference = cleanString(receipt.reference);
             if (reference) {
-              references.add(`${purchase.purchaseNumber} · ${reference}`);
+              references.add(`${purchase.purchaseNumber} - ${reference}`);
+              references.add(`${purchase.purchaseNumber} \u2014 ${reference}`);
+              references.add(`${purchase.purchaseNumber} A� ${reference}`);
             }
           }
 
-          if (received === 0 || !mongoose.isValidObjectId(productId)) continue;
+          if (receivedBase === 0 || !mongoose.isValidObjectId(productId)) continue;
 
-          const flavors = uniqueFlavors(item.flavor);
-          const totalDelta = totalStockDelta(received, flavors);
+          const scope = tenantBusinessId(req)
+            ? { _id: productId, businessId: tenantBusinessId(req) }
+            : { _id: productId };
           const product = await Product.findOneAndUpdate(
-            { _id: productId },
-            { $inc: { openingStock: -totalDelta } },
+            scope,
+            { $inc: { openingStock: -receivedBase } },
             { new: true, runValidators: true, session }
           );
           if (!product) {
@@ -1136,29 +1217,17 @@ async function deletePurchase(req, res, next) {
           }
 
           compensations.push(async () => {
-            await Product.findByIdAndUpdate(
-              productId,
-              { $inc: { openingStock: totalDelta } },
+            await Product.findOneAndUpdate(
+              scope,
+              { $inc: { openingStock: receivedBase } },
               { session }
             );
           });
-
-          if (flavors.length > 0) {
-            await applyFlavorStockChanges({
-              productId,
-              flavors,
-              delta: -received,
-              session,
-              compensations,
-              businessId: tenantBusinessId(req),
-            });
-          }
         }
 
         if (references.size > 0) {
           const movementFilter = {
             type: "purchase",
-            direction: "in",
             reference: { $in: Array.from(references) },
             ...(tenantBusinessId(req) ? { businessId: tenantBusinessId(req) } : {}),
           };

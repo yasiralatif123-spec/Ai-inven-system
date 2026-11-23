@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatFlavorLabel, formatNumber } from "../../../app/inventory/utils";
+import { formatNumber } from "../../../app/inventory/utils";
 import type { LowStockRow } from "../types";
 
 export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
@@ -23,20 +23,17 @@ export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
               Stock levels are healthy
             </p>
             <p className="font-body-dense text-body-dense text-secondary">
-              No product or purchased flavor is below its reorder threshold.
+              No product is below its reorder threshold.
             </p>
           </div>
         ) : (
           rows.map((row) => {
             const params = new URLSearchParams({ product: row.productId });
-            if (row.flavor) params.set("flavor", row.flavor);
-
             const purchaseParams = new URLSearchParams({
               product: row.productId,
               stock: String(row.available),
               lowStock: "1",
             });
-            if (row.flavor) purchaseParams.set("flavor", row.flavor);
 
             return (
               <div
@@ -48,19 +45,14 @@ export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
                     <span className="min-w-0 truncate font-body-medium text-body-medium text-on-surface">
                       {row.title}
                     </span>
-                    {row.flavor ? (
-                      <span className="shrink-0 rounded border border-primary/30 bg-primary-container/20 px-1.5 py-0.5 font-mono-data-sm text-mono-data-sm font-semibold text-primary">
-                        {formatFlavorLabel(row.flavor)}
-                      </span>
-                    ) : null}
                   </div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 font-mono-data-sm text-mono-data-sm text-secondary">
                     <span className="font-medium text-[#BA3C34]">
                       {formatNumber(row.available)} {row.unit} left
                     </span>
-                    <span>·</span>
+                    <span>-</span>
                     <span>Min: {formatNumber(row.threshold)}</span>
-                    <span>·</span>
+                    <span>-</span>
                     <span>{row.status === "critical" ? "Urgent" : "Reorder"}</span>
                     <span className="text-outline-variant">{row.sku}</span>
                   </div>
@@ -88,13 +80,13 @@ export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
 
       <div className="flex items-center justify-between border-t border-outline-variant bg-surface-container-low px-4 py-2">
         <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-          Thresholds are read from each product record; flavor balances are checked separately.
+          Thresholds are read from each product record.
         </span>
         <Link
           href="/inventory?tab=alerts"
           className="font-mono-data-sm text-mono-data-sm font-medium text-primary hover:underline"
         >
-          Review inventory →
+          Review inventory -&gt;
         </Link>
       </div>
     </div>

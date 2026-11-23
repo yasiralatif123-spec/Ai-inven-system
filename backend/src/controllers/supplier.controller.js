@@ -98,14 +98,14 @@ async function generateSupplierCode(req) {
   return `S-${highest + 1}`;
 }
 
-async function normalizeSupplierProducts(value, existingIds = [], flavorValues = {}, req = null) {
-  if (value === undefined || value === null) return { productIds: [], productFlavors: {} };
+async function normalizeSupplierProducts(value, existingIds = [], req = null) {
+  if (value === undefined || value === null) return [];
   if (!Array.isArray(value)) {
     throw new ValidationError("Product selection must be a list");
   }
 
   const ids = Array.from(new Set(value.map(cleanString).filter(Boolean)));
-  if (ids.length === 0) return { productIds: [], productFlavors: {} };
+  if (ids.length === 0) return [];
 
   if (ids.some((id) => !mongoose.isValidObjectId(id))) {
     throw new ValidationError("One or more selected products are invalid");
@@ -115,15 +115,11 @@ async function normalizeSupplierProducts(value, existingIds = [], flavorValues =
     ? { _id: { $in: ids }, businessId: req.auth.businessId }
     : { _id: { $in: ids } };
   const foundProducts = await Product.find(productFilter)
-    .select("_id flavors")
+    .select("_id")
     .lean();
-  const foundById = new Map(
-    foundProducts.map((product) => [cleanString(product._id), product])
-  );
+  const foundById = new Set(foundProducts.map((product) => cleanString(product._id)));
   const existingIdSet = new Set(existingIds.map(cleanString));
-  const invalidNewIds = ids.filter(
-    (id) => !foundById.has(id) && !existingIdSet.has(id)
-  );
+  const invalidNewIds = ids.filter((id) => !foundById.has(id) && !existingIdSet.has(id));
 
   if (invalidNewIds.length > 0) {
     throw new ValidationError("One or more selected products no longer exist in the catalog");
@@ -131,45 +127,7 @@ async function normalizeSupplierProducts(value, existingIds = [], flavorValues =
 
   // Product IDs already saved on a supplier can outlive catalog products. Prune
   // those stale links during an edit instead of blocking unrelated changes.
-  const productIds = ids.filter((id) => foundById.has(id));
-  const rawFlavors =
-    flavorValues instanceof Map
-      ? Object.fromEntries(flavorValues.entries())
-      : flavorValues && typeof flavorValues === "object" && !Array.isArray(flavorValues)
-        ? flavorValues
-        : {};
-  const productFlavors = {};
-
-  for (const [productId, rawFlavorEntry] of Object.entries(rawFlavors)) {
-    if (!productIds.includes(productId)) continue;
-    const rawFlavorsForProduct = Array.isArray(rawFlavorEntry)
-      ? rawFlavorEntry
-      : rawFlavorEntry === undefined || rawFlavorEntry === null || rawFlavorEntry === ""
-        ? []
-        : [rawFlavorEntry];
-    const allowedFlavors = Array.isArray(foundById.get(productId)?.flavors)
-      ? foundById.get(productId).flavors
-      : [];
-    const canonicalFlavors = [];
-
-    for (const entry of rawFlavorsForProduct) {
-      for (const part of String(entry).split(/[\n,]/)) {
-        const flavor = cleanString(part).replace(/\s+/g, " ").slice(0, 120);
-        if (!flavor) continue;
-        const canonical = allowedFlavors.find(
-          (candidate) => cleanString(candidate).toLowerCase() === flavor.toLowerCase()
-        );
-        const value = canonical ? cleanString(canonical) : "";
-        if (value && !canonicalFlavors.some((item) => item.toLowerCase() === value.toLowerCase())) {
-          canonicalFlavors.push(value);
-        }
-      }
-    }
-
-    if (canonicalFlavors.length > 0) productFlavors[productId] = canonicalFlavors;
-  }
-
-  return { productIds, productFlavors };
+  return ids.filter((id) => foundById.has(id));
 }
 
 async function buildSupplierChanges(body, options = {}, req = null) {
@@ -209,10 +167,9 @@ async function buildSupplierChanges(body, options = {}, req = null) {
   const notes = cleanString(body.notes);
   if (notes.length > 500) throw new ValidationError("Procurement notes cannot exceed 500 characters");
 
-  const { productIds, productFlavors } = await normalizeSupplierProducts(
+  const productIds = await normalizeSupplierProducts(
     body.productIds,
     options.existingProductIds || [],
-    body.productFlavors,
     req
   );
 
@@ -234,7 +191,6 @@ async function buildSupplierChanges(body, options = {}, req = null) {
     graceDays,
     notes,
     productIds,
-    productFlavors,
     status: "Active",
     totalPurchases: 0,
     outstanding,

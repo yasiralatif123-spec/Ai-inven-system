@@ -1,8 +1,8 @@
 "use client";
 
+
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toFlavorArray } from "../../../app/lib/flavors";
 import type { Product } from "../../../app/products/types";
 import type { Supplier } from "../../suppliers/types";
 import { DEFAULT_TAX_RATE } from "../constants";
@@ -18,7 +18,6 @@ import type { CreatePurchaseStatus, PurchaseDto, PurchaseLineItem } from "../typ
 import {
   addDays,
   calculatePurchaseTotals,
-  flavorAdjustedPurchasePrice,
   formatRs,
   purchaseBasePrice,
   purchaseSupplierToSupplier,
@@ -43,11 +42,9 @@ function createRow(): PurchaseLineItem {
     productId: "",
     name: "",
     sku: "",
-    flavor: [],
     quantity: 0,
     unit: "Carton",
     basePrice: 0,
-    flavorCount: 1,
     unitPrice: 0,
     discount: 0,
     taxRate: DEFAULT_TAX_RATE,
@@ -58,12 +55,8 @@ function availableStock(product: Product): number {
   return Math.max(Number(product.openingStock) || 0, 0);
 }
 
-function defaultFlavorsFor(product: Product, supplier: Supplier | null): string[] {
-  const saved = toFlavorArray(supplier?.productFlavors?.[product._id]);
-  if (saved.length === 0 || !product.flavors?.length) return [];
-  return saved.filter((flavor) =>
-    product.flavors?.some((option) => option.toLowerCase() === flavor.toLowerCase())
-  );
+function defaultFlavorsFor(_product: Product, _supplier: Supplier | null): string[] {
+  return [];
 }
 
 function sameFlavorMap(
@@ -79,7 +72,7 @@ function sameFlavorMap(
     aKeys.every(
       (key) =>
         Object.prototype.hasOwnProperty.call(b, key) &&
-        toFlavorArray(a[key]).join("\u0000") === toFlavorArray(b[key]).join("\u0000")
+        [].join("\u0000") === [].join("\u0000")
     )
   );
 }
@@ -94,8 +87,7 @@ export function CreatePurchaseView() {
   const editId = searchParams.get("edit");
   const supplierIdParam = searchParams.get("supplierId");
   const productIdParam = searchParams.get("product");
-  const flavorParam = searchParams.get("flavor");
-  const stockParam = searchParams.get("stock");
+    const stockParam = searchParams.get("stock");
   const lowStockParam = searchParams.get("lowStock");
   const { suppliers, products, suppliersLoading, productsLoading, error: lookupError } =
     usePurchaseLookups();
@@ -224,13 +216,11 @@ export function CreatePurchaseView() {
               productId: item.productId || "",
               name: item.name,
               sku: item.sku || "",
-              flavor: toFlavorArray(item.flavor),
               quantity: item.quantity,
               availableStock: Number(item.availableStock) || 0,
               receivedQuantity: Number(item.receivedQuantity) || 0,
               unit: item.unit,
               basePrice: item.basePrice,
-              flavorCount: item.flavorCount,
               unitPrice: item.unitPrice,
               discount: item.discount || 0,
               taxRate: item.taxRate,
@@ -268,16 +258,10 @@ export function CreatePurchaseView() {
   const totals = useMemo(() => calculatePurchaseTotals(items, freight), [freight, items]);
   const paidAmount = editingPurchase ? Number(editingPurchase.paidAmount) || 0 : 0;
   const remainingAmount = Math.max(totals.total - paidAmount, 0);
-
-  // Saved purchases carry a supplier snapshot. Use the live supplier's flavor
   // defaults when it is available, without writing derived state back to state.
   const activeSupplier = useMemo(() => {
     if (!selectedSupplier?.id) return selectedSupplier;
-    const current = suppliers.find((supplier) => supplier.id === selectedSupplier.id);
-    if (!current || sameFlavorMap(current.productFlavors, selectedSupplier.productFlavors)) {
-      return selectedSupplier;
-    }
-    return { ...selectedSupplier, productFlavors: { ...current.productFlavors } };
+    return suppliers.find((supplier) => supplier.id === selectedSupplier.id) || selectedSupplier;
   }, [selectedSupplier, suppliers]);
 
   // Arriving from a dashboard low-stock alert preloads that product into the
@@ -289,8 +273,7 @@ export function CreatePurchaseView() {
     const product = products.find((candidate) => candidate._id === productIdParam);
     if (!product) return;
 
-    const flavors = flavorParam ? [flavorParam] : defaultFlavorsFor(product, activeSupplier);
-    const parsedStock = Number(stockParam);
+        const parsedStock = Number(stockParam);
     const stock =
       stockParam !== null && Number.isFinite(parsedStock)
         ? Math.max(parsedStock, 0)
@@ -308,12 +291,10 @@ export function CreatePurchaseView() {
           productId: product._id,
           name: product.title,
           sku: product.sku,
-          flavor: flavors,
           quantity: first.quantity || 0,
           availableStock: stock,
           lowStock: lowStockParam === "1",
           basePrice: purchaseBasePrice(product),
-          flavorCount: (product.flavors?.length || 0) > 0 ? flavors.length : 1,
           unitPrice: 0,
           unit: product.uom || "Carton",
           taxRate: taxRateFromBracket(product.taxBracket),
@@ -326,7 +307,7 @@ export function CreatePurchaseView() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [editId, productIdParam, flavorParam, stockParam, lowStockParam, products, activeSupplier]);
+  }, [editId, productIdParam, stockParam, lowStockParam, products, activeSupplier]);
 
   // Supplier prefill is separate from the line-item values above. Suppliers and
   // products load in parallel, so waiting for both here avoids a race where the
@@ -396,19 +377,17 @@ export function CreatePurchaseView() {
         if (item.rowId !== rowId) return item;
         const next = { ...item, ...patch };
         const shouldRecalculate =
-          Object.prototype.hasOwnProperty.call(patch, "flavor") ||
+          
           Object.prototype.hasOwnProperty.call(patch, "quantity");
         if (!shouldRecalculate || !next.productId) return next;
 
         const product = products.find((candidate) => candidate._id === next.productId);
         if (!product) return next;
-        const flavors = toFlavorArray(next.flavor);
-
+        
         return {
           ...next,
           basePrice: purchaseBasePrice(product),
-          flavorCount: (product.flavors?.length || 0) > 0 ? flavors.length : 1,
-          unitPrice: next.lowStock ? 0 : flavorAdjustedPurchasePrice(product, flavors),
+          unitPrice: next.lowStock ? 0 : (Number(product.purchasePrice)||0),
         };
       })
     );
@@ -417,16 +396,13 @@ export function CreatePurchaseView() {
   function addProductRow(product?: Product) {
     const row = createRow();
     if (product) {
-      const flavors = defaultFlavorsFor(product, activeSupplier);
-      row.productId = product._id;
+            row.productId = product._id;
       row.name = product.title;
       row.sku = product.sku;
-      row.flavor = flavors;
-      row.availableStock = availableStock(product);
+            row.availableStock = availableStock(product);
       row.quantity = 0;
       row.basePrice = purchaseBasePrice(product);
-      row.flavorCount = (product.flavors?.length || 0) > 0 ? flavors.length : 1;
-      row.unitPrice = flavorAdjustedPurchasePrice(product, flavors);
+            row.unitPrice = Number(product.purchasePrice)||0;
       row.unit = product.uom || "Carton";
       row.taxRate = taxRateFromBracket(product.taxBracket);
     }
@@ -438,7 +414,6 @@ export function CreatePurchaseView() {
       productId: product._id,
       name: product.title,
       sku: product.sku,
-      flavor: defaultFlavorsFor(product, activeSupplier),
       availableStock: availableStock(product),
       quantity: 0,
       lowStock: false,
@@ -492,9 +467,7 @@ export function CreatePurchaseView() {
             productId: "",
             name: "",
             sku: "",
-            flavor: [],
             basePrice: 0,
-            flavorCount: 1,
             availableStock: 0,
             quantity: 0,
             unitPrice: 0,
@@ -505,13 +478,10 @@ export function CreatePurchaseView() {
 
         const product = products.find((candidate) => candidate._id === item.productId);
         if (!product) return item;
-        const flavors = defaultFlavorsFor(product, supplier);
-        return {
+                return {
           ...item,
-          flavor: flavors,
           basePrice: purchaseBasePrice(product),
-          flavorCount: (product.flavors?.length || 0) > 0 ? flavors.length : 1,
-          unitPrice: flavorAdjustedPurchasePrice(product, flavors),
+          unitPrice: (Number(product.purchasePrice)||0),
         };
       })
     );
@@ -561,9 +531,7 @@ export function CreatePurchaseView() {
       if (purchaseBasePrice(product) <= 0) {
         return `Set a purchase price for ${product.title} before saving.`;
       }
-      if ((product.flavors?.length || 0) > 0 && toFlavorArray(item.flavor).length === 0) {
-        return `Select at least one flavor for ${product.title}.`;
-      }
+      
     }
 
     if (totals.total <= 0) {
@@ -606,13 +574,11 @@ export function CreatePurchaseView() {
           productId: item.productId,
           name: item.name,
           sku: item.sku,
-          flavor: toFlavorArray(item.flavor),
           quantity: item.quantity,
           availableStock: item.availableStock || 0,
           receivedQuantity: editingPurchase ? item.receivedQuantity || 0 : 0,
           unit: item.unit,
           basePrice: item.basePrice ?? 0,
-          flavorCount: item.flavorCount ?? 1,
           unitPrice: item.unitPrice,
           discount: item.discount,
           taxRate: item.taxRate,

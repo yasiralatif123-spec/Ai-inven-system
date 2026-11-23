@@ -27,9 +27,7 @@ function exportPurchases(rows: Purchase[]) {
   const header = [
     "Purchase ID",
     "Date",
-    "Purchased Products",
-    "Flavors",
-    "Ordered Quantity",
+    "Purchased Products",    "Ordered Quantity",
     "Received Quantity",
     "Total Amount",
     "Paid",
@@ -44,11 +42,10 @@ function exportPurchases(rows: Purchase[]) {
       row.reference,
       ...row.lines.map(
         (line) =>
-          `${line.name}${line.sku ? ` (${line.sku})` : ""} · qty ${line.quantity} ${line.unit} · ${line.basePrice}×${line.flavorCount}=${line.unitPrice} · total ${line.lineTotal} · received ${line.receivedQuantity}/${line.quantity} · ${line.date} · ${line.status}`
+          `${line.name}${line.sku ? ` (${line.sku})` : ""} · qty ${line.quantity} ${line.unit} · total ${line.lineTotal} · received ${line.receivedQuantity}/${line.quantity} · ${line.date} · ${line.status}`
       ),
     ].join(" | "),
-    row.lines.map((line) => line.flavors.join(", ") || "—").join(" | "),
-    String(row.orderedQuantity),
+        String(row.orderedQuantity),
     String(row.receivedQuantity),
     String(row.total),
     String(row.paid),
@@ -87,7 +84,7 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
         purchase.items,
         purchase.reference,
         purchase.date,
-        ...purchase.lines.flatMap((line) => [line.name, line.sku, ...line.flavors]),
+        ...purchase.lines.flatMap((line) => [line.name, line.sku]),
       ]
         .join(" ")
         .toLowerCase()
@@ -152,7 +149,6 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
                 <th className="w-28 px-3">Purchase ID</th>
                 <th className="w-24 px-3">Date</th>
                 <th className="px-3">Purchased Products</th>
-                <th className="px-3">Flavor</th>
                 <th className="w-24 px-3 text-right">Ordered</th>
                 <th className="w-24 px-3 text-right">Received</th>
                 <th className="w-28 px-3 text-right">Total Amount</th>
@@ -164,7 +160,7 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
             <tbody className="divide-y divide-outline-variant font-body-default text-body-dense text-on-surface">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-3 py-10 text-center">
+                  <td colSpan={9} className="px-3 py-10 text-center">
                     <div className="font-body-medium text-body-medium text-on-surface">
                       No purchases match this filter
                     </div>
@@ -248,21 +244,7 @@ function PurchaseRow({ purchase }: { purchase: Purchase }) {
           ))}
         </div>
       </td>
-      <td className="px-3 py-2">
-        {hasReference ? (
-          <div className="font-mono-data-sm text-mono-data-sm text-secondary">&nbsp;</div>
-        ) : null}
-        <div className={`flex flex-col gap-1 ${hasReference ? "mt-1" : ""}`}>
-          {purchase.lines.map((line, index) => (
-            <div
-              key={`flavor-${line.purchaseId}-${line.sku || line.name}-${index}`}
-              className="rounded border border-outline-variant/70 bg-surface-container-low px-2 py-1 font-mono-data-sm text-mono-data-sm text-primary"
-            >
-              {line.flavors.length ? line.flavors.join(", ") : "—"}
-            </div>
-          ))}
-        </div>
-      </td>
+
       <td className="px-3 py-2 text-right font-mono-data text-mono-data text-secondary">
         {purchase.orderedQuantity}
       </td>

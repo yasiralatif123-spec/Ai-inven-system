@@ -1,4 +1,3 @@
-import { toFlavorArray } from "../../app/lib/flavors";
 import type { Product } from "../../app/products/types";
 import type {
   DateFilter,
@@ -45,7 +44,7 @@ export function createEmptyDraftOrder(): DraftOrderInput {
     amountReceived: 0,
     discount: 0,
     freight: 0,
-    items: [{ name: "", sku: "", flavor: [], quantity: 1, unitLabel: "pcs", unitPrice: 0 }],
+    items: [{ name: "", sku: "", quantity: 1, unitLabel: "Piece", unitPrice: 0 }],
   };
 }
 
@@ -53,11 +52,9 @@ export function draftOrderFromSalesOrder(order: SalesOrder): DraftOrderInput {
   const items: DraftOrderItemInput[] = order.items.map((item) => ({
     name: item.name,
     sku: item.sku,
-    flavor: Array.isArray(item.flavor) ? item.flavor : item.flavor ? [item.flavor] : [],
     quantity: item.quantity,
     unitLabel: item.unitLabel,
     basePrice: item.basePrice,
-    flavorCount: item.flavorCount,
     unitPrice: item.unitPrice,
   }));
 
@@ -126,55 +123,6 @@ export function formatRs(value: number): string {
 
 export function formatNumber(value: number): string {
   return value.toLocaleString("en-PK");
-}
-
-export type FlavorStockEntry = {
-  flavor: string;
-  quantity: number;
-};
-
-export function productFlavorStocks(product: Product | null): FlavorStockEntry[] {
-  if (!product || !Array.isArray(product.flavorStocks)) return [];
-
-  return product.flavorStocks
-    .map((entry) => ({
-      flavor: String(entry?.flavor || "").trim(),
-      quantity: Number(entry?.quantity) || 0,
-    }))
-    .filter((entry) => entry.flavor)
-    .map((entry) => ({ ...entry, quantity: Math.max(entry.quantity, 0) }));
-}
-
-export function flavorStockFor(product: Product | null, flavor: string): number {
-  const key = flavor.trim().toLowerCase();
-  if (!key) return 0;
-
-  const entry = productFlavorStocks(product).find(
-    (candidate) => candidate.flavor.toLowerCase() === key
-  );
-  return entry ? entry.quantity : 0;
-}
-
-export function flavorStockWarnings(
-  product: Product | null,
-  flavors: string[],
-  quantity: number
-): string[] {
-  if (!product || (product.flavors?.length || 0) === 0) return [];
-
-  const requested = Math.max(Math.floor(Number(quantity) || 0), 0);
-  const warnings: string[] = [];
-
-  toFlavorArray(flavors).forEach((flavor) => {
-    const available = flavorStockFor(product, flavor);
-    if (available <= 0) {
-      warnings.push(`Stock not available for ${flavor} flavor.`);
-    } else if (requested > available) {
-      warnings.push(`Only ${available} available for ${flavor} flavor.`);
-    }
-  });
-
-  return warnings;
 }
 
 export function formatCompactAmount(value: number): string {

@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const { ensureCloudinaryConfigured } = require("../config/cloudinary");
 const { tenantFilter, findOwned } = require("../utils/tenant");
+const { normalizeUnit } = require("../utils/units");
 
 function uploadBufferToCloudinary(buffer, folder = "inv_system/products") {
   const cloudinary = ensureCloudinaryConfigured();
@@ -40,30 +41,7 @@ function toBoolean(value) {
   return Boolean(value);
 }
 
-function normalizeFlavors(value) {
-  const rawValues = Array.isArray(value)
-    ? value
-    : typeof value === "string"
-      ? value.split(/[,\n]/)
-      : [];
 
-  const seen = new Set();
-  const flavors = [];
-  for (const raw of rawValues) {
-    const flavor = String(raw ?? "")
-      .trim()
-      .replace(/\s+/g, " ")
-      .slice(0, 80);
-    if (!flavor) continue;
-
-    const key = flavor.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    flavors.push(flavor);
-    if (flavors.length >= 24) break;
-  }
-  return flavors;
-}
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -88,7 +66,6 @@ async function createProduct(req, res, next) {
       category,
       brand,
       description,
-      flavors,
       purchasePrice,
       wholesalePrice,
       retailPrice,
@@ -119,6 +96,20 @@ async function createProduct(req, res, next) {
       return res.status(409).json({ message: "A product with this SKU already exists" });
     }
 
+    if (
+      reorderThreshold === undefined ||
+      reorderThreshold === null ||
+      String(reorderThreshold).trim() === ""
+    ) {
+      return res.status(400).json({ message: "Reorder alert threshold is required" });
+    }
+    const reorderThresholdNum = Number(reorderThreshold);
+    if (!Number.isFinite(reorderThresholdNum) || reorderThresholdNum < 0) {
+      return res
+        .status(400)
+        .json({ message: "Reorder alert threshold must be 0 or greater" });
+    }
+
     let imageUrl = "";
     let imagePublicId = "";
     if (req.file && req.file.buffer) {
@@ -134,14 +125,13 @@ async function createProduct(req, res, next) {
       category: String(category).trim(),
       brand: String(brand).trim(),
       description: description ? String(description).trim() : "",
-      flavors: normalizeFlavors(flavors),
       purchasePrice: toNumber(purchasePrice),
       wholesalePrice: toNumber(wholesalePrice),
       retailPrice: toNumber(retailPrice),
       taxBracket: taxBracket ? String(taxBracket).trim() : "",
-      uom: uom ? String(uom).trim() : "",
+      uom: normalizeUnit(uom) || (uom ? String(uom).trim() : ""),
       openingStock: toNumber(openingStock),
-      reorderThreshold: toNumber(reorderThreshold),
+      reorderThreshold: reorderThresholdNum,
       warehouse: warehouse ? String(warehouse).trim() : "",
       rackBay: rackBay ? String(rackBay).trim() : "",
       catalogStatus: catalogStatus || "active",
@@ -235,7 +225,6 @@ async function updateProduct(req, res, next) {
       category,
       brand,
       description,
-      flavors,
       purchasePrice,
       wholesalePrice,
       retailPrice,
@@ -264,6 +253,20 @@ async function updateProduct(req, res, next) {
       return res.status(409).json({ message: "A product with this SKU already exists" });
     }
 
+    if (
+      reorderThreshold === undefined ||
+      reorderThreshold === null ||
+      String(reorderThreshold).trim() === ""
+    ) {
+      return res.status(400).json({ message: "Reorder alert threshold is required" });
+    }
+    const reorderThresholdNum = Number(reorderThreshold);
+    if (!Number.isFinite(reorderThresholdNum) || reorderThresholdNum < 0) {
+      return res
+        .status(400)
+        .json({ message: "Reorder alert threshold must be 0 or greater" });
+    }
+
     const previousPublicId = product.imagePublicId || "";
     const shouldRemoveImage = String(removeImage).toLowerCase() === "true";
     let uploadedImage = null;
@@ -283,14 +286,13 @@ async function updateProduct(req, res, next) {
     product.category = String(category).trim();
     product.brand = String(brand).trim();
     product.description = description ? String(description).trim() : "";
-    product.flavors = normalizeFlavors(flavors);
     product.purchasePrice = toNumber(purchasePrice);
     product.wholesalePrice = toNumber(wholesalePrice);
     product.retailPrice = toNumber(retailPrice);
     product.taxBracket = taxBracket ? String(taxBracket).trim() : "";
-    product.uom = uom ? String(uom).trim() : "";
+    product.uom = normalizeUnit(uom) || (uom ? String(uom).trim() : "");
     product.openingStock = toNumber(openingStock);
-    product.reorderThreshold = toNumber(reorderThreshold);
+    product.reorderThreshold = reorderThresholdNum;
     product.warehouse = warehouse ? String(warehouse).trim() : "";
     product.rackBay = rackBay ? String(rackBay).trim() : "";
     product.catalogStatus = catalogStatus || "active";

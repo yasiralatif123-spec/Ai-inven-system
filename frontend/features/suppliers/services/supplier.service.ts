@@ -1,5 +1,4 @@
 import { apiFetch } from "../../../app/lib/api";
-import { toFlavorArray } from "../../../app/lib/flavors";
 import { HUB_OPTIONS } from "../constants";
 import type {
   CreateSupplierInput,
@@ -69,14 +68,6 @@ function toSupplier(dto: SupplierDto): Supplier {
     createdAt: dto.createdAt,
     status: dto.status,
     productIds: Array.isArray(dto.productIds) ? dto.productIds.map(String) : [],
-    productFlavors:
-      dto.productFlavors && typeof dto.productFlavors === "object"
-        ? Object.fromEntries(
-            Object.entries(dto.productFlavors)
-              .map(([productId, flavors]) => [productId, toFlavorArray(flavors)] as const)
-              .filter(([, flavors]) => flavors.length > 0)
-          )
-        : {},
     aging: false,
   };
 }

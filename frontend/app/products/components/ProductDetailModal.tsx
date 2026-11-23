@@ -183,7 +183,7 @@ export function ProductDetailModal({ product, onClose, onEdit, onDeleted }: Prod
                 <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface">Inventory</span>
               </div>
               <span className={`font-mono-data-sm text-mono-data-sm ${stock.minColor}`}>
-                Reorder at {reorderValue.toLocaleString()}
+                Reorder at {reorderValue.toLocaleString()} pcs
               </span>
             </div>
             <div className="rounded border border-outline-variant bg-surface-container-low p-3">
@@ -191,7 +191,7 @@ export function ProductDetailModal({ product, onClose, onEdit, onDeleted }: Prod
                 <span className={`font-metric-display text-metric-display tabular-nums ${stock.textColor}`}>
                   {stockValue.toLocaleString()}
                 </span>
-                <span className="font-mono-data-sm text-mono-data-sm text-secondary">{product.uom || "units"}</span>
+                <span className="font-mono-data-sm text-mono-data-sm text-secondary">pcs (base)</span>
               </div>
               <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-variant">
                 <div className={`h-full ${stock.barColor}`} style={{ width: stock.bar }} />
@@ -220,22 +220,6 @@ export function ProductDetailModal({ product, onClose, onEdit, onDeleted }: Prod
                 value={(product.catalogStatus || "active").replace(/^./, (char) => char.toUpperCase())}
               />
             </div>
-            {product.flavors && product.flavors.length > 0 ? (
-              <div className="flex flex-col gap-1.5">
-                <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Available Flavors</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {product.flavors.map((flavor) => (
-                    <span
-                      key={flavor}
-                      className="inline-flex items-center gap-1 rounded border border-primary/20 bg-primary-fixed/30 px-2 py-0.5 font-body-dense text-body-dense text-primary"
-                    >
-                      <span className="material-symbols-outlined text-[13px]">local_offer</span>
-                      {flavor}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ) : null}
             {product.description ? (
               <div className="flex flex-col gap-0.5">
                 <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Description</span>

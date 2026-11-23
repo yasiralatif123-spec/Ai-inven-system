@@ -37,7 +37,6 @@ const EMPTY_FORM: CreateSupplierInput = {
   graceDays: 5,
   notes: "",
   productIds: [],
-  productFlavors: {},
 };
 
 const INPUT_CLASS =
@@ -129,7 +128,7 @@ export function AddSupplierForm() {
   }, []);
 
   function resetForm() {
-    setForm({ ...EMPTY_FORM, productIds: [], productFlavors: {} });
+    setForm({ ...EMPTY_FORM, productIds: [] });
     setError(null);
     setSuccess(null);
   }
@@ -144,21 +143,7 @@ export function AddSupplierForm() {
     setForm((current) => ({
       ...current,
       productIds: ids,
-      productFlavors: Object.fromEntries(
-        Object.entries(current.productFlavors).filter(([productId]) => ids.includes(productId))
-      ),
     }));
-    setError(null);
-    setSuccess(null);
-  }
-
-  function handleProductFlavorChange(productId: string, flavors: string[]) {
-    setForm((current) => {
-      const productFlavors = { ...current.productFlavors };
-      if (flavors.length > 0) productFlavors[productId] = flavors;
-      else delete productFlavors[productId];
-      return { ...current, productFlavors };
-    });
     setError(null);
     setSuccess(null);
   }
@@ -459,13 +444,11 @@ export function AddSupplierForm() {
                 <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
               </>
             }
-            hint="Search and select products from the catalog that this supplier can fulfil. Choose default flavors for any product that has flavors."
+            hint="Search and select products from the catalog that this supplier can fulfil."
           >
             <ProductMultiSelect
               selectedIds={form.productIds}
-              selectedFlavors={form.productFlavors}
               onChange={handleProductIdsChange}
-              onFlavorChange={handleProductFlavorChange}
               products={products}
               loading={productsLoading}
               error={productsError}

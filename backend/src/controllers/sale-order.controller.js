@@ -5,10 +5,7 @@ const Customer = require("../models/Customer");
 const StockMovement = require("../models/StockMovement");
 const { runWithSession } = require("../utils/db");
 const { tenantFilter } = require("../utils/tenant");
-const {
-  applyFlavorStockChange,
-  uniqueFlavors,
-} = require("../utils/flavor-stock");
+const { normalizeUnit, toBasePieces, isSupportedUnit } = require("../utils/units");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -58,56 +55,10 @@ function cleanString(value) {
   return value === undefined || value === null ? "" : String(value).trim();
 }
 
-function normalizeFlavorValues(value, allowedFlavors = []) {
-  const raw = Array.isArray(value)
-    ? value
-    : value === undefined || value === null || value === ""
-      ? []
-      : [value];
-  const allowed = Array.isArray(allowedFlavors) ? allowedFlavors : [];
-  const result = [];
-
-  for (const entry of raw) {
-    for (const part of String(entry).split(/[\n,]/)) {
-      const label = cleanString(part).replace(/\s+/g, " ");
-      if (!label) continue;
-      if (label.length > 120) {
-        throw new ValidationError("Flavor cannot exceed 120 characters");
-      }
-      const canonical =
-        allowed.find((candidate) => cleanString(candidate).toLowerCase() === label.toLowerCase()) ||
-        label;
-      if (!result.some((existing) => existing.toLowerCase() === canonical.toLowerCase())) {
-        result.push(canonical);
-      }
-      if (result.length >= 24) return result;
-    }
-  }
-  return result;
-}
-
 function toNumber(value, fallback = 0) {
   if (value === undefined || value === null || value === "") return fallback;
   const numeric = Number(String(value).replace(/,/g, ""));
   return Number.isFinite(numeric) ? numeric : fallback;
-}
-
-function perFlavorPrice(product) {
-  return Math.max(toNumber(product?.wholesalePrice), 0);
-}
-
-function sameFlavorSet(left = [], right = []) {
-  const normalize = (values) =>
-    (Array.isArray(values) ? values : [])
-      .map((value) => cleanString(value).toLowerCase())
-      .filter(Boolean)
-      .sort();
-
-  const first = normalize(left);
-  const second = normalize(right);
-  return (
-    first.length === second.length && first.every((value, index) => value === second[index])
-  );
 }
 
 async function resolveCustomer(body, session = null, req = null) {
@@ -215,7 +166,7 @@ async function findProductForItem(item, session = null, req = null) {
   const productId = cleanString(item?.productId);
   if (productId && mongoose.isValidObjectId(productId)) {
     const query = Product.findOne({ ...scope, _id: productId }).select(
-      "sku title openingStock uom wholesalePrice flavors"
+      "sku title openingStock uom wholesalePrice"
     );
     if (session) query.session(session);
     const byId = await query.lean();
@@ -226,7 +177,7 @@ async function findProductForItem(item, session = null, req = null) {
   if (!sku) return null;
 
   const query = Product.findOne({ ...scope, sku }).select(
-    "sku title openingStock uom wholesalePrice flavors"
+    "sku title openingStock uom wholesalePrice"
   );
   if (session) query.session(session);
   return query.lean();
@@ -250,32 +201,16 @@ function sumStockQuantities(items, include) {
     if (!include(item)) return;
     const key = stockKey(item);
     if (!key) return;
-    const quantity = Math.max(0, toNumber(item.quantity));
-    const multiplier = uniqueFlavors(item.flavor).length || 1;
-    totals.set(key, (totals.get(key) || 0) + quantity * multiplier);
+    const baseQuantity = Math.max(
+      0,
+      Number(item.baseQuantity) ||
+        toBasePieces(item.quantity, normalizeUnit(item.unitLabel) || "Piece") ||
+        toNumber(item.quantity)
+    );
+    totals.set(key, (totals.get(key) || 0) + baseQuantity);
   });
 
   return totals;
-}
-
-function sumFlavorQuantities(items, include) {
-  const byProduct = new Map();
-
-  (items || []).forEach((item) => {
-    if (!include(item)) return;
-    const key = stockKey(item);
-    if (!key) return;
-    const quantity = Math.max(0, toNumber(item.quantity));
-    if (quantity === 0) return;
-
-    const flavors = byProduct.get(key) || new Map();
-    uniqueFlavors(item.flavor).forEach((flavor) => {
-      flavors.set(flavor, (flavors.get(flavor) || 0) + quantity);
-    });
-    if (flavors.size > 0) byProduct.set(key, flavors);
-  });
-
-  return byProduct;
 }
 
 async function rollbackCompensations(compensations) {
@@ -321,59 +256,60 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
     const sku = cleanString(rawItem?.sku);
     const quantity = toWholeNumber(rawItem?.quantity);
     const unitPrice = toNumber(rawItem?.unitPrice);
+    const rawUnit = cleanString(rawItem?.unitLabel) || cleanString(rawItem?.unit) || "Piece";
+    const unitLabel = normalizeUnit(rawUnit);
 
     if (!name || quantity <= 0 || unitPrice < 0) {
       throw new ValidationError(
         "Each item needs a name, a positive quantity, and a non-negative unit price"
       );
     }
+    if (!unitLabel || !isSupportedUnit(unitLabel)) {
+      throw new ValidationError(
+        `Item ${name || sku || "line item"} has an invalid unit. Use Carton, Box, or Piece`
+      );
+    }
+    const baseQuantity = toBasePieces(quantity, unitLabel);
+    if (!Number.isFinite(baseQuantity) || baseQuantity <= 0) {
+      throw new ValidationError(`Item ${name || sku || "line item"} has an invalid quantity/unit conversion`);
+    }
 
     const previousItem = sku
       ? previousItems.find((candidate) => cleanString(candidate.sku) === sku)
       : null;
+    const requestedProductId = cleanString(rawItem?.productId) || previousItem?.productId || null;
     const product = await findProductForItem(
       {
         sku,
-        productId: cleanString(rawItem?.productId) || previousItem?.productId || null,
+        productId: requestedProductId,
       },
-      session
+      session,
+      req
     );
 
-    const flavors = normalizeFlavorValues(rawItem?.flavor, product?.flavors);
-    const productHasFlavors = Boolean(
-      product && Array.isArray(product.flavors) && product.flavors.length > 0
-    );
-
-    if (productHasFlavors && flavors.length === 0) {
-      throw new ValidationError(`Select at least one flavor for ${product.title}`);
+    if ((requestedProductId || sku) && !product) {
+      throw new ValidationError(
+        `The product linked to ${name} was not found in this business`
+      );
     }
 
-    const previousFlavors = previousItem
-      ? normalizeFlavorValues(previousItem.flavor, product?.flavors)
-      : [];
-    const flavorsChanged = !previousItem || !sameFlavorSet(previousFlavors, flavors);
-    const multiplier = productHasFlavors ? flavors.length : 1;
+    const basePrice = product ? Math.max(toNumber(product.wholesalePrice), 0) : unitPrice;
     const effectiveUnitPrice = product
-      ? !existingOrder || flavorsChanged
-        ? perFlavorPrice(product) * multiplier
-        : Number(previousItem?.unitPrice) || unitPrice
+      ? existingOrder && previousItem
+        ? Number(previousItem.unitPrice) || basePrice
+        : basePrice
       : unitPrice;
 
     items.push({
       name,
       sku,
-      flavor: flavors,
       productId: product?._id || null,
       quantity,
-      unitLabel: cleanString(rawItem?.unitLabel) || "pcs",
-      basePrice: product
-        ? !existingOrder || flavorsChanged
-          ? perFlavorPrice(product)
-          : Number(previousItem?.basePrice) || perFlavorPrice(product)
-        : unitPrice,
-      flavorCount: multiplier,
+      baseQuantity,
+      unitLabel,
+      basePrice,
       unitPrice: effectiveUnitPrice,
-      available: product ? toNumber(product.openingStock) : 0,
+      available: product ? Math.max(0, toNumber(product.openingStock)) : 0,
       stockDeducted: Boolean(product),
       lineTotal: quantity * effectiveUnitPrice,
     });
@@ -454,29 +390,12 @@ async function applyStockAdjustments({
   const include = (item) => item.stockDeducted === true;
   const previousTotals = sumStockQuantities(previousItems, include);
   const nextTotals = sumStockQuantities(nextItems, include);
-  const previousFlavorTotals = sumFlavorQuantities(previousItems, include);
-  const nextFlavorTotals = sumFlavorQuantities(nextItems, include);
-  const keys = new Set([
-    ...previousTotals.keys(),
-    ...nextTotals.keys(),
-    ...previousFlavorTotals.keys(),
-    ...nextFlavorTotals.keys(),
-  ]);
+  const keys = new Set([...previousTotals.keys(), ...nextTotals.keys()]);
   const movements = [];
 
   for (const key of keys) {
     const delta = (nextTotals.get(key) || 0) - (previousTotals.get(key) || 0);
-    const previousFlavors = previousFlavorTotals.get(key) || new Map();
-    const nextFlavors = nextFlavorTotals.get(key) || new Map();
-    const flavorKeys = new Set([...previousFlavors.keys(), ...nextFlavors.keys()]);
-    const flavorDeltas = [];
-
-    for (const flavor of flavorKeys) {
-      const flavorDelta = (nextFlavors.get(flavor) || 0) - (previousFlavors.get(flavor) || 0);
-      if (flavorDelta !== 0) flavorDeltas.push({ flavor, delta: flavorDelta });
-    }
-
-    if (delta === 0 && flavorDeltas.length === 0) continue;
+    if (delta === 0) continue;
 
     const representative =
       nextItems.find((item) => stockKey(item) === key) ||
@@ -488,44 +407,37 @@ async function applyStockAdjustments({
       );
     }
 
-    let newStock = toNumber(product.openingStock);
     const biz = tenantBusinessId(req);
-    if (delta !== 0) {
-      const filter = biz ? { _id: product._id, businessId: biz } : { _id: product._id };
-      if (delta > 0) filter.openingStock = { $gte: delta };
+    const filter = biz ? { _id: product._id, businessId: biz } : { _id: product._id };
+    if (delta > 0) filter.openingStock = { $gte: delta };
 
-      const updated = await Product.findOneAndUpdate(
-        filter,
-        { $inc: { openingStock: -delta } },
-        { new: true, runValidators: true, session }
+    const updated = await Product.findOneAndUpdate(
+      filter,
+      { $inc: { openingStock: -delta } },
+      { new: true, runValidators: true, session }
+    );
+
+    if (!updated) {
+      const current = await Product.findOne(
+        biz ? { _id: product._id, businessId: biz } : { _id: product._id }
+      )
+        .session(session)
+        .lean();
+      const available = current ? toNumber(current.openingStock) : 0;
+      throw new ValidationError(
+        `Insufficient stock for ${representative.name}. Available: ${available}, requested: ${delta}`
       );
-
-      if (!updated) {
-        const current = await Product.findOne(biz ? { _id: product._id, businessId: biz } : { _id: product._id }).session(session).lean();
-        const available = current ? toNumber(current.openingStock) : 0;
-        throw new ValidationError(
-          `Insufficient stock for ${representative.name}. Available: ${available}, requested: ${delta}`
-        );
-      }
-
-      compensations.push(async () => {
-        await Product.findOneAndUpdate(biz ? { _id: product._id, businessId: biz } : { _id: product._id }, { $inc: { openingStock: delta } }, { session });
-      });
-
-      newStock = toNumber(updated.openingStock);
     }
 
-    for (const flavorDelta of flavorDeltas) {
-      await applyFlavorStockChange({
-        productId: product._id,
-        flavor: flavorDelta.flavor,
-        delta: -flavorDelta.delta,
-        session,
-        compensations,
-        businessId: biz,
-      });
-    }
+    compensations.push(async () => {
+      await Product.findOneAndUpdate(
+        biz ? { _id: product._id, businessId: biz } : { _id: product._id },
+        { $inc: { openingStock: delta } },
+        { session }
+      );
+    });
 
+    const newStock = toNumber(updated.openingStock);
     const reason =
       mode === "create"
         ? "Sale order placed"
@@ -533,9 +445,13 @@ async function applyStockAdjustments({
           ? "Sale order deleted"
           : delta > 0
             ? "Sale order quantity increased"
-            : delta < 0
-              ? "Sale order quantity reduced"
-              : "Sale flavor selection changed";
+            : "Sale order quantity reduced";
+
+    const absDelta = Math.abs(delta);
+    const repUnit = normalizeUnit(representative?.unitLabel) || "Piece";
+    const factor = toBasePieces(1, repUnit) || 1;
+    const originalQty = factor > 0 && absDelta % factor === 0 ? absDelta / factor : absDelta;
+    const originalUnit = factor > 0 && absDelta % factor === 0 ? repUnit : "Piece";
 
     const [movement] = await StockMovement.create(
       [
@@ -545,22 +461,22 @@ async function applyStockAdjustments({
           productTitle: product.title,
           type: "sale",
           direction: delta < 0 ? "in" : "out",
-          quantity: Math.abs(delta) || 1,
+          quantity: absDelta,
+          originalQuantity: originalQty,
+          originalUnit,
+          baseQuantity: absDelta,
           previousStock: newStock + delta,
           newStock,
-          unit: product.uom || representative.unitLabel || "",
+          unit: originalUnit,
           reason,
-          reference: `${orderNumber} · SALE`,
-          notes: `${
-            mode === "delete" ? "Stock restored after sale order deletion" : "Stock synced from sale order"
-          }`,
+          reference: `${orderNumber} - SALE`,
+          notes:
+            mode === "delete"
+              ? "Stock restored after sale order deletion"
+              : "Stock synced from sale order",
           performedBy,
           partyName: cleanString(partyName),
-          flavor: flavorDeltas.length === 1 ? flavorDeltas[0].flavor : "",
-          flavorBreakdown: flavorDeltas.map(({ flavor, delta: flavorDelta }) => ({
-            flavor,
-            quantity: Math.abs(flavorDelta),
-          })),
+          ...(biz ? { businessId: biz, createdByUserId: req?.auth?.id || null } : {}),
         },
       ],
       { session }

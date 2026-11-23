@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { FlavorMultiSelect } from "../../../app/components/FlavorMultiSelect";
 import type { Product } from "../../../app/products/types";
-import { toFlavorArray } from "../../../app/lib/flavors";
+import { formatStockWithPieces, toBasePieces, STOCK_UNITS } from "../../../app/lib/units";
 import {
   HUB_OPTIONS,
   ORDER_STATUS_OPTIONS,
@@ -17,7 +16,7 @@ import type {
   PaymentStatus,
 } from "../types";
 import { useProductLookup } from "../hooks/useProductLookup";
-import { flavorStockWarnings, formatRs, productFlavorStocks } from "../utils";
+import { formatRs } from "../utils";
 import { CustomerAutocomplete } from "./CustomerAutocomplete";
 import { ProductAutocomplete } from "./ProductAutocomplete";
 
@@ -32,7 +31,6 @@ type OrderFormDialogProps = {
 type EditableItem = {
   name: string;
   sku: string;
-  flavor: string[];
   quantity: string;
   unitLabel: string;
   unitPrice: string;
@@ -40,12 +38,11 @@ type EditableItem = {
 
 function toEditableItems(items: DraftOrderItemInput[]): EditableItem[] {
   if (items.length === 0) {
-    return [{ name: "", sku: "", flavor: [], quantity: "1", unitLabel: "pcs", unitPrice: "0" }];
+    return [{ name: "", sku: "", quantity: "1", unitLabel: "Piece", unitPrice: "0" }];
   }
   return items.map((item) => ({
     name: item.name,
     sku: item.sku,
-    flavor: toFlavorArray(item.flavor),
     quantity: String(item.quantity),
     unitLabel: item.unitLabel,
     unitPrice: String(item.unitPrice),
@@ -53,86 +50,13 @@ function toEditableItems(items: DraftOrderItemInput[]): EditableItem[] {
 }
 
 function emptyItem(): EditableItem {
-  return { name: "", sku: "", flavor: [], quantity: "1", unitLabel: "pcs", unitPrice: "0" };
+  return { name: "", sku: "", quantity: "1", unitLabel: "Piece", unitPrice: "0" };
 }
 
 const NEW_ITEM_INPUT_CLASS =
   "h-8 w-full rounded border border-outline-variant bg-surface px-2 font-mono-data-sm text-mono-data-sm text-on-surface focus:border-primary focus:outline-none";
 const NEW_ITEM_TEXT_INPUT_CLASS =
   "h-8 w-full rounded border border-outline-variant bg-surface px-2 font-body-default text-body-dense text-on-surface focus:border-primary focus:outline-none";
-
-function perFlavorPrice(product: Product): number {
-  const value = Number(product.wholesalePrice);
-  return Number.isFinite(value) ? Math.max(value, 0) : 0;
-}
-
-function flavorAdjustedUnitPrice(product: Product, flavors: string[]): string {
-  const multiplier = (product.flavors?.length || 0) > 0 ? toFlavorArray(flavors).length : 1;
-  return String(perFlavorPrice(product) * multiplier);
-}
-
-function FlavorSelect({
-  item,
-  product,
-  onChange,
-  ariaLabel,
-}: {
-  item: EditableItem;
-  product: Product | null;
-  onChange: (flavors: string[]) => void;
-  ariaLabel: string;
-}) {
-  const options = product?.flavors || [];
-  const selected = toFlavorArray(item.flavor);
-  if (options.length === 0 && selected.length === 0) return null;
-
-  return (
-    <div className="col-span-12 flex flex-col gap-1">
-      <span className="font-label-caps text-label-caps uppercase text-secondary">
-        Flavors <span className="normal-case">(required · select one or more)</span>
-      </span>
-      <FlavorMultiSelect
-        options={options}
-        value={selected}
-        onChange={onChange}
-        ariaLabel={ariaLabel}
-        compact
-      />
-      {product && options.length > 0 ? (
-        <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-          {formatRs(perFlavorPrice(product))} / flavor × {selected.length} flavor
-          {selected.length === 1 ? "" : "s"} ={" "}
-          <span className="font-semibold tabular-nums text-primary">
-            {formatRs(Number(flavorAdjustedUnitPrice(product, selected)))} / unit
-          </span>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function FlavorStockWarnings({
-  product,
-  flavors,
-  quantity,
-}: {
-  product: Product | null;
-  flavors: string[];
-  quantity: number;
-}) {
-  const warnings = flavorStockWarnings(product, flavors, quantity);
-  if (warnings.length === 0) return null;
-
-  return (
-    <div className="col-span-12 flex flex-col gap-0.5" role="alert">
-      {warnings.map((warning) => (
-        <span key={warning} className="font-body-dense text-body-dense font-semibold text-error">
-          {warning}
-        </span>
-      ))}
-    </div>
-  );
-}
 
 export function OrderFormDialog({
   mode,
@@ -201,9 +125,6 @@ export function OrderFormDialog({
       if (!item.name.trim()) {
         validationIssues.push(`${label}: select a catalog product or type a product name.`);
       }
-      if (product && (product.flavors?.length || 0) > 0 && toFlavorArray(item.flavor).length === 0) {
-        validationIssues.push(`${label}: select at least one flavor for ${product.title}.`);
-      }
       if (!Number.isFinite(quantity) || quantity <= 0) {
         validationIssues.push(`${label}: quantity must be greater than zero.`);
       }
@@ -213,11 +134,6 @@ export function OrderFormDialog({
       if (available !== null && Number.isFinite(quantity) && quantity > available) {
         validationIssues.push(
           `${label}: only ${available} unit${available === 1 ? "" : "s"} available for ${product?.title || "this product"}.`
-        );
-      }
-      if (product && (product.flavors?.length || 0) > 0) {
-        flavorStockWarnings(product, toFlavorArray(item.flavor), quantity).forEach((warning) =>
-          validationIssues.push(`${label}: ${warning}`)
         );
       }
     });
@@ -246,24 +162,13 @@ export function OrderFormDialog({
   }
 
   function selectProduct(index: number, product: Product) {
-    const currentFlavors = toFlavorArray(items[index]?.flavor);
-    const allowed = product.flavors || [];
-    const preservedFlavors = currentFlavors.filter((flavor) =>
-      allowed.some((option) => option.toLowerCase() === flavor.toLowerCase())
-    );
-    const nextFlavors =
-      preservedFlavors.length > 0
-        ? preservedFlavors
-        : allowed.length === 1
-          ? [allowed[0]]
-          : [];
-
+    const normalizedUom = (product.uom || "").trim();
+    const unitLabel = ["Carton", "Box", "Piece"].includes(normalizedUom) ? normalizedUom : "Piece";
     updateItem(index, {
       name: product.title,
       sku: product.sku,
-      flavor: nextFlavors,
-      unitLabel: product.uom?.trim() || "pcs",
-      unitPrice: flavorAdjustedUnitPrice(product, nextFlavors),
+      unitLabel,
+      unitPrice: String(Number(product.wholesalePrice) || 0),
     });
   }
 
@@ -299,16 +204,11 @@ export function OrderFormDialog({
     setError(null);
 
     const payloadItems: DraftOrderItemInput[] = items.map((item) => {
-      const product = productForItem(item);
-      const flavors = toFlavorArray(item.flavor);
-      return {
+      const product = productForItem(item);      return {
         name: item.name.trim(),
-        sku: item.sku.trim(),
-        flavor: flavors,
-        quantity: Number(item.quantity),
-        unitLabel: item.unitLabel.trim() || "pcs",
-        basePrice: product ? perFlavorPrice(product) : Number(item.unitPrice),
-        flavorCount: product && (product.flavors?.length || 0) > 0 ? flavors.length : 1,
+        sku: item.sku.trim(),        quantity: Number(item.quantity),
+        unitLabel: item.unitLabel.trim() || "Piece",
+        basePrice: product ? Number(product.wholesalePrice) || 0 : Number(item.unitPrice),
         unitPrice: Number(item.unitPrice),
       };
     });
@@ -419,9 +319,7 @@ export function OrderFormDialog({
 
               <div className="space-y-2">
                 {items.map((item, index) => {
-                  const product = productForItem(item);
-                  const flavorStocks = product ? productFlavorStocks(product) : [];
-                  const itemTotal =
+                  const product = productForItem(item);                  const itemTotal =
                     Math.max(Number(item.quantity) || 0, 0) *
                     Math.max(Number(item.unitPrice) || 0, 0);
                   return (
@@ -485,10 +383,7 @@ export function OrderFormDialog({
                                 quantity,
                                 ...(product
                                   ? {
-                                      unitPrice: flavorAdjustedUnitPrice(
-                                        product,
-                                        toFlavorArray(item.flavor)
-                                      ),
+                                      unitPrice: String(Number(product.wholesalePrice)||0),
                                     }
                                   : {}),
                               });
@@ -505,12 +400,16 @@ export function OrderFormDialog({
                           <span className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
                             Unit
                           </span>
-                          <input
-                            value={item.unitLabel}
+                          <select
+                            value={["Carton", "Box", "Piece"].includes(item.unitLabel) ? item.unitLabel : "Piece"}
                             onChange={(event) => updateItem(index, { unitLabel: event.target.value })}
                             aria-label={`Item ${index + 1} unit`}
                             className={NEW_ITEM_TEXT_INPUT_CLASS}
-                          />
+                          >
+                            {STOCK_UNITS.map((u) => (
+                              <option key={u} value={u}>{u}</option>
+                            ))}
+                          </select>
                         </label>
 
                         <label className="col-span-2 min-w-0 sm:col-span-2">
@@ -530,40 +429,18 @@ export function OrderFormDialog({
                         </label>
                       </div>
 
-                      <FlavorSelect
-                        item={item}
-                        product={product}
-                        onChange={(flavors) =>
-                          updateItem(index, {
-                            flavor: flavors,
-                            ...(product
-                              ? { unitPrice: flavorAdjustedUnitPrice(product, flavors) }
-                              : {}),
-                          })
-                        }
-                        ariaLabel={`Item ${index + 1} flavor`}
-                      />
-
-                      <FlavorStockWarnings
-                        product={product}
-                        flavors={toFlavorArray(item.flavor)}
-                        quantity={Number(item.quantity)}
-                      />
-
                       <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-outline-variant/70 pt-2">
-                        {product ? (
-                          <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                            Available stock: {Number(product.openingStock) || 0}
-                            {flavorStocks.length > 0 ? (
-                              <span className="ml-1">
-                                {" · "}
-                                {flavorStocks
-                                  .map((entry) => `${entry.flavor}: ${entry.quantity}`)
-                                  .join(" · ")}
-                              </span>
-                            ) : null}
+                        <div className="font-mono-data-sm text-mono-data-sm text-secondary">
+                          {product ? (
+                            <span>Available: {formatStockWithPieces(Number(product.openingStock) || 0)}</span>
+                          ) : null}
+                          <span className={product ? "ml-2" : ""}>
+                            1 {item.unitLabel} = {toBasePieces(1, item.unitLabel)} pcs
+                            {Number(item.quantity) > 0
+                              ? ` · Equivalent: ${toBasePieces(Number(item.quantity) || 0, item.unitLabel)} pcs`
+                              : ""}
                           </span>
-                        ) : null}
+                        </div>
                         <span
                           aria-live="polite"
                           className="ml-auto font-mono-data-sm text-mono-data-sm text-secondary"

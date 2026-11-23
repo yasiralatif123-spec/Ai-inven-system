@@ -9,15 +9,11 @@ import {
   type KeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { FlavorMultiSelect } from "../../../app/components/FlavorMultiSelect";
-import { toFlavorArray } from "../../../app/lib/flavors";
 import type { Product } from "../../../app/products/types";
 
 type ProductMultiSelectProps = {
   selectedIds: string[];
-  selectedFlavors: Record<string, string[]>;
   onChange: (ids: string[]) => void;
-  onFlavorChange: (productId: string, flavors: string[]) => void;
   products: Product[];
   loading: boolean;
   error?: string | null;
@@ -35,9 +31,7 @@ const CONTROL_CLASS =
 
 export function ProductMultiSelect({
   selectedIds,
-  selectedFlavors,
   onChange,
-  onFlavorChange,
   products,
   loading,
   error,
@@ -67,7 +61,7 @@ export function ProductMultiSelect({
         product.barcode,
         product.brand,
         product.category,
-        ...(product.flavors || []),
+
       ]
         .filter(Boolean)
         .join(" ")
@@ -165,21 +159,6 @@ export function ProductMultiSelect({
             className="inline-flex max-w-full flex-wrap items-center gap-1 rounded bg-primary-container/15 px-2 py-1 font-body-dense text-body-dense text-black"
           >
             <span className="truncate">{product.title}</span>
-            {product.flavors && product.flavors.length > 0 ? (
-              <div
-                className="min-w-[120px] max-w-[220px]"
-                onMouseDown={(event) => event.stopPropagation()}
-                onClick={(event) => event.stopPropagation()}
-              >
-                <FlavorMultiSelect
-                  options={product.flavors}
-                  value={toFlavorArray(selectedFlavors[product._id])}
-                  onChange={(flavors) => onFlavorChange(product._id, flavors)}
-                  ariaLabel={`Default flavors for ${product.title}`}
-                  compact
-                />
-              </div>
-            ) : null}
             <button
               type="button"
               aria-label={`Remove ${product.title}`}

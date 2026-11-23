@@ -2,14 +2,6 @@ const mongoose = require("mongoose");
 require("./Business");
 require("./User");
 
-const flavorBreakdownSchema = new mongoose.Schema(
-  {
-    flavor: { type: String, required: true, trim: true },
-    quantity: { type: Number, required: true, min: 1 },
-  },
-  { _id: false }
-);
-
 const stockMovementSchema = new mongoose.Schema(
   {
     product: {
@@ -27,6 +19,9 @@ const stockMovementSchema = new mongoose.Schema(
     },
     direction: { type: String, enum: ["in", "out"], required: true },
     quantity: { type: Number, required: true, min: 1 },
+    originalQuantity: { type: Number, default: 0, min: 0 },
+    originalUnit: { type: String, default: "", trim: true },
+    baseQuantity: { type: Number, default: 0, min: 0 },
     previousStock: { type: Number, required: true },
     newStock: { type: Number, required: true },
     unit: { type: String, default: "" },
@@ -37,10 +32,6 @@ const stockMovementSchema = new mongoose.Schema(
     // Denormalized counterparty captured at movement time: supplier name for
     // purchases, customer/buyer name for sales. The ledger is immutable.
     partyName: { type: String, default: "" },
-    // Flavor context for the movement. `flavor` is set for single-flavor rows;
-    // `flavorBreakdown` records the per-flavor quantities of a multi-flavor line.
-    flavor: { type: String, default: "", trim: true },
-    flavorBreakdown: { type: [flavorBreakdownSchema], default: [] },
     // Tenancy foundation (Phase 5). Optional until Phase 6 backfill+enforcement.
     businessId: {
       type: mongoose.Schema.Types.ObjectId,

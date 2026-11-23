@@ -2,6 +2,7 @@
 
 import type { PurchaseRecord } from "../purchaseData";
 import { formatDate, formatRs, itemRemainingQuantity, paymentTermsLabel } from "../utils";
+import { formatStockWithPieces } from "../../../app/lib/units";
 
 type PurchaseDetailDialogProps = {
   purchase: PurchaseRecord | null;
@@ -47,7 +48,7 @@ export function PurchaseDetailDialog({ purchase, onClose }: PurchaseDetailDialog
               {dto.supplier.name} (#{dto.supplier.code})
             </span>
             <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-              {dto.supplier.contact} · {dto.supplier.phone}
+              {dto.supplier.contact} ? {dto.supplier.phone}
               <br />
               {dto.supplier.address}
               <br />
@@ -72,7 +73,7 @@ export function PurchaseDetailDialog({ purchase, onClose }: PurchaseDetailDialog
               <span className="block font-label-caps text-label-caps uppercase text-secondary">
                 Supplier Invoice #
               </span>
-              {dto.invoiceNumber || "—"}
+              {dto.invoiceNumber || "?"}
             </div>
           </div>
         </div>
@@ -98,23 +99,20 @@ export function PurchaseDetailDialog({ purchase, onClose }: PurchaseDetailDialog
                     </span>
                     <span className="font-mono-data-sm text-mono-data-sm text-secondary">
                       {item.sku || "Manual item"}
-                      {Array.isArray(item.flavor)
-                        ? item.flavor.length
-                          ? ` · ${item.flavor.join(", ")}`
-                          : ""
-                        : item.flavor
-                          ? ` · ${item.flavor}`
-                          : ""}
+                      
                     </span>
                   </td>
                   <td className="px-3 py-2 text-right font-mono-data">
-                    {item.quantity} {item.unit}
+                    <div>{item.quantity} {item.unit}</div>
+                    {Number.isFinite(Number(item.baseQuantity)) ? <div className="font-mono-data-sm text-mono-data-sm text-secondary">{formatStockWithPieces(Number(item.baseQuantity))}</div> : null}
                   </td>
                   <td className="px-3 py-2 text-right font-mono-data text-primary">
-                    {Number(item.receivedQuantity) || 0} {item.unit}
+                    <div>{Number(item.receivedQuantity) || 0} {item.unit}</div>
+                    {Number.isFinite(Number(item.receivedBaseQuantity)) ? <div className="font-mono-data-sm text-mono-data-sm text-secondary">{formatStockWithPieces(Number(item.receivedBaseQuantity))}</div> : null}
                   </td>
                   <td className="px-3 py-2 text-right font-mono-data">
-                    {itemRemainingQuantity(item)} {item.unit}
+                    <div>{itemRemainingQuantity(item)} {item.unit}</div>
+                    {Number.isFinite(Number(item.baseQuantity)) ? <div className="font-mono-data-sm text-mono-data-sm text-secondary">{formatStockWithPieces(Math.max(0, Number(item.baseQuantity) - (Number(item.receivedBaseQuantity)||0)))}</div> : null}
                   </td>
                   <td className="px-3 py-2 text-right font-mono-data">
                     {formatRs(item.unitPrice)}
@@ -155,7 +153,7 @@ export function PurchaseDetailDialog({ purchase, onClose }: PurchaseDetailDialog
                     className="flex items-center justify-between font-mono-data-sm text-mono-data-sm text-secondary"
                   >
                     <span>
-                      {formatDate(payment.paidAt)} · {payment.method}
+                      {formatDate(payment.paidAt)} ? {payment.method}
                     </span>
                     <span>{formatRs(payment.amount)}</span>
                   </div>

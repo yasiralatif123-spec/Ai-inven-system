@@ -1,6 +1,7 @@
 import type { Product } from "../../app/products/types";
 import type { StockMovementDto } from "../../app/inventory/data";
 import { formatRs, getUnitShort, toStockRows } from "../../app/inventory/utils";
+import { toBasePieces } from "../../app/lib/units";
 import type { SalesOrder } from "../sales-orders/types";
 import type { Supplier } from "../suppliers/types";
 import type {
@@ -170,8 +171,7 @@ export function summarizeBuckets(buckets: SalesBucket[]): SalesPeriodSummary {
 }
 
 /**
- * Low stock is evaluated per inventory row so purchased flavors get their own
- * alert. Products without received flavors keep their single product row.
+ * Low stock is evaluated per inventory row.
  */
 function collectLowStockRows(products: Product[]): LowStockRow[] {
   return products
@@ -182,7 +182,6 @@ function collectLowStockRows(products: Product[]): LowStockRow[] {
           id: row.id,
           productId: row.productId,
           title: row.name,
-          flavor: row.flavor,
           sku: row.sku,
           available: row.available,
           unit: row.unit,
@@ -197,7 +196,7 @@ function collectLowStockRows(products: Product[]): LowStockRow[] {
       const ratioA = a.threshold > 0 ? a.available / a.threshold : a.available;
       const ratioB = b.threshold > 0 ? b.available / b.threshold : b.available;
       if (ratioA !== ratioB) return ratioA - ratioB;
-      return `${a.title}${a.flavor || ""}`.localeCompare(`${b.title}${b.flavor || ""}`);
+      return a.title.localeCompare(b.title);
     });
 }
 
@@ -225,11 +224,12 @@ export function getDashboardKpis(
     activeProducts: products.filter((product) => product.catalogStatus === "active").length,
     todaySales,
     salesChangePct: percentChange(todaySales, yesterdaySales),
-    stockValue: products.reduce(
-      (total, product) =>
-        total + safeAmount(product.openingStock) * safeAmount(product.purchasePrice),
-      0
-    ),
+    stockValue: products.reduce((total, product) => {
+      const stockPieces = safeAmount(product.openingStock);
+      const unitFactor = toBasePieces(1, (product as any).uom || "Piece") || 1;
+      const pricePerPiece = safeAmount(product.purchasePrice) / unitFactor;
+      return total + stockPieces * pricePerPiece;
+    }, 0),
     lowStockCount: lowStock.length,
     urgentCount: lowStock.filter((row) => row.status === "critical").length,
   };
@@ -254,7 +254,7 @@ export function getRecentOrders(orders: SalesOrder[], limit = 5): RecentOrder[] 
     }));
 }
 
-/** `limit <= 0` returns every flagged flavor row for the dashboard panel. */
+/** `limit <= 0` returns every flagged row for the dashboard panel. */
 export function getLowStockRows(products: Product[], limit = 0): LowStockRow[] {
   const rows = collectLowStockRows(products);
   return limit > 0 ? rows.slice(0, limit) : rows;

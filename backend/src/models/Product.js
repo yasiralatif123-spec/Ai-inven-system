@@ -10,19 +10,6 @@ const productSchema = new mongoose.Schema(
     category: { type: String, required: true, trim: true },
     brand: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: "" },
-    flavors: { type: [String], default: [] },
-    // Per-flavor balances for flavor-wise inventory rows. Only flavors that have
-    // actually been received get an entry; product-level openingStock remains
-    // the authoritative total (sum of all flavor balances).
-    flavorStocks: {
-      type: [
-        {
-          flavor: { type: String, required: true, trim: true },
-          quantity: { type: Number, default: 0, min: 0 },
-        },
-      ],
-      default: [],
-    },
     purchasePrice: { type: Number, default: 0 },
     wholesalePrice: { type: Number, default: 0 },
     retailPrice: { type: Number, default: 0 },

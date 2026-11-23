@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { STOCK_STATUS_META, type StockRow } from "../data";
-import { formatFlavorLabel, formatNumber } from "../utils";
+import { formatNumber } from "../utils";
 
 type StockTableProps = {
   rows: StockRow[];
@@ -77,7 +77,6 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
                 />
               </th>
               <th className="px-3 py-1.5">Product &amp; SKU</th>
-              <th className="px-3 py-1.5">Flavor</th>
               <th className="px-3 py-1.5">Depot Location</th>
               <th className="px-3 py-1.5 text-right">Available</th>
               <th className="px-3 py-1.5 text-right">Reserved</th>
@@ -90,7 +89,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
           <tbody className="divide-y divide-outline-variant font-body-default text-body-default">
             {sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-secondary">
+                <td colSpan={9} className="px-4 py-8 text-center text-secondary">
                   No products match the current filters.
                 </td>
               </tr>
@@ -125,21 +124,10 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
                             {row.sku}
                           </span>
                           <span className="font-label-caps text-[10px] uppercase text-secondary">
-                            {row.brand} • {row.pack}
+                            {row.brand} - {row.pack}
                           </span>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`inline-flex rounded border px-1.5 py-0.5 font-body-medium text-[12px] ${
-                          row.flavor
-                            ? "border-primary/30 bg-primary-container/20 font-semibold text-primary"
-                            : "border-outline-variant bg-surface-container text-secondary"
-                        }`}
-                      >
-                        {formatFlavorLabel(row.flavor)}
-                      </span>
                     </td>
                     <td className="px-3 py-2">
                       <span className="flex items-center gap-1 font-mono-data-sm text-mono-data-sm font-medium text-on-surface">
@@ -148,18 +136,28 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
                       </span>
                     </td>
                     <td className={`px-3 py-2 text-right font-mono-data text-mono-data font-bold ${meta.valueClass}`}>
-                      {formatNumber(row.available)} {row.unit}
+                      <div className="flex flex-col items-end">
+                        <span>{row.stockDisplay}</span>
+                        <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                          {formatNumber(row.available)} pcs
+                        </span>
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-right font-mono-data text-mono-data text-secondary">
-                      {row.reserved ? `${formatNumber(row.reserved)} ${row.unit}` : "0"}
+                      {row.reserved ? `${formatNumber(row.reserved)} pcs` : "0"}
                     </td>
                     <td className="px-3 py-2 text-right font-mono-data text-mono-data font-semibold text-on-surface">
-                      {formatNumber(totalOnHand)} {row.unit}
+                      <div className="flex flex-col items-end">
+                        <span>{row.stockDisplay}</span>
+                        <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                          {formatNumber(totalOnHand)} pcs
+                        </span>
+                      </div>
                     </td>
                     <td className="px-3 py-2 text-right">
                       <div className="flex flex-col items-end">
                         <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                          {row.minSafety ? `Min: ${formatNumber(row.minSafety)}` : "Min: Not set"}
+                          {row.minSafety ? `Min: ${formatNumber(row.minSafety)} pcs` : "Min: Not set"}
                         </span>
                         <div className="mt-1 h-1 w-14 overflow-hidden rounded-full bg-outline-variant">
                           <div className={`h-full ${meta.barClass}`} style={{ width: barWidth }} />
@@ -199,7 +197,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
                 ? `Showing ${rows.length} active alert SKU${rows.length === 1 ? "" : "s"}`
                 : `Showing 1 - ${rows.length} of ${rows.length} tracked warehouse SKUs`}
           </span>
-          <span>•</span>
+          <span>-</span>
           <span className={alertCount > 0 ? "font-medium text-error" : "font-medium text-primary"}>
             {alertCount > 0
               ? `${alertCount} SKU${alertCount === 1 ? "" : "s"} require immediate PO dispatch`

@@ -1,12 +1,12 @@
 "use client";
 
+
 import { useState } from "react";
-import { FlavorMultiSelect } from "../../../app/components/FlavorMultiSelect";
-import { toFlavorArray } from "../../../app/lib/flavors";
 import type { Product } from "../../../app/products/types";
 import { UNIT_OPTIONS } from "../constants";
 import type { PurchaseLineItem } from "../types";
 import { calculateLineTax, calculateLineTotal } from "../utils";
+import { toBasePieces } from "../../../app/lib/units";
 import { ProductPicker } from "./ProductPicker";
 
 type PurchaseItemsTableProps = {
@@ -99,8 +99,7 @@ export function PurchaseItemsTable({
           <thead>
             <tr className="bg-surface-container font-label-caps text-label-caps uppercase tracking-wider text-secondary">
               <th className="min-w-[240px] py-2.5 pl-4 pr-2 font-medium">Product / SKU</th>
-              <th className="w-36 px-2 py-2.5 font-medium">Flavor</th>
-              <th className="w-28 px-2 py-2.5 font-medium">Quantity (Target)</th>
+              <th className="w-28 px-2 py-2.5 font-medium">Qty</th>
               <th className="w-28 px-2 py-2.5 font-medium">Unit</th>
               <th className="w-32 px-2 py-2.5 text-right font-medium">Unit Price (Rs.)</th>
               <th className="w-28 px-2 py-2.5 text-right font-medium">Discount</th>
@@ -115,9 +114,7 @@ export function PurchaseItemsTable({
               const lineTax = calculateLineTax(item);
               const lineTotal = calculateLineTotal(item);
               const product = products.find((candidate) => candidate._id === item.productId) || null;
-              const flavorOptions = [...(product?.flavors || [])];
-              const savedFlavors = toFlavorArray(item.flavor);
-
+                            
               return (
                 <tr
                   key={item.rowId}
@@ -134,7 +131,6 @@ export function PurchaseItemsTable({
                             name: value,
                             productId: "",
                             sku: "",
-                            flavor: [],
                           })
                         }
                         onProductSelect={(product) => onProductSelect(item.rowId, product)}
@@ -144,7 +140,7 @@ export function PurchaseItemsTable({
                         ariaLabel={`Product for line ${index + 1}`}
                       />
                       <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                        {item.sku || "Manual item · no SKU"}
+                        {item.sku || "Manual item - no SKU"}
                       </span>
                       {item.availableStock !== undefined && item.productId ? (
                         <span
@@ -152,29 +148,16 @@ export function PurchaseItemsTable({
                             item.lowStock ? "font-semibold text-error" : "text-secondary"
                           }`}
                         >
-                          Available {item.availableStock} · ordered {Math.max(item.quantity, 0)} ·
-                          received {Math.max(item.receivedQuantity || 0, 0)}
+                          Available {item.availableStock} pcs ? ordered {Math.max(item.quantity, 0)} {item.unit} ? received {Math.max(item.receivedQuantity || 0, 0)} {item.unit}
                         </span>
                       ) : null}
                     </div>
                   </td>
                   <td className="px-2 py-2.5">
-                    {flavorOptions.length > 0 || savedFlavors.length > 0 ? (
-                      <FlavorMultiSelect
-                        options={flavorOptions}
-                        value={savedFlavors}
-                        onChange={(flavors) => onItemChange(item.rowId, { flavor: flavors })}
-                        ariaLabel={`Flavors for line ${index + 1}`}
-                        compact
-                      />
-                    ) : (
-                      <span className="font-body-dense text-body-dense text-outline">—</span>
-                    )}
-                  </td>
-                  <td className="relative px-2 py-2.5">
                     <input
                       type="number"
                       min={0}
+                      step="1"
                       value={item.quantity}
                       onChange={(event) =>
                         onItemChange(item.rowId, {
@@ -182,15 +165,11 @@ export function PurchaseItemsTable({
                         })
                       }
                       aria-label={`Quantity for line ${index + 1}`}
-                      className={`${CELL_INPUT_CLASS} text-right ${
-                        invalidQuantity ? "text-error ring-2 ring-error outline-none" : ""
-                      }`}
+                      className={CELL_INPUT_CLASS}
                     />
-                    {invalidQuantity ? (
-                      <span className="mt-0.5 block whitespace-nowrap font-body-dense text-[10px] leading-tight text-error">
-                        Enter a quantity greater than 0
-                      </span>
-                    ) : null}
+                    <span className="mt-0.5 block font-mono-data-sm text-mono-data-sm text-secondary">
+                      {toBasePieces(item.quantity, item.unit)} pcs
+                    </span>
                   </td>
                   <td className="px-2 py-2.5">
                     <select
@@ -199,7 +178,7 @@ export function PurchaseItemsTable({
                       aria-label={`Unit for line ${index + 1}`}
                       className="h-8 w-full rounded bg-surface-container-lowest px-2 font-body-dense text-body-dense text-on-surface outline-none focus:ring-1 focus:ring-primary-container"
                     >
-                      {Array.from(new Set([item.unit, ...UNIT_OPTIONS].filter(Boolean))).map(
+                      {Array.from(new Set([UNIT_OPTIONS, item.unit].flat().filter(Boolean))).map(
                         (unit) => (
                           <option key={unit} value={unit}>
                             {unit}
@@ -207,6 +186,9 @@ export function PurchaseItemsTable({
                         )
                       )}
                     </select>
+                    <span className="mt-0.5 block font-mono-data-sm text-mono-data-sm text-secondary">
+                      1 {item.unit} = {toBasePieces(1, item.unit)} pcs
+                    </span>
                   </td>
                   <td className="px-2 py-2.5">
                     {item.productId ? (
@@ -215,8 +197,7 @@ export function PurchaseItemsTable({
                           {item.unitPrice.toLocaleString("en-PK")}
                         </span>
                         <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                          {Number(item.basePrice) || 0} × {Number(item.flavorCount) || 1} flavor
-                          {(Number(item.flavorCount) || 1) === 1 ? "" : "s"}
+                          {Number(item.unitPrice) || 0} / unit
                         </span>
                       </div>
                     ) : (

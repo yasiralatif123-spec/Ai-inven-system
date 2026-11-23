@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { apiFetch } from "../../lib/api";
 import type { Product } from "../types";
-import { FlavorInput } from "./FlavorInput";
 import {
   CATALOG_STATUSES,
   PRODUCT_CATEGORIES,
@@ -21,7 +20,6 @@ type FormState = {
   category: string;
   brand: string;
   description: string;
-  flavors: string[];
   purchasePrice: string;
   wholesalePrice: string;
   retailPrice: string;
@@ -63,7 +61,6 @@ function buildInitialForm(product: Product): FormState {
     category: product.category || PRODUCT_CATEGORIES[0],
     brand: product.brand || "",
     description: product.description || "",
-    flavors: Array.isArray(product.flavors) ? [...product.flavors] : [],
     purchasePrice: product.purchasePrice !== undefined ? String(product.purchasePrice) : "",
     wholesalePrice: product.wholesalePrice !== undefined ? String(product.wholesalePrice) : "",
     retailPrice: product.retailPrice !== undefined ? String(product.retailPrice) : "",
@@ -394,12 +391,6 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                   placeholder="Packaging, storage, composition, etc."
                 />
               </Field>
-              <Field label="Available Flavors (Optional)">
-                <FlavorInput
-                  value={form.flavors}
-                  onChange={(flavors) => set("flavors", flavors)}
-                />
-              </Field>
             </Section>
 
             <Section index="SEC #02" title="B. Pricing Tiers & FBR Taxation" subtitle="Cost, wholesale, retail, and tax regime">
@@ -471,7 +462,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     ))}
                   </select>
                 </Field>
-                <Field label="Opening Stock">
+                <Field label="Opening Stock (Base Pieces)">
                   <input
                     type="number"
                     min={0}
@@ -479,15 +470,18 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     onChange={(event) => set("openingStock", event.target.value)}
                     className={monoInputClass}
                   />
+                  <span className="font-mono-data-sm text-mono-data-sm text-secondary">Stored as pieces. 1 Carton = 24 pcs, 1 Box = 12 pcs.</span>
                 </Field>
-                <Field label="Reorder Alert Threshold">
+                <Field label="Reorder Alert Threshold (Pieces)" required>
                   <input
                     type="number"
                     min={0}
+                    required
                     value={form.reorderThreshold}
                     onChange={(event) => set("reorderThreshold", event.target.value)}
                     className={monoInputClass}
                   />
+                  <span className="font-mono-data-sm text-mono-data-sm text-secondary">Alert below this number of pieces.</span>
                 </Field>
               </div>
               <div className="grid grid-cols-1 gap-3 border-t border-outline-variant pt-3 md:grid-cols-2">

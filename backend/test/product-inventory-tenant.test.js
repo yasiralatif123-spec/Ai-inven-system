@@ -28,6 +28,7 @@ async function createProductAs(cookie, overrides = {}) {
     category: "Cat",
     brand: "Brand",
     openingStock: 10,
+    reorderThreshold: 10,
     ...overrides,
   };
   const response = await request(app)
@@ -213,6 +214,7 @@ describe("Phase 6 Part A - product/inventory tenant enforcement", () => {
         sku: "SKU-A1",
         category: "Cat",
         brand: "Brand",
+        reorderThreshold: 10,
         businessId: String(businessB._id),
       });
     expect(updateRes.status).toBe(200);

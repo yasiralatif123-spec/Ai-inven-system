@@ -1,6 +1,6 @@
 import type { CreatePurchaseStatus } from "./types";
 
-export const UNIT_OPTIONS = ["Carton", "Piece", "Box", "Dozen", "KG", "Litre"];
+export const UNIT_OPTIONS = ["Carton", "Box", "Piece"];
 
 export const PAYMENT_METHODS = ["Cash", "Bank Transfer", "Cheque", "Online Transfer"];
 
