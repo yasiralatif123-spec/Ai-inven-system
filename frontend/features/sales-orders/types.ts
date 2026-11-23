@@ -4,7 +4,8 @@ export type OrderStatus =
   | "Packed"
   | "Dispatched"
   | "Delivered"
-  | "Credit Hold";
+  | "Credit Hold"
+  | "Cancelled";
 
 export type PaymentStatus = "paid" | "partial" | "unpaid";
 

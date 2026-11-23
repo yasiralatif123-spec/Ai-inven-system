@@ -1,7 +1,7 @@
 # PROJECT_MEMORY.md
 
 > Persistent working memory for the StockFlow inventory system.
-> Last updated: **2026-11-22** (Auth + Authorization plan approved with changes; Phases 1-2 implemented locally; not committed/pushed).
+> Last updated: **2026-11-24** (Auth + tenancy committed through `198a2fd`; flavors removed for base-piece unit conversion; Cancel Sale workflow completed in the working tree, not committed).
 > Workspace root: `C:\Users\yasir\Desktop\real projects\inv_system`
 >
 > This file was created after a full read-only analysis of the current codebase. It intentionally records **verified code behavior**, not assumptions. Where something is only partially implemented or known-broken, it is labelled as such.
@@ -32,6 +32,90 @@ For every future task:
 8. Report a concise summary: what changed, files modified, verification, remaining issues.
 
 If a request is ambiguous, ask questions before planning. If an important issue is discovered outside task scope, report it separately instead of fixing it automatically.
+
+---
+
+## 0.1 Current-state snapshot (verified 2026-11-24)
+
+**This section supersedes stale statements in the historical sections below.**
+The code at `HEAD` and git history are authoritative; older flavor/public-API
+sections are kept only as project history and must not be treated as current.
+
+### Git / history
+
+- Branch `main`, `HEAD` = `198a2fd Remove flavors and add base-piece unit conversion`.
+- Relevant committed work after the 2026-11-22 auth-page merges:
+  - `b2fd301` Auth phases 1–3 (login/refresh/logout, invite-only registration,
+    password reset, user management, Zod validators, rate limits, email service).
+  - `ddc7c70` Auth phase 4 + Business model fix; frontend `AuthProvider`, real
+    login/register/forgot/reset forms, `apiFetch` credentials/refresh, `proxy.ts`.
+  - `8925335` Tenancy phase 5 (optional `businessId`, tenant helpers, migration).
+  - `d0073bd` Tenancy phase 6A (products + inventory enforcement).
+  - `eb6c83a` Tenancy phase 6B (suppliers, customers, purchases, sale orders).
+  - `b2e48ae` Sale-order tenant lookup fix.
+  - `198a2fd` Removed flavors end-to-end and added base-piece unit conversion.
+- Working tree at this refresh: the **Cancel Sale** workflow (see §15) is
+  implemented but uncommitted. `Skills/Frontedn-design/SKILL.md` is untracked and
+  unrelated to the application.
+
+### Backend architecture now
+
+- `src/app.js`: helmet, CORS (credentials), cookie-parser, `checkOrigin`, JSON
+  and URL-encoded bodies; mounts `/api/auth`, `/api/products`, `/api/inventory`,
+  `/api/sale-orders`, `/api/suppliers`, `/api/customers`, `/api/purchases`, plus
+  `/api/health`.
+- Additional directories beyond the old layout: `emails/`, `services/`,
+  `validators/`; middleware now includes `auth`, `enforcement`, `origin`,
+  `rate-limit`, and `validate`. `utils/units.js` is the unit-conversion source
+  of truth; `utils/tenant.js` and `config/env.js` support tenancy/config.
+- Models now include `Business`, `AuthToken`, `RefreshSession`, `Invite`, and an
+  expanded `User`, alongside the seven business models.
+- Tests use Jest + Supertest (`backend/test/`), a dedicated `MONGODB_TEST_URI`,
+  and helpers under `test/helpers/`; `npm test` runs them serially.
+
+### Auth / tenancy state
+
+- Auth is implemented, not scaffold-only: `/api/auth/login`, `/refresh`,
+  `/logout`, `/me`, invite validate/accept/list/create/revoke, forgot/reset
+  password, and owner/admin user role/deactivate endpoints. Registration is
+  invite-only; the old public `/register` endpoint no longer exists.
+- `AUTH_ENFORCEMENT` and `TENANT_ENFORCEMENT` flags in `test/setup.js` default to
+  `false` so legacy/public UI flows still work. When enabled, business routes
+  require authentication and are scoped by `req.auth.businessId`.
+- Frontend uses relative `/api/*` paths rewritten by `frontend/next.config.ts`
+  to `BACKEND_URL || NEXT_PUBLIC_API_URL || http://127.0.0.1:5000`.
+  `apiFetch` sends `credentials: "include"`, attempts one refresh on `401`, and
+  redirects to `/login?reason=session_expired` when refresh fails. `proxy.ts`
+  is an optional optimistic UI guard controlled by `NEXT_PUBLIC_AUTH_GUARD`;
+  the backend remains the real security layer.
+- Routes `/login`, `/register`, `/forgot-password`, `/reset-password` exist in
+  `frontend/app/`. `src/features/auth/` holds the forms, auth service/hooks, and
+  `AuthProvider`.
+
+### Data / business rules now
+
+- **Flavors are removed** from products, purchases, sales, suppliers, stock
+  movements, migrations, and UI. Historical flavor-specific rules in §§4, 5–7,
+  11, 14–15 are superseded; do not reintroduce them without explicit approval.
+- Stock and reorder thresholds are in **base pieces**. Units are `Piece` (1),
+  `Box` (12), `Carton` (24), normalized server-side. `reorderThreshold` is
+  required and non-negative on product create/update.
+- Sale/purchase items store original `quantity`, `unitLabel`, converted
+  `baseQuantity`, and price snapshots; stock deltas use `baseQuantity`.
+  `StockMovement` records `originalQuantity`, `originalUnit`, and
+  `baseQuantity`.
+- Sale order `status` enum includes `Cancelled`. Cancellation is terminal and
+  only assignable via `PATCH /api/sale-orders/:id/status`; see
+  `backend/docs/sales-orders-api.md` for full behavior.
+
+### Verification at this refresh
+
+- Backend: `npm test` passed (16 suites / 98 tests before the cancellation
+  suite; 17 suites / 104 tests after it), `node --check` on changed JS passed.
+- Frontend: `npx tsc --noEmit` passed; `npm run build` passed (20 routes);
+  `npm run lint` still fails with one pre-existing error at
+  `frontend/features/dashboard/utils.ts:229` (`no-explicit-any`) plus pre-existing
+  warnings. The working changes added no new lint findings.
 
 ---
 
@@ -106,17 +190,15 @@ inv_system/
   - `npm start` → `node src/server.js`
 - No lint script, no test script.
 
-### Known current check results
+### Known current check results (2026-11-24)
 
-- `node --check` on all 30 backend `.js` files ✅
+- `node --check` on changed backend JS files ✅
 - `npx tsc --noEmit` ✅
-- `npm run lint` → **0 errors, 1 existing warning**: `app/layout.tsx:26` `@next/next/no-page-custom-font` for the Material Symbols Google Fonts `<link>`.
-- `npm run build` ✅ (Next.js 16.4.6, all app routes produced successfully).
-- Live API smoke test ✅ for flavor create/update, supplier default, purchase line, and sale line, with all test records deleted afterward.
-- Live multi-flavor smoke test ✅ on `http://localhost:5000`: sale order with `["chese","SALT","mystery"]` canonicalized to `["chese","salt","mystery"]`; supplier defaults `["chese","SALT","mystery"]` stored as `["chese","salt"]` (non-catalog value dropped); purchase line stored as `["chese","salt"]`. All smoke records deleted; LAYS stock was 50 then, and is 5 now after a separate real sale.
-- Live receive-only purchase + customer-link smoke test ✅ on `http://localhost:5000` (2026-11-21): purchase create with 2 flavors stored `basePrice=50`, `flavorCount=2`, `unitPrice=100`, `receivedQuantity=0`, no stock change; partial receive added only delta 1 and repeated receive was idempotent; sale with `customerId` stored the link and `?customerId=` filtered correctly; all smoke records deleted and LAYS stock returned to 5.
-- Live flavor-stock smoke test ✅ on `http://localhost:5000` (2026-11-21): purchase 10×3 flavors → product 30 / each flavor 10; 2-flavor sale → product 26 / chese+chilli 8; flavor adjustment and sale/purchase deletion restored all balances; all temp business records deleted and leftover immutable sale ledger rows removed directly from MongoDB.
-- Live ports used previously: backend `http://localhost:5000`, frontend `http://localhost:3000` (a `next start --port 3100` instance was also observed).
+- `npm run lint` → **1 pre-existing error**: `features/dashboard/utils.ts:229` `@typescript-eslint/no-explicit-any`; 8 pre-existing warnings (including `app/layout.tsx` custom-font warning and an unused `Product` import in `features/sales-orders/utils.ts`). No new findings from the Cancel Sale changes.
+- `npm run build` ✅ (Next.js 16.4.6, 20 routes generated, Cache Components enabled).
+- `npm test` (backend) ✅ — Jest + Supertest suite, 16 suites / 98 tests at refresh, plus the new cancellation suite (6 tests).
+- Earlier live flavor smoke tests in this file are historical only: flavors were removed in `198a2fd`. Do not use them as current contract evidence.
+- Live ports used previously: backend `http://localhost:5000`, frontend `http://localhost:3000`.
 
 ---
 
@@ -201,6 +283,8 @@ Dynamic profile pages use async `params` with `Suspense` and `params.then(...)`.
 ---
 
 ## 4. Database Schema & Relationships
+
+**Current-state note:** flavor fields and `flavorStocks` were removed in `198a2fd`. See §0.1 for the current schema; flavor text below is historical.
 
 No custom collection names are declared, so Mongoose defaults apply: `products`, `stockmovements`, `customers`, `suppliers`, `purchases`, `saleorders`, `users`.
 
@@ -316,6 +400,8 @@ Root:
 
 ## 5. API Documentation
 
+**Current-state note:** the old "all business routes are public" statement and the flavor endpoints below are superseded by §0.1 and `backend/docs/*.md` (auth, tenancy, sales-orders cancellation).
+
 All business routes are **public**. Only `GET /api/auth/me` uses `authenticate`.
 
 ### Mounts (`backend/src/app.js`)
@@ -397,6 +483,8 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 ---
 
 ## 6. Implemented Features & Current Functionality
+
+**Current-state note:** flavor-based UI behavior described below was removed in `198a2fd`; auth pages and unit conversion are summarized in §0.1.
 
 ### Dashboard (`/`)
 
@@ -510,6 +598,8 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 
 ## 7. Business Logic & Rules
 
+**Current-state note:** flavor stock/pricing rules below are historical. Current stock uses base-piece conversion and is documented in §0.1 and `backend/docs/sales-orders-api.md`.
+
 ### Stock
 
 - `Product.openingStock` is the authoritative product total; `Product.flavorStocks` holds per-flavor balances for products with flavors. A received/sold quantity applies in full to each selected flavor; total = `quantity × selected flavor count`.
@@ -586,27 +676,23 @@ apiFetch(path, init) => fetch(`${API_BASE_URL}${path}`, init);
 
 ## 9. Authentication & Authorization
 
-**Status: Scaffold only; application is effectively unauthenticated.**
+**Status: implemented backend auth + optional enforcement (commits `b2fd301`–`eb6c83a`); the old scaffold-only description below it was superseded.**
 
 Backend:
 
-- `auth.routes.js`: register/login/logout/me.
-- `auth.middleware.js` reads `accessToken` cookie or Bearer token, verifies with `JWT_ACCESS_SECRET`, sets `req.user`. Session validity check is commented out.
-- Only `/api/auth/me` uses `authenticate`.
-- No `authorize` role guard, no refresh endpoint, no revocation/rotation, no CSRF protection.
-- `express-session` uses an in-memory store (TODO at `app.js:52`).
-- `backend/.env` lacks `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, `COOKIE_SECRET`, etc., so login will fail with current workspace config. Session secret falls back to `"change_this_session_secret"`.
-- CORS allows `CLIENT_URL`, `localhost:3000`, `127.0.0.1:3000`, and no-Origin clients, with `credentials: true`.
+- `auth.routes.js`: login, refresh, logout, `/me`; invite validate/accept/list/create/revoke; forgot/reset password; owner/admin user list, role change, deactivate. Registration is invite-only (no public `/register` endpoint).
+- Access/refresh cookies are managed via `services/token.service.js` and `services/session.service.js` (`RefreshSession`, `AuthToken` models); `auth.middleware.js` provides `authenticate` and `requireRole`.
+- Zod schemas in `validators/auth.validator.js` are applied through `validate.middleware.js`; `rate-limit.middleware.js` guards login, refresh, forgot-password, and invite validation. `origin.middleware.js` and `helmet()` run in `app.js`.
+- CORS still allows `CLIENT_URL`, `localhost:3000`, `127.0.0.1:3000`, and no-Origin clients, with `credentials: true`.
+- Tenancy: `Business` / user `businessId` scoping, `utils/tenant.js`, `enforcement.middleware.js`, and migration scripts `scripts/migrate-auth-tenancy.js` and `scripts/migrate-indexes.js`. `AUTH_ENFORCEMENT` / `TENANT_ENFORCEMENT` are `false` by default in `test/setup.js`; business routes are scoped/protected only when enabled.
 
 Frontend:
 
-- No login/register pages.
-- No `/api/auth/*` calls.
-- No `localStorage`, `sessionStorage`, `document.cookie`, `Authorization`, or `credentials` usage.
-- `AppShell` hardcodes `Tariq M.`, `Owner`, `ID #001`.
-- `Logout` is `href="#"`.
+- Routes `/login`, `/register`, `/forgot-password`, `/reset-password`; auth UI lives in `features/auth/` with `AuthProvider`, `useAuth`, and `auth.service.ts`.
+- `app/lib/api.ts` sends `credentials: "include"`, retries once via `/api/auth/refresh` on `401`, and redirects to `/login?reason=session_expired` if refresh fails. `next.config.ts` rewrites `/api/:path*` to the backend.
+- `proxy.ts` is an optimistic client-side guard enabled only when `NEXT_PUBLIC_AUTH_GUARD === "true"`; the backend remains the real security layer.
 
-**Decision to remember:** all business APIs are currently public by design/practice. Do not add auth middleware to business routes without explicit approval because it will break the current UI.
+**Historical decision (superseded where enforcement is enabled):** business APIs were originally public by design/practice so the existing UI kept working. Do not enable `AUTH_ENFORCEMENT` / `TENANT_ENFORCEMENT` in a new environment without verifying cookies, user/business records, and migrated indexes; doing so will break unfinished flows.
 
 ---
 
@@ -678,6 +764,8 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 12. Pending Tasks / Not Implemented
 
+**Current-state note:** this is a historical backlog. Auth, tenancy, flavors removal, and unit conversion were completed in later commits; see §0.1 before acting on any item below.
+
 ### High priority / correctness
 
 1. Fix `PATCH /api/purchases/:id/status` Cancelled path so stock/movements are reversed if anything was received.
@@ -715,6 +803,8 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 ---
 
 ## 13. Known Bugs, Issues & Risks
+
+**Current-state note:** some entries below were fixed or made obsolete by `b2fd301`–`198a2fd`; verify against code and §0.1 before treating them as current.
 
 ### Verified backend bugs
 
@@ -799,7 +889,23 @@ Frontend optional: `NEXT_PUBLIC_API_URL`.
 
 ## 15. Current Project State & Latest Change Log
 
-### Latest task: Login page from Stitch reference (completed and merged to main 2026-11-21)
+### Latest task: Cancel Sale workflow (completed in working tree 2026-11-24, NOT committed/pushed)
+
+- **User request:** resume the interrupted Cancel Sale task and finish the remaining correctness, confirmation, test, and documentation work without reverting existing changes.
+- **Recovered work already present:** `Cancelled` in the sale-order status enum/controller; cancel endpoint with restock for non-delivered orders, no restock for delivered orders, `stockDeducted: false` after cancel, edit/reactivation guards; frontend filter tab, KPI, status chip, disabled actions, and row menu action.
+- **Completed in this session:**
+  - Backend now rejects `status: "Cancelled"` in `POST`/`PUT` via `buildOrderChanges()`; only `PATCH /:id/status` can cancel.
+  - Backend rejects payments on cancelled orders with `400`.
+  - Frontend removed `Cancelled` from `ORDER_STATUS_OPTIONS` (create/edit form), while keeping it in the status filter tabs.
+  - New `CancelOrderDialog.tsx` explains stock restoration, the Delivered exception, terminality, and that payments are not auto-refunded; `SalesOrdersView` opens it from the row action menu, shows errors in both the dialog and the page error banner, and only shows the success notice after a confirmed API call.
+  - Added `backend/test/sale-order-cancellation.test.js` (6 tests) and updated `backend/docs/sales-orders-api.md` with cancellation behavior and restrictions.
+  - Refreshed this memory file: §0.1 is the verified current-state snapshot; historical flavor/public-API sections are explicitly marked superseded.
+- **Files changed:** `backend/src/controllers/sale-order.controller.js`, `backend/src/models/SaleOrder.js`, `backend/docs/sales-orders-api.md`, `backend/test/sale-order-cancellation.test.js` (new), `frontend/features/sales-orders/components/{OrderActionsMenu,OrdersTable,SalesFilters,SalesKpis,SalesOrdersView,CancelOrderDialog}.tsx` (last one new), `frontend/features/sales-orders/{constants,types,utils}.ts`, `PROJECT_MEMORY.md`.
+- **No dependencies added, no DB migration, no new collections, no commits/pushes.** `Skills/Frontedn-design/` is unrelated and untouched.
+- **Verification:** backend cancellation suite 6/6 passed; full backend suite, `tsc --noEmit`, production build, and lint were run before finishing (results in §0.1 / final report). The single lint error is pre-existing at `frontend/features/dashboard/utils.ts:229`.
+- **Side effects/risks:** cancelling a non-delivered order writes new `sale` / `in` stock movements and permanently marks items non-deducted; delivered orders keep stock deducted by design; outstanding balances remain on cancelled orders but cannot be paid through the API or UI, and refunds are external.
+
+### Historical latest task: Login page from Stitch reference (completed and merged to main 2026-11-21)
 
 - **User request:** `stich ui/login/` me diye gaye `code.html` aur `screen.png` ke mutabik login page banayein.
 - **Reference note:** Folder actual me `login` hai (purana `sign_in_stockflow` ab nahi hai). Screenshot model me view nahi ho paya, is liye implementation poori tarah `code.html` se ki gayi.

@@ -24,6 +24,7 @@ const STATUS_TABS: StatusTab[] = [
   "Processing",
   "Dispatched",
   "Credit Hold",
+  "Cancelled",
 ];
 
 export function SalesFilters({

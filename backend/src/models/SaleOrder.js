@@ -88,7 +88,7 @@ const saleOrderSchema = new mongoose.Schema(
     paymentMethod: { type: String, default: "", trim: true },
     status: {
       type: String,
-      enum: ["Pending Approval", "Processing", "Packed", "Dispatched", "Delivered", "Credit Hold"],
+      enum: ["Pending Approval", "Processing", "Packed", "Dispatched", "Delivered", "Credit Hold", "Cancelled"],
       default: "Pending Approval",
       index: true,
     },

@@ -9,6 +9,7 @@ type OrdersTableProps = {
   orders: SalesOrder[];
   onEdit: (order: SalesOrder) => void;
   onDelete: (order: SalesOrder) => void;
+  onCancel: (order: SalesOrder) => void;
   onRecordPayment: (id: string) => void;
   onOpenCustomer: (order: SalesOrder) => void;
 };
@@ -21,6 +22,7 @@ export function OrdersTable({
   orders,
   onEdit,
   onDelete,
+  onCancel,
   onRecordPayment,
   onOpenCustomer,
 }: OrdersTableProps) {
@@ -108,12 +110,13 @@ export function OrdersTable({
               </tr>
             ) : (
               visibleOrders.map((order) => {
+                const cancelled = order.status === "Cancelled";
                 return (
                   <tr
                     key={order.id}
                     onClick={() => onOpenCustomer(order)}
                     title={`Open customer profile for ${order.customer}`}
-                    className="cursor-pointer transition-colors hover:bg-surface-container"
+                    className={`cursor-pointer transition-colors hover:bg-surface-container ${cancelled ? "bg-surface-container-low/40 opacity-75" : ""}`}
                   >
                     <td
                       onClick={(event) => event.stopPropagation()}
@@ -128,7 +131,7 @@ export function OrdersTable({
                       />
                     </td>
                     <td className="px-2.5 py-2">
-                      <span className="font-mono-data text-on-surface">#{order.id}</span>
+                      <span className={`font-mono-data text-on-surface ${cancelled ? "line-through" : ""}`}>#{order.id}</span>
                     </td>
                     <td className="whitespace-nowrap px-2.5 py-2 font-mono-data-sm text-secondary">{order.time}</td>
                     <td className="px-2.5 py-2">
@@ -183,6 +186,10 @@ export function OrdersTable({
                           setOpenMenuId(null);
                           onDelete(selected);
                         }}
+                        onCancel={(selected) => {
+                          setOpenMenuId(null);
+                          onCancel(selected);
+                        }}
                         onRecordPayment={(id) => {
                           setOpenMenuId(null);
                           onRecordPayment(id);
@@ -200,7 +207,7 @@ export function OrdersTable({
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant bg-surface-container-low px-3.5 py-2.5 font-mono-data-sm text-mono-data-sm text-secondary">
         <div className="flex items-center gap-2">
           <span>
-            Showing <strong className="text-on-surface">{orders.length === 0 ? 0 : start + 1}–{Math.min(start + pageSize, orders.length)}</strong> of{" "}
+            Showing <strong className="text-on-surface">{orders.length === 0 ? 0 : start + 1}-{Math.min(start + pageSize, orders.length)}</strong> of{" "}
             <strong className="text-on-surface">{orders.length}</strong> orders
           </span>
           <span className="text-outline-variant">|</span>

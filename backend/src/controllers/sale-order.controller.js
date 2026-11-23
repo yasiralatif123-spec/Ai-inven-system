@@ -28,6 +28,7 @@ const ORDER_STATUSES = [
   "Dispatched",
   "Delivered",
   "Credit Hold",
+  "Cancelled",
 ];
 
 class ValidationError extends Error {
@@ -247,6 +248,11 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
   const status = cleanString(body.status) || existingOrder?.status || "Pending Approval";
   if (!ORDER_STATUSES.includes(status)) {
     throw new ValidationError("Invalid order status");
+  }
+  // Cancellation is a lifecycle action, never a field set by create/edit forms.
+  // PATCH /:id/status is the only endpoint allowed to assign it.
+  if (status === "Cancelled") {
+    throw new ValidationError("Use the Cancel action to cancel a sale order");
   }
 
   const previousItems = existingOrder?.items || [];
@@ -568,14 +574,23 @@ async function updateSaleOrder(req, res, next) {
     if (!existing) {
       return res.status(404).json({ message: "Sale order not found" });
     }
+    if (existing.status === "Cancelled") {
+      throw new ValidationError("Cancelled sales orders cannot be edited");
+    }
 
     const updated = await runWithSession(async (session, useTransaction) => {
       const order = await SaleOrder.findOne(scopedFilter(req, { _id: existing._id })).session(session);
       if (!order) {
         throw new NotFoundError("Sale order not found");
       }
+      if (order.status === "Cancelled") {
+        throw new ValidationError("Cancelled sales orders cannot be edited");
+      }
 
       const changes = await buildOrderChanges(req.body || {}, order, session, req);
+      if (changes.status === "Cancelled" && order.status !== "Cancelled") {
+        throw new ValidationError("Use the Cancel action to cancel a sale order");
+      }
       const compensations = [];
 
       try {
@@ -623,8 +638,8 @@ async function getSaleOrders(req, res, next) {
 
 async function updateSaleOrderStatus(req, res, next) {
   try {
-    const order = await findOrder(req.params.id, null, req);
-    if (!order) {
+    const existing = await findOrder(req.params.id, null, req);
+    if (!existing) {
       return res.status(404).json({ message: "Sale order not found" });
     }
 
@@ -633,11 +648,57 @@ async function updateSaleOrderStatus(req, res, next) {
       return res.status(400).json({ message: "Invalid order status" });
     }
 
-    order.status = status;
-    await order.save();
-    return res.status(200).json({ message: "Sale order status updated", order });
+    if (existing.status === "Cancelled" && status !== "Cancelled") {
+      return res.status(400).json({ message: "Cancelled sales orders cannot be reactivated" });
+    }
+
+    if (status === "Cancelled" && existing.status !== "Cancelled") {
+      const updated = await runWithSession(async (session, useTransaction) => {
+        const order = await SaleOrder.findOne(scopedFilter(req, { _id: existing._id })).session(session);
+        if (!order) {
+          throw new NotFoundError("Sale order not found");
+        }
+        if (order.status === "Cancelled") return order;
+
+        const compensations = [];
+        try {
+          // If delivered, goods already reached customer - do not restock inventory.
+          if (order.status !== "Delivered") {
+            await applyStockAdjustments({
+              orderNumber: order.orderNumber,
+              previousItems: order.items,
+              nextItems: [],
+              performedBy: cleanString(req.body?.performedBy) || order.createdBy,
+              partyName: order.customer?.name,
+              mode: "update",
+              session,
+              compensations,
+              req,
+            });
+          }
+
+          // Prevent future delete/edit from double-restocking cancelled orders.
+          order.items = (order.items || []).map((item) => {
+            const plain = typeof item.toObject === "function" ? item.toObject() : { ...item };
+            return { ...plain, stockDeducted: false };
+          });
+          order.status = "Cancelled";
+          await order.save({ session });
+          return order;
+        } catch (error) {
+          if (!useTransaction) await rollbackCompensations(compensations);
+          throw error;
+        }
+      });
+
+      return res.status(200).json({ message: "Sale order cancelled", order: updated });
+    }
+
+    existing.status = status;
+    await existing.save();
+    return res.status(200).json({ message: "Sale order status updated", order: existing });
   } catch (error) {
-    return next(error);
+    return handleControllerError(error, res, next);
   }
 }
 
@@ -646,6 +707,9 @@ async function recordSaleOrderPayment(req, res, next) {
     const order = await findOrder(req.params.id, null, req);
     if (!order) {
       return res.status(404).json({ message: "Sale order not found" });
+    }
+    if (order.status === "Cancelled") {
+      return res.status(400).json({ message: "Payments cannot be recorded against a cancelled sale order" });
     }
 
     const amount = toNumber(req.body?.amount);

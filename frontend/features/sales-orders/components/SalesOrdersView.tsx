@@ -6,6 +6,7 @@ import { fetchCustomers } from "../../customers/services/customer.service";
 import type { Customer } from "../../customers/types";
 import { findCustomerForOrder } from "../../customers/utils";
 import {
+  advanceSaleOrderStatus,
   createSaleOrder,
   deleteSaleOrder,
   fetchSaleOrders,
@@ -28,6 +29,7 @@ import {
   getStatusCounts,
   ordersToCsv,
 } from "../utils";
+import { CancelOrderDialog } from "./CancelOrderDialog";
 import { DeleteOrderDialog } from "./DeleteOrderDialog";
 import { EditOrderDialog } from "./EditOrderDialog";
 import { NewOrderDialog } from "./NewOrderDialog";
@@ -51,6 +53,8 @@ export function SalesOrdersView() {
   const [newOrderDialogKey, setNewOrderDialogKey] = useState(0);
   const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<SalesOrder | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<SalesOrder | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -134,6 +138,7 @@ export function SalesOrdersView() {
         setNewOrderOpen(false);
         setEditingOrder(null);
         setDeletingOrder(null);
+        setCancellingOrder(null);
         setPaymentOrderId(null);
       }
     }
@@ -195,6 +200,38 @@ export function SalesOrdersView() {
     setDeletingOrder(null);
   }
 
+  function handleCancelOrder(order: SalesOrder) {
+    if (order.status === "Cancelled") {
+      setNotice(`${order.id} is already cancelled.`);
+      return;
+    }
+    setCancellingOrder(order);
+  }
+
+  async function handleCancelConfirm(order: SalesOrder) {
+    setCancelling(true);
+    setError(null);
+    try {
+      const updated = await advanceSaleOrderStatus(order.id, "Cancelled");
+      setOrders((current) =>
+        current.map((candidate) => (candidate.id === updated.id ? updated : candidate))
+      );
+      setNotice(
+        order.status === "Delivered"
+          ? `${order.id} cancelled. Delivered items were not restocked to inventory.`
+          : `${order.id} cancelled and stock restored to inventory.`
+      );
+      setCancellingOrder(null);
+    } catch (cancelError) {
+      const message =
+        cancelError instanceof Error ? cancelError.message : "Failed to cancel sale order. Please try again.";
+      setError(message);
+      throw cancelError instanceof Error ? cancelError : new Error(message);
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   async function handleRecordPayment(input: PaymentInput) {
     if (!paymentOrder) return;
     const updated = await recordSaleOrderPayment(paymentOrder.id, input);
@@ -251,6 +288,7 @@ export function SalesOrdersView() {
           orders={filteredOrders}
           onEdit={setEditingOrder}
           onDelete={setDeletingOrder}
+          onCancel={handleCancelOrder}
           onRecordPayment={setPaymentOrderId}
           onOpenCustomer={handleOpenCustomer}
         />
@@ -278,6 +316,13 @@ export function SalesOrdersView() {
           onConfirm={handleDeleteOrder}
         />
       ) : null}
+      <CancelOrderDialog
+        key={cancellingOrder?.id ?? "none"}
+        order={cancellingOrder}
+        cancelling={cancelling}
+        onClose={() => setCancellingOrder(null)}
+        onConfirm={handleCancelConfirm}
+      />
       {paymentOrder ? (
         <RecordPaymentDialog
           order={paymentOrder}

@@ -9,6 +9,7 @@ type OrderActionsMenuProps = {
   onToggle: () => void;
   onEdit: (order: SalesOrder) => void;
   onDelete: (order: SalesOrder) => void;
+  onCancel: (order: SalesOrder) => void;
   onRecordPayment: (id: string) => void;
 };
 
@@ -18,6 +19,7 @@ export function OrderActionsMenu({
   onToggle,
   onEdit,
   onDelete,
+  onCancel,
   onRecordPayment,
 }: OrderActionsMenuProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -70,10 +72,21 @@ export function OrderActionsMenu({
           <button
             type="button"
             onClick={() => onEdit(order)}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container"
+            disabled={order.status === "Cancelled"}
+            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <span className="material-symbols-outlined text-[15px] text-secondary">edit</span>
             Edit Sale
+          </button>
+          <button
+            type="button"
+            onClick={() => onCancel(order)}
+            disabled={order.status === "Cancelled"}
+            title={order.status === "Cancelled" ? "Order already cancelled" : "Cancel this sale order"}
+            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-error transition-colors hover:bg-[#fdf0ee] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <span className="material-symbols-outlined text-[15px] text-error">cancel</span>
+            Cancel Sale
           </button>
           <button
             type="button"
@@ -87,8 +100,8 @@ export function OrderActionsMenu({
           <button
             type="button"
             onClick={() => onRecordPayment(order.id)}
-            disabled={!hasOutstanding}
-            title={hasOutstanding ? undefined : "No outstanding balance"}
+            disabled={!hasOutstanding || order.status === "Cancelled"}
+            title={order.status === "Cancelled" ? "Cancelled orders cannot receive payments" : hasOutstanding ? undefined : "No outstanding balance"}
             className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <span className="material-symbols-outlined text-[15px] text-secondary">payments</span>

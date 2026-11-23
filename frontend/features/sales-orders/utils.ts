@@ -21,6 +21,7 @@ export type SalesKpisData = {
   completed: number;
   dispatched: number;
   creditHold: number;
+  cancelled: number;
 };
 
 const STATUS_TABS: StatusTab[] = [
@@ -29,6 +30,7 @@ const STATUS_TABS: StatusTab[] = [
   "Processing",
   "Dispatched",
   "Credit Hold",
+  "Cancelled",
 ];
 
 export function createEmptyDraftOrder(): DraftOrderInput {
@@ -98,6 +100,7 @@ export function getSalesKpis(orders: SalesOrder[]): SalesKpisData {
     completed: dispatched,
     dispatched,
     creditHold: orders.filter((order) => order.status === "Credit Hold").length,
+    cancelled: orders.filter((order) => order.status === "Cancelled").length,
   };
 }
 
@@ -156,6 +159,8 @@ export function getStatusClasses(status: OrderStatus): string {
       return "bg-surface-container text-on-surface-variant border-outline-variant";
     case "Credit Hold":
       return "bg-error-container/40 text-error border-error-container";
+    case "Cancelled":
+      return "bg-surface-container-highest text-secondary border-outline-variant line-through decoration-secondary/40";
   }
 }
 

@@ -74,10 +74,10 @@ export function SalesKpis({ data }: SalesKpisProps) {
         </div>
         <div className="mt-1">
           <div className="font-metric-display text-metric-display leading-tight tabular-nums text-error">
-            {data.creditHold}
+            {data.creditHold + data.cancelled}
           </div>
           <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
-            credit hold orders
+            {data.creditHold} hold · {data.cancelled} cancelled
           </div>
         </div>
       </div>
