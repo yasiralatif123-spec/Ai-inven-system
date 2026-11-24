@@ -5,6 +5,7 @@ const Customer = require("../models/Customer");
 const StockMovement = require("../models/StockMovement");
 const { runWithSession } = require("../utils/db");
 const { tenantFilter } = require("../utils/tenant");
+const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
   normalizeUnit,
   toBasePieces,
@@ -409,7 +410,7 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
     paymentLabel,
     paymentMethod,
     status,
-    createdBy: cleanString(body.createdBy) || cleanString(existingOrder?.createdBy) || "Tariq M. (Owner)",
+    createdBy: cleanString(existingOrder?.createdBy) || resolveActorName(req),
     bay: cleanString(body.bay) || "Counter",
     items,
     skuCount: items.length,
@@ -437,7 +438,7 @@ async function applyStockAdjustments({
   orderNumber,
   previousItems = [],
   nextItems = [],
-  performedBy = "Tariq M. (Owner)",
+  performedBy = DEFAULT_ACTOR_NAME,
   partyName = "",
   mode = "update",
   session,
@@ -649,7 +650,7 @@ async function updateSaleOrder(req, res, next) {
           orderNumber: order.orderNumber,
           previousItems: order.items,
           nextItems: changes.items,
-          performedBy: changes.createdBy,
+          performedBy: resolveActorName(req),
           partyName: changes.customer?.name || order.customer?.name,
           mode: "update",
           session,
@@ -719,7 +720,7 @@ async function updateSaleOrderStatus(req, res, next) {
               orderNumber: order.orderNumber,
               previousItems: order.items,
               nextItems: [],
-              performedBy: cleanString(req.body?.performedBy) || order.createdBy,
+              performedBy: resolveActorName(req),
               partyName: order.customer?.name,
               mode: "update",
               session,
@@ -811,11 +812,12 @@ async function deleteSaleOrder(req, res, next) {
           orderNumber: order.orderNumber,
           previousItems: order.items,
           nextItems: [],
-          performedBy: order.createdBy,
+          performedBy: resolveActorName(req),
           partyName: order.customer?.name,
           mode: "delete",
           session,
           compensations,
+          req,
         });
 
         await SaleOrder.deleteOne(scopedFilter(req, { _id: order._id }), { session });

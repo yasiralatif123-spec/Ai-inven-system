@@ -4,6 +4,8 @@ Base path: `/api/purchases`
 
 The server recomputes item taxes and the purchase total from validated quantities, prices, discounts, and freight; client-supplied totals are ignored. Prices must be finite, non-negative numbers; malformed values (including `NaN`, `Infinity`, negative values, and non-numeric strings) return `400`.
 
+`createdBy` on purchases/payments and `performedBy` on receipts/stock movements are set by the server from the authenticated user's `name` in the `User` collection. Client-submitted actor names are ignored; unauthenticated writes use `System`.
+
 ## GET `/api/purchases/next-code`
 
 Returns the next available purchase number.
@@ -57,7 +59,7 @@ display one supplier's complete purchase history. An invalid `supplierId` return
               "receivedQuantity": 40,
               "reference": "GRN",
               "receivedAt": "2026-11-18T00:00:00.000Z",
-              "performedBy": "Tariq M. (Owner)"
+              "performedBy": "Owner Name"
             }
           ],
           "unit": "Carton",
@@ -86,7 +88,7 @@ display one supplier's complete purchase history. An invalid `supplierId` return
       ],
       "status": "Ordered",
       "notes": "Deliver to Karachi Central Warehouse.",
-      "createdBy": "Tariq M. (Owner)",
+      "createdBy": "Owner Name",
       "createdAt": "2026-11-16T10:00:00.000Z",
       "updatedAt": "2026-11-16T10:00:00.000Z"
     }
@@ -211,7 +213,6 @@ Records a goods receipt. Each item's `receivedQuantity` is the **cumulative tota
 {
   "reference": "GRN-2042-01",
   "notes": "Short delivery; balance expected Friday.",
-  "performedBy": "Tariq M. (Owner)",
   "items": [
     {
       "itemId": "665f1a...item...",
@@ -225,6 +226,7 @@ Records a goods receipt. Each item's `receivedQuantity` is the **cumulative tota
 }
 ```
 
+- `performedBy` is ignored when submitted. The server records the authenticated user's name from the `User` collection on receipts and stock movements (`System` when unauthenticated).
 - `itemId` is the purchase item's Mongo `_id`. Legacy purchases without item ids can be received using `itemIndex`.
 - `receivedQuantity` must be a whole number between the previously received quantity and the ordered quantity.
 - Re-submitting the same cumulative quantity is idempotent: no additional stock is added and no duplicate receipt ledger entry is created.

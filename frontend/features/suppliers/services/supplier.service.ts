@@ -58,7 +58,7 @@ function toSupplier(dto: SupplierDto): Supplier {
     openingBalance: Number(dto.openingBalance || 0),
     graceDays: Number(dto.graceDays || 0),
     notes: dto.notes || "",
-    createdBy: dto.createdBy || "Tariq M. (Owner)",
+    createdBy: dto.createdBy || "—",
     totalPurchases: dto.totalPurchases,
     outstanding: dto.outstanding,
     payableNote: dto.payableNote,

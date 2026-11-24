@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const StockMovement = require("../models/StockMovement");
 const { tenantFilter, findOwned } = require("../utils/tenant");
+const { resolveActorName } = require("../utils/actor");
 const { normalizeUnit, toBasePieces, isSupportedUnit } = require("../utils/units");
 
 function isTenantEnforced(req) {
@@ -29,7 +30,7 @@ async function adjustStock(req, res, next) {
       return res.status(400).json({ message: "Invalid product id" });
     }
 
-    const { direction, quantity, unit, reason, reference, notes, performedBy } = req.body || {};
+    const { direction, quantity, unit, reason, reference, notes } = req.body || {};
 
     if (direction !== "add" && direction !== "deduct") {
       return res.status(400).json({ message: "direction must be either 'add' or 'deduct'" });
@@ -92,7 +93,7 @@ async function adjustStock(req, res, next) {
         reason: cleanString(reason),
         reference: cleanString(reference),
         notes: cleanString(notes),
-        performedBy: cleanString(performedBy) || "Admin",
+        performedBy: resolveActorName(req),
         ...(isTenantEnforced(req)
           ? { businessId: req.auth.businessId, createdByUserId: req.auth.id }
           : {}),

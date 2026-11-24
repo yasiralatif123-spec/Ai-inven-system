@@ -51,7 +51,7 @@ Returns all supplier records, newest first.
       "payableNote": "Opening Payable",
       "payableTone": "danger",
       "lastPurchaseAt": null,
-      "createdBy": "Tariq M. (Owner)",
+      "createdBy": "Owner Name",
       "createdAt": "2026-11-17T15:00:00.000Z",
       "updatedAt": "2026-11-17T15:00:00.000Z"
     }
@@ -155,7 +155,7 @@ Deletes a supplier by Mongo `_id`.
 | `graceDays` | No | One of `0`, `5`, `10`, `15`; defaults to `5` |
 | `notes` | No | Max 500 characters |
 | `productIds` | No | Array of Mongo product IDs from the `products` collection; each must exist in the catalog |
-| `createdBy` | No | Defaults to `Tariq M. (Owner)` |
+| `createdBy` | No | Ignored; server sets the authenticated user's name from the `User` collection (`System` when unauthenticated) |
 
 `supplierCode`, `region`, `status`, `totalPurchases`, `outstanding`,
 `payableNote`, and `payableTone` are server-derived and ignore client input.

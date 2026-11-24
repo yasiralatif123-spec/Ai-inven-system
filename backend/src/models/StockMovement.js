@@ -28,7 +28,7 @@ const stockMovementSchema = new mongoose.Schema(
     reason: { type: String, default: "" },
     reference: { type: String, default: "" },
     notes: { type: String, default: "" },
-    performedBy: { type: String, default: "Admin" },
+    performedBy: { type: String, default: "System" },
     // Denormalized counterparty captured at movement time: supplier name for
     // purchases, customer/buyer name for sales. The ledger is immutable.
     partyName: { type: String, default: "" },

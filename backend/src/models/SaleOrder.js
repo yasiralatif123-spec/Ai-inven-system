@@ -97,7 +97,7 @@ const saleOrderSchema = new mongoose.Schema(
       default: "Pending Approval",
       index: true,
     },
-    createdBy: { type: String, default: "Tariq M. (Owner)", trim: true },
+    createdBy: { type: String, default: "System", trim: true },
     bay: { type: String, default: "Counter", trim: true },
     items: { type: [saleOrderItemSchema], default: [] },
     skuCount: { type: Number, default: 0, min: 0 },

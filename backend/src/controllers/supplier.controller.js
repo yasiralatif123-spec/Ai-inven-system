@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Supplier = require("../models/Supplier");
 const { tenantFilter, findOwned } = require("../utils/tenant");
+const { resolveActorName } = require("../utils/actor");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -196,7 +197,7 @@ async function buildSupplierChanges(body, options = {}, req = null) {
     outstanding,
     payableNote: outstanding > 0 ? PAYMENT_TERMS[paymentTerms] : "Cleared / Nil",
     payableTone: outstanding > 0 ? "danger" : "success",
-    createdBy: cleanString(body.createdBy) || "Tariq M. (Owner)",
+    createdBy: resolveActorName(req),
   };
 }
 

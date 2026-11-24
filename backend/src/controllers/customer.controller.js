@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Customer = require("../models/Customer");
 const { tenantFilter } = require("../utils/tenant");
+const { resolveActorName } = require("../utils/actor");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -92,7 +93,7 @@ async function generateLedgerCode(req) {
   return `C-${highest + 1}`;
 }
 
-function buildCustomerChanges(body) {
+function buildCustomerChanges(body, req = null) {
   const name = cleanString(body.name);
   if (!name) throw new ValidationError("Full name is required");
 
@@ -170,7 +171,7 @@ function buildCustomerChanges(body) {
     orders: 0,
     totalPurchases: 0,
     outstanding: openingBalance,
-    createdBy: cleanString(body.createdBy) || "Tariq M. (Owner)",
+    createdBy: resolveActorName(req),
   };
 }
 
@@ -244,7 +245,7 @@ async function getCustomerByCode(req, res, next) {
 
 async function createCustomer(req, res, next) {
   try {
-    const changes = buildCustomerChanges(req.body || {});
+    const changes = buildCustomerChanges(req.body || {}, req);
     let customer;
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -292,7 +293,7 @@ async function updateCustomer(req, res, next) {
       createdBy: existing.createdBy,
     };
 
-    const changes = buildCustomerChanges(merged);
+    const changes = buildCustomerChanges(merged, req);
     delete changes.orders;
     delete changes.totalPurchases;
     delete changes.outstanding;

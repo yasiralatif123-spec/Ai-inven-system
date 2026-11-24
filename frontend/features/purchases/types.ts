@@ -137,7 +137,7 @@ export type PurchasePaymentInput = {
 export type PurchaseReceiveInput = {
   reference: string;
   notes: string;
-  performedBy: string;
+  performedBy?: string;
   items: Array<{
     itemId?: string;
     itemIndex?: number;

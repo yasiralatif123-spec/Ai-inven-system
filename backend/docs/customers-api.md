@@ -52,7 +52,7 @@ Returns all customer records, newest first.
       "orders": 0,
       "totalPurchases": 0,
       "outstanding": 25000,
-      "createdBy": "Tariq M. (Owner)",
+      "createdBy": "Owner Name",
       "createdAt": "2026-11-17T15:00:00.000Z",
       "updatedAt": "2026-11-17T15:00:00.000Z"
     }
@@ -153,7 +153,7 @@ Deletes a customer by Mongo `_id`.
 | `openingBalance` | No | Number >= 0; defaults to `0` |
 | `gracePeriod` | No | `none`, `3days`, `5days`, `7days`; defaults to `none` |
 | `notes` | No | Max 500 characters |
-| `createdBy` | No | Defaults to `Tariq M. (Owner)` |
+| `createdBy` | No | Ignored; server sets the authenticated user's name from the `User` collection (`System` when unauthenticated) |
 
 `ledgerCode`, `cityLabel`, `routeLabel`, `orders`, `totalPurchases`, and
 `outstanding` are server-derived and ignore client input. `outstanding` is

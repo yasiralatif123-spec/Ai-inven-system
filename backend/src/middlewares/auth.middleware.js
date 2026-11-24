@@ -48,7 +48,9 @@ async function authenticate(req, res, next) {
     req.user = toUserDto(user);
     req.auth = {
       sid: payload.sid,
+      id: String(user._id),
       businessId: String(session.businessId),
+      ownerName: String(user.name || "").trim(),
       tokenVersion: user.tokenVersion || 0,
     };
     return next();

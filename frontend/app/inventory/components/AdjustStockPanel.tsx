@@ -387,7 +387,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
                 Authorized Sign-off
               </span>
               <span className="font-body-medium text-body-medium font-semibold text-on-surface">
-                Admin (system)
+                System
               </span>
             </div>
           </div>

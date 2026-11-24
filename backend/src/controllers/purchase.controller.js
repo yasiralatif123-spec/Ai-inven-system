@@ -5,6 +5,7 @@ const StockMovement = require("../models/StockMovement");
 const Supplier = require("../models/Supplier");
 const { runWithSession } = require("../utils/db");
 const { tenantFilter } = require("../utils/tenant");
+const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
   normalizeUnit,
   toBasePieces,
@@ -36,7 +37,6 @@ const PURCHASE_STATUSES = [
 ];
 const RECEIVING_STATUSES = ["Partially Received", "Received"];
 const BASE_PURCHASE_SEQUENCE = 2041;
-const DEFAULT_RECEIVED_BY = "Tariq M. (Owner)";
 const STATUS_RECEIPT_REFERENCE = "STATUS-RECEIVED";
 const STATUS_RECEIPT_NOTES = "Purchase marked Received";
 
@@ -208,7 +208,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
   const receivedAt = new Date();
   const receiptReference = cleanString(body.receiptReference) || STATUS_RECEIPT_REFERENCE;
   const receiptNotes = cleanString(body.receiptNotes) || STATUS_RECEIPT_NOTES;
-  const performedBy = cleanString(body.performedBy ?? body.createdBy) || DEFAULT_RECEIVED_BY;
+  const performedBy = resolveActorName(req);
   const existingItems = Array.isArray(existingPurchase?.items) ? existingPurchase.items : [];
   const items = [];
   const stockUpdates = [];
@@ -425,7 +425,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
         method: cleanString(body.paymentMethod) || "Cash",
         reference: cleanString(body.paymentReference) || cleanString(body.invoiceNumber),
         paidAt: now,
-        createdBy: cleanString(body.createdBy) || DEFAULT_RECEIVED_BY,
+        createdBy: resolveActorName(req),
       }]
     : [];
 
@@ -500,7 +500,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       payments: initialPayments,
       status: derivedStatus,
       notes: cleanString(body.notes),
-      createdBy: cleanString(body.createdBy) || DEFAULT_RECEIVED_BY,
+      createdBy: resolveActorName(req),
     },
     stockUpdates,
   };
@@ -538,7 +538,7 @@ function createReceiptEntry({
     reference,
     notes: cleanString(notes),
     receivedAt,
-    performedBy: cleanString(performedBy) || DEFAULT_RECEIVED_BY,
+    performedBy: cleanString(performedBy) || DEFAULT_ACTOR_NAME,
   };
 }
 
@@ -612,7 +612,7 @@ async function applyStockReceipt({
         reason: delta >= 0 ? "Purchase goods receipt" : "Purchase stock reversal",
         reference,
         notes: cleanString(notes),
-        performedBy: cleanString(performedBy) || DEFAULT_RECEIVED_BY,
+        performedBy: cleanString(performedBy) || DEFAULT_ACTOR_NAME,
         partyName: cleanString(partyName),
         ...(businessId ? { businessId, createdByUserId } : {}),
       },
@@ -912,7 +912,7 @@ async function updatePurchaseStatus(req, res, next) {
               originalUnit: normalizeUnit(item.unit) || item.unit || "Piece",
               reference: `${purchase.purchaseNumber} - CANCELLED`,
               notes: "Stock reversed due to purchase cancellation",
-              performedBy: cleanString(req.body?.performedBy) || DEFAULT_RECEIVED_BY,
+              performedBy: resolveActorName(req),
               partyName: purchase.supplier?.name,
               session,
               businessId,
@@ -960,7 +960,7 @@ async function receivePurchase(req, res, next) {
     const receivedAt = new Date();
     const receiptReference = cleanString(req.body?.reference) || "GRN";
     const receiptNotes = cleanString(req.body?.notes);
-    const performedBy = cleanString(req.body?.performedBy) || DEFAULT_RECEIVED_BY;
+    const performedBy = resolveActorName(req);
     const updates = [];
     const seenKeys = new Set();
 
@@ -1214,7 +1214,7 @@ async function recordPurchasePayment(req, res, next) {
       method: cleanString(req.body?.method) || "Cash",
       reference: cleanString(req.body?.reference),
       paidAt: new Date(),
-      createdBy: cleanString(req.body?.createdBy) || "Tariq M. (Owner)",
+      createdBy: resolveActorName(req),
     });
     purchase.paidAmount = round(paid + amount);
     await purchase.save();

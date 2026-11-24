@@ -92,7 +92,6 @@ export function ReceivePurchaseDialog({
     const payload: PurchaseReceiveInput = {
       reference: reference.trim() || "GRN",
       notes: notes.trim(),
-      performedBy: "Tariq M. (Owner)",
       items: purchase!.items.map((item, index) => {
         const key = itemKey(item, index);
         return item.id

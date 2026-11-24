@@ -13,7 +13,7 @@ const purchaseReceiptSchema = new mongoose.Schema(
     receivedAt: { type: Date, default: Date.now },
     performedBy: {
       type: String,
-      default: "Tariq M. (Owner)",
+      default: "System",
       trim: true,
     },
   },
@@ -52,7 +52,7 @@ const purchasePaymentSchema = new mongoose.Schema(
     paidAt: { type: Date, default: Date.now },
     createdBy: {
       type: String,
-      default: "Tariq M. (Owner)",
+      default: "System",
       trim: true,
     },
   },
@@ -104,7 +104,7 @@ const purchaseSchema = new mongoose.Schema(
     notes: { type: String, default: "", trim: true, maxlength: 1000 },
     createdBy: {
       type: String,
-      default: "Tariq M. (Owner)",
+      default: "System",
       trim: true,
     },
     // Tenancy foundation (Phase 5). Optional until Phase 6 backfill+enforcement.

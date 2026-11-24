@@ -290,7 +290,7 @@ export function getActivityItems(
       title: `Stock ${movement.direction === "in" ? "added to" : "deducted from"} ${movement.productTitle}`,
       detail: `${formatStockWithPieces(movement.quantity)} · ${
         movement.reason || movement.reference || movement.notes || "No reason recorded"
-      } · ${movement.performedBy || "Admin"}`,
+      } · ${movement.performedBy || "System"}`,
       tone: movement.direction === "in" ? "primary" : "error",
       href: "/inventory",
       at,

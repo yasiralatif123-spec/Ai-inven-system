@@ -41,7 +41,7 @@ function toCustomer(dto: CustomerDto): Customer {
     orders: Number(dto.orders || 0),
     totalPurchases: Number(dto.totalPurchases || 0),
     outstanding: Number(dto.outstanding || 0),
-    createdBy: dto.createdBy || "Tariq M. (Owner)",
+    createdBy: dto.createdBy || "—",
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt || dto.createdAt,
   };

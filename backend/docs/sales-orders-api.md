@@ -7,6 +7,12 @@ The service follows the existing backend convention: JSON bodies and a stable
 `TENANT_ENFORCEMENT` are enabled, requests are authenticated and scoped to the
 caller's business; see `docs/auth-api.md` and `docs/tenancy.md`.
 
+## Actor names
+
+`createdBy` on an order and `performedBy` on its stock movements are set by the
+server from the authenticated user's `name` in the `User` collection.
+Client-submitted actor names are ignored; unauthenticated writes use `System`.
+
 ## Stock behavior
 
 Stock is tracked in **base pieces**. `Product.openingStock` is the authoritative

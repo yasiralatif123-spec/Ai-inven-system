@@ -54,7 +54,7 @@ const supplierSchema = new mongoose.Schema(
     lastPurchaseAt: { type: Date, default: null },
     createdBy: {
       type: String,
-      default: "Tariq M. (Owner)",
+      default: "System",
       trim: true,
     },
     // Tenancy foundation (Phase 5). Optional until Phase 6 backfill+enforcement.

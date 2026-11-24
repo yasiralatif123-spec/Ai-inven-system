@@ -119,7 +119,7 @@ export function movementToEntry(movement: StockMovementDto): MovementEntry {
     sku: movement.sku,
     ref: reference || "-",
     reason: detail ? `${stockLine} | ${detail}` : `${stockLine} | No reason recorded`,
-    user: movement.performedBy || "Admin",
+    user: movement.performedBy || "System",
     time: formatMovementTime(movement.createdAt),
     partyLabel,
     partyName,

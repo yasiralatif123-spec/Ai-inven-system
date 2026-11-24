@@ -37,7 +37,7 @@ flavor's own balance and the product's `reorderThreshold`.
 Applies a stock adjustment and creates an immutable `StockMovement` ledger entry.
 The product route is used because the adjustment targets a product resource.
 
-Request body: `{ direction: "add" | "deduct", quantity: number, flavor?, reason?, reference?, notes?, performedBy? }`.
+Request body: `{ direction: "add" | "deduct", quantity: number, flavor?, reason?, reference?, notes? }`. A submitted `performedBy` is ignored; the server records the authenticated user's name from the `User` collection (`System` when unauthenticated).
 
 `flavor` is required when the product already has flavor-stock rows; the adjustment then updates both that flavor's `Product.flavorStocks` balance and the product's `openingStock`. It is optional for flavorless products. The created movement records the same `flavor` and a one-entry `flavorBreakdown`, so deleting the adjustment reverses both balances.
 
