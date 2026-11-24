@@ -1,7 +1,7 @@
 "use client";
 
 import type { PurchaseRecord, PurchaseStatus } from "../purchaseData";
-import { formatRs } from "../utils";
+import { formatRs, formatUnitPrice } from "../utils";
 import { PurchaseActionsMenu } from "./PurchaseActionsMenu";
 
 type PurchasesTableProps = {
@@ -159,7 +159,7 @@ export function PurchasesTable({
                               </div>
                               <div className="font-mono-data-sm text-mono-data-sm text-secondary">
                                 {item.sku || "Manual"} · {received}/{item.quantity} {item.unit} ·{" "}
-                                {formatRs(item.unitPrice)}
+                                {formatUnitPrice(item.unitPrice, item.unit)}
                                 {remaining > 0 ? ` · ${remaining} pending` : ""}
                               </div>
                             </div>

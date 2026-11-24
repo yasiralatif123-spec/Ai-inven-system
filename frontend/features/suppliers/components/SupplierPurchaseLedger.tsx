@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Purchase, PurchaseStatus } from "../supplierDetailData";
+import { priceBasisLabel } from "../../../app/lib/units";
 import { formatRs } from "../utils";
 
 type StatusFilter = "all" | PurchaseStatus;
@@ -42,7 +43,7 @@ function exportPurchases(rows: Purchase[]) {
       row.reference,
       ...row.lines.map(
         (line) =>
-          `${line.name}${line.sku ? ` (${line.sku})` : ""} · qty ${line.quantity} ${line.unit} · total ${line.lineTotal} · received ${line.receivedQuantity}/${line.quantity} · ${line.date} · ${line.status}`
+          `${line.name}${line.sku ? ` (${line.sku})` : ""} · qty ${line.quantity} ${priceBasisLabel(line.unit)} · unit price ${line.unitPrice} / ${priceBasisLabel(line.unit)} · total ${line.lineTotal} · received ${line.receivedQuantity}/${line.quantity} · ${line.date} · ${line.status}`
       ),
     ].join(" | "),
         String(row.orderedQuantity),
@@ -233,7 +234,7 @@ function PurchaseRow({ purchase }: { purchase: Purchase }) {
                 ) : null}
               </div>
               <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-                {line.quantity} {line.unit} @ {formatRs(line.unitPrice)} = {formatRs(line.lineTotal)}
+                {line.quantity} {priceBasisLabel(line.unit)} @ {formatRs(line.unitPrice)} / {priceBasisLabel(line.unit)} = {formatRs(line.lineTotal)}
               </div>
               {showLineReceipt ? (
                 <div className="font-mono-data-sm text-mono-data-sm text-outline">

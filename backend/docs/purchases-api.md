@@ -2,7 +2,7 @@
 
 Base path: `/api/purchases`
 
-All endpoints are currently public. The server recomputes item taxes and the purchase total from submitted quantities, prices, discounts, and freight; client-supplied totals are ignored.
+The server recomputes item taxes and the purchase total from validated quantities, prices, discounts, and freight; client-supplied totals are ignored. Prices must be finite, non-negative numbers; malformed values (including `NaN`, `Infinity`, negative values, and non-numeric strings) return `400`.
 
 ## GET `/api/purchases/next-code`
 
@@ -98,9 +98,7 @@ display one supplier's complete purchase history. An invalid `supplierId` return
 
 Creates a purchase. `supplierId` must reference an existing supplier. Each item requires `name`, a positive integer `quantity`, and a non-negative `unitPrice`. An optional `paymentAmount` (0 to the computed grand total) records an initial payment atomically: the response returns `paidAmount` set to that value and, when positive, one entry in `payments` with `method` (default `Cash`) and `reference` (falls back to `invoiceNumber`).
 
-When a linked catalog product is selected in the UI, `quantity` starts at `0`; it is the number of units to add. `availableStock` is stored only as a read-only snapshot of the product's current stock. Stock is added only when the purchase is saved with `status: "Received"`: each linked item's full `quantity` is recorded as `receivedQuantity`, added to the product's `openingStock`, and written as a `purchase` stock movement. Saving with `Draft` or `Ordered` does not change stock.
-
-For a flavored product, the full received quantity applies to **each selected flavor**. Three flavors at `quantity: 10` add 10 units to each flavor row and 30 to the product's `openingStock`, matching the `basePrice × flavorCount × quantity` pricing rule. Only flavors that have been received get a `Product.flavorStocks` entry, which is what the inventory page renders as separate rows.
+When a linked catalog product is selected in the UI, `quantity` starts at `0`; it is the number of units in the selected `unit`. Stock is always tracked in base Pieces, so the backend converts each line with `baseQuantity = toBasePieces(quantity, unit)` (`Piece = 1`, `Box = 12`, `Carton = 24`). `availableStock` is a read-only snapshot of the product's current base-piece stock. Stock is added only when the purchase is saved with `status: "Received"`: each linked item's full `quantity` is recorded as `receivedQuantity`, its `baseQuantity` is added to the product's `openingStock`, and a `purchase` stock movement is written with the base-piece quantity. Saving with `Draft` or `Ordered` does not change stock.
 
 ### Request body
 
@@ -132,6 +130,28 @@ For a flavored product, the full received quantity applies to **each selected fl
 }
 ```
 
+### Pricing behavior
+
+Product prices are stored canonically **per Piece** in `Product.purchasePrice`.
+For a linked catalog line, the backend ignores the submitted `unitPrice` and
+derives it into the line's selected unit:
+
+```text
+unitPrice = priceForUnit(product.purchasePrice, item.unit)
+lineTotal = quantity × unitPrice + tax - discount
+```
+
+For example, with `purchasePrice: 10` per Piece, a `Carton` line has
+`unitPrice: 240`; a `Box` line has `unitPrice: 120`. Each line records its
+`priceBasis`, `basePrice` (per Piece), and `unitPrice` (per selected unit):
+
+- `priceBasis: "catalog"` lines preserve saved prices when an edit keeps the same
+  product and unit, even if catalog prices change. Changing the product or unit
+  reprices from current canonical prices; changing quantity alone never does.
+- `priceBasis: "manual"` lines have no matching catalog product. They must submit
+  a finite, non-negative `unitPrice`, which is stored as submitted.
+- Manual items never use product canonical pricing or adjust stock.
+
 Accepted `status` values: `Draft`, `Ordered`, `Partially Received`, `Received`, `Cancelled`. The create/edit form exposes `Draft`, `Ordered`, and `Received`; submitting `Received` is a full goods receipt. `Partially Received` is derived by the Receive Goods endpoint, and `Cancelled` is set through the status endpoint.
 
 ### Response
@@ -160,7 +180,7 @@ The endpoint returns `400` with a `message` when:
 
 - the supplier id is missing or does not exist;
 - no valid line items are supplied;
-- an item is missing a name, has zero/negative quantity, or has a negative price;
+- an item is missing a name, has zero/negative/non-integer quantity, has an invalid unit, or has a malformed/negative price;
 - expected delivery is before the purchase date;
 - the status is not one of the accepted values;
 - `paymentAmount` exceeds the computed purchase total.
@@ -234,11 +254,11 @@ Deletes a purchase by Mongo `_id` or `purchaseNumber`.
 ## Notes
 
 - `paidAmount` and `payments` are returned on every purchase. The frontend derives `remaining` as `financials.total - paidAmount`.
-- Saving with `status: "Received"` fully receives the purchase: linked products get their full ordered quantity added to `openingStock` (`quantity × selected flavor count`), with a `STATUS-RECEIVED` receipt and a `purchase` stock movement. Each selected flavor also gets its own `Product.flavorStocks` balance.
+- Saving with `status: "Received"` fully receives the purchase: linked products get their full ordered quantity converted to base Pieces and added to `openingStock`, with a `STATUS-RECEIVED` receipt and a `purchase` stock movement.
 - Saving with `Draft` or `Ordered` adds no stock and leaves `receivedQuantity` at `0` for new purchases.
 - `/api/purchases/:id/receive` remains available for partial goods receipts and only adds quantities beyond the already recorded `receivedQuantity`; both paths add only the positive delta and are idempotent on repeated submissions.
-- Each item stores `availableStock` (read-only stock snapshot at selection), `quantity` (units to add, starting at `0` in the form), `receivedQuantity` (cumulative received), and `remaining = quantity - receivedQuantity` is derived by the frontend.
-- Receipts create `StockMovement` entries with `type: "purchase"`, `direction: "in"`, and a reference containing the purchase number. Multi-flavor lines store `flavorBreakdown: [{ flavor, quantity }]`; single-flavor lines also set `flavor`.
+- Each item stores `availableStock` (read-only base-piece stock snapshot at selection), `quantity` (units to add, starting at `0` in the form), `baseQuantity` (converted base Pieces), `receivedQuantity` (cumulative received in the selected unit), and `receivedBaseQuantity` (cumulative received in base Pieces).
+- Receipts create `StockMovement` entries with `type: "purchase"`, `direction: "in"`, `quantity` in base Pieces, and a reference containing the purchase number.
 - Editing a received purchase cannot reduce `receivedQuantity` below the already received amount or change its linked product.
 - Deleting a purchase reverses its received stock and removes the linked `purchase` stock movements in the same transaction.
 - Saving a purchase does not currently mutate the supplier's `totalPurchases` or `outstanding` fields.

@@ -2,7 +2,13 @@
 
 import type { Supplier } from "../../suppliers/types";
 import type { PurchaseFinancials, PurchaseLineItem } from "../types";
-import { calculateLineTotal, formatDate, formatRs, paymentTermsLabel } from "../utils";
+import {
+  calculateLineTotal,
+  formatDate,
+  formatRs,
+  formatUnitPrice,
+  paymentTermsLabel,
+} from "../utils";
 
 type PurchasePreviewDialogProps = {
   open: boolean;
@@ -118,7 +124,7 @@ export function PurchasePreviewDialog({
                     {item.quantity} {item.unit}
                   </td>
                   <td className="px-3 py-2 text-right font-mono-data">
-                    {formatRs(item.unitPrice)}
+                    {formatUnitPrice(item.unitPrice, item.unit)}
                   </td>
                   <td className="px-3 py-2 text-right font-mono-data">
                     {formatRs(calculateLineTotal(item))}

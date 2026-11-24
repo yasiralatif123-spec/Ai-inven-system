@@ -5,7 +5,15 @@ const Customer = require("../models/Customer");
 const StockMovement = require("../models/StockMovement");
 const { runWithSession } = require("../utils/db");
 const { tenantFilter } = require("../utils/tenant");
-const { normalizeUnit, toBasePieces, isSupportedUnit } = require("../utils/units");
+const {
+  normalizeUnit,
+  toBasePieces,
+  isSupportedUnit,
+  priceForUnit,
+  parseMoneyInput,
+  parseStoredMoney,
+  roundMoney,
+} = require("../utils/units");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -120,6 +128,25 @@ function toWholeNumber(value, fallback = 0) {
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function requireMoney(value, label) {
+  const amount = parseMoneyInput(value);
+  if (amount === null) {
+    throw new ValidationError(`${label} must be a finite, non-negative number`);
+  }
+  return amount;
+}
+
+function sameCatalogSnapshot(previousItem, product, requestedProductId, sku) {
+  if (!previousItem) return false;
+  const previousId = cleanString(previousItem.productId).toLowerCase();
+  const currentId = cleanString(product?._id || requestedProductId).toLowerCase();
+  if (previousId && currentId) return previousId === currentId;
+
+  const previousSku = cleanString(previousItem.sku).toLowerCase();
+  const currentSku = cleanString(sku).toLowerCase();
+  return Boolean(previousSku && currentSku && previousSku === currentSku);
 }
 
 function compactAmount(value) {
@@ -261,7 +288,7 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
     const name = cleanString(rawItem?.name);
     const sku = cleanString(rawItem?.sku);
     const quantity = toWholeNumber(rawItem?.quantity);
-    const unitPrice = toNumber(rawItem?.unitPrice);
+    const unitPrice = requireMoney(rawItem?.unitPrice, `Item ${name || sku || "line item"} unit price`);
     const rawUnit = cleanString(rawItem?.unitLabel) || cleanString(rawItem?.unit) || "Piece";
     const unitLabel = normalizeUnit(rawUnit);
 
@@ -280,9 +307,13 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
       throw new ValidationError(`Item ${name || sku || "line item"} has an invalid quantity/unit conversion`);
     }
 
-    const previousItem = sku
-      ? previousItems.find((candidate) => cleanString(candidate.sku) === sku)
-      : null;
+    const requestedItemId = cleanString(rawItem?.productId).toLowerCase();
+    const previousItem = previousItems.find((candidate) => {
+      const previousSku = cleanString(candidate.sku).toLowerCase();
+      const previousId = cleanString(candidate.productId).toLowerCase();
+      return (Boolean(sku) && previousSku === sku.toLowerCase()) ||
+        (Boolean(requestedItemId) && previousId === requestedItemId);
+    }) || null;
     const requestedProductId = cleanString(rawItem?.productId) || previousItem?.productId || null;
     const product = await findProductForItem(
       {
@@ -299,11 +330,30 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
       );
     }
 
-    const basePrice = product ? Math.max(toNumber(product.wholesalePrice), 0) : unitPrice;
+    const catalogBasePrice = product
+      ? requireMoney(product.wholesalePrice, `Catalog price for ${product.title}`)
+      : null;
+    const catalogUnitPrice = catalogBasePrice === null
+      ? null
+      : priceForUnit(catalogBasePrice, unitLabel);
+    const keepSnapshot = Boolean(
+      product &&
+        previousItem &&
+        cleanString(previousItem.priceBasis) !== "manual" &&
+        sameCatalogSnapshot(previousItem, product, requestedProductId, sku) &&
+        normalizeUnit(previousItem.unitLabel) === unitLabel
+    );
+    const savedBasePrice = keepSnapshot ? parseStoredMoney(previousItem.basePrice) : null;
+    const savedUnitPrice = keepSnapshot ? parseStoredMoney(previousItem.unitPrice) : null;
+    const basePrice = product
+      ? savedBasePrice !== null
+        ? savedBasePrice
+        : catalogBasePrice ?? 0
+      : unitPrice;
     const effectiveUnitPrice = product
-      ? existingOrder && previousItem
-        ? Number(previousItem.unitPrice) || basePrice
-        : basePrice
+      ? savedUnitPrice !== null
+        ? savedUnitPrice
+        : catalogUnitPrice ?? 0
       : unitPrice;
 
     items.push({
@@ -313,11 +363,12 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
       quantity,
       baseQuantity,
       unitLabel,
+      priceBasis: product ? "catalog" : "manual",
       basePrice,
       unitPrice: effectiveUnitPrice,
       available: product ? Math.max(0, toNumber(product.openingStock)) : 0,
       stockDeducted: Boolean(product),
-      lineTotal: quantity * effectiveUnitPrice,
+      lineTotal: roundMoney(quantity * effectiveUnitPrice),
     });
   }
 
@@ -326,8 +377,8 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
     throw new ValidationError("Order subtotal must be greater than zero");
   }
 
-  const discount = clamp(toNumber(body.discount), 0, subtotal);
-  const freight = Math.max(toNumber(body.freight), 0);
+  const discount = clamp(requireMoney(body.discount, "Discount"), 0, subtotal);
+  const freight = requireMoney(body.freight, "Freight");
   const tax = Math.round(((subtotal - discount) * 18) / 118);
   const total = subtotal - discount + freight;
 
@@ -335,7 +386,7 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
   if (paymentStatus === "paid") {
     paid = total;
   } else if (paymentStatus === "partial") {
-    paid = clamp(toNumber(body.amountReceived), 0, total);
+    paid = clamp(requireMoney(body.amountReceived, "Amount received"), 0, total);
     if (paid <= 0) {
       throw new ValidationError("amountReceived is required for partial payments");
     }

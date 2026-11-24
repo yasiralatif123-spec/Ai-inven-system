@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { apiFetch } from "../lib/api";
 import type { Product } from "./types";
-import { formatRs, getMargin, getStatus, getStockMeta } from "./product-utils";
+import { formatPricePerPiece, getMargin, getStatus, getStockMeta } from "./product-utils";
 import { ProductDetailModal } from "./components/ProductDetailModal";
 import { EditProductModal } from "./components/EditProductModal";
 
@@ -114,8 +114,8 @@ export default function ProductsPage() {
                   <th className="px-3.5 py-1 font-label-caps text-label-caps uppercase tracking-wider text-secondary">Product Name &amp; Details</th>
                   <th className="px-3 py-1 font-label-caps text-label-caps uppercase tracking-wider text-secondary">SKU</th>
                   <th className="px-3 py-1 font-label-caps text-label-caps uppercase tracking-wider text-secondary">Category</th>
-                  <th className="px-3 py-1 text-right font-label-caps text-label-caps uppercase tracking-wider text-secondary">Purchase Price</th>
-                  <th className="px-3 py-1 text-right font-label-caps text-label-caps uppercase tracking-wider text-secondary">Selling Price</th>
+                  <th className="px-3 py-1 text-right font-label-caps text-label-caps uppercase tracking-wider text-secondary">Purchase / Piece</th>
+                  <th className="px-3 py-1 text-right font-label-caps text-label-caps uppercase tracking-wider text-secondary">Wholesale / Piece</th>
                   <th className="px-3 py-1 font-label-caps text-label-caps uppercase tracking-wider text-secondary">Warehouse Balance</th>
                   <th className="px-3 py-1 text-center font-label-caps text-label-caps uppercase tracking-wider text-secondary">Status</th>
                 </tr>
@@ -171,10 +171,10 @@ export default function ProductsPage() {
                         </td>
                         <td className="whitespace-nowrap px-3 py-1.5"><span className="rounded border border-outline-variant bg-surface-container px-1.5 py-0.5 font-mono-data-sm text-mono-data-sm text-on-surface">{p.sku}</span></td>
                         <td className="whitespace-nowrap px-3 py-1.5"><span className="font-body-dense text-body-dense text-on-surface-variant">{p.category}</span></td>
-                        <td className="whitespace-nowrap px-3 py-1.5 text-right"><span className="font-mono-data text-mono-data tabular-nums text-on-surface">{formatRs(p.purchasePrice)}</span></td>
+                        <td className="whitespace-nowrap px-3 py-1.5 text-right"><span className="font-mono-data text-mono-data tabular-nums text-on-surface">{formatPricePerPiece(p.purchasePrice)}</span></td>
                         <td className="whitespace-nowrap px-3 py-1.5 text-right">
                           <div className="flex flex-col items-end">
-                            <span className="font-mono-data text-mono-data font-medium tabular-nums text-on-surface">{formatRs(p.wholesalePrice)}</span>
+                            <span className="font-mono-data text-mono-data font-medium tabular-nums text-on-surface">{formatPricePerPiece(p.wholesalePrice)}</span>
                             <span className="font-mono-data-sm text-mono-data-sm text-primary">{margin}</span>
                           </div>
                         </td>

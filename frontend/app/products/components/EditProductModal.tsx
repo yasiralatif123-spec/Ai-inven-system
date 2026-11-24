@@ -2,6 +2,15 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { apiFetch } from "../../lib/api";
+import type { StockUnit } from "../../lib/units";
+import {
+  canonicalPriceFromDisplay,
+  canonicalPricesFromProduct,
+  displayPricesFromCanonical,
+  priceUnitFromProduct,
+  type CanonicalPrices,
+  type PriceField,
+} from "../price-fields";
 import type { Product } from "../types";
 import {
   CATALOG_STATUSES,
@@ -23,6 +32,7 @@ type FormState = {
   purchasePrice: string;
   wholesalePrice: string;
   retailPrice: string;
+  priceUnit: StockUnit;
   taxBracket: string;
   uom: string;
   openingStock: string;
@@ -54,6 +64,11 @@ function toDateInput(value?: string | null) {
 }
 
 function buildInitialForm(product: Product): FormState {
+  const priceUnit = priceUnitFromProduct(product);
+  const displayPrices = displayPricesFromCanonical(
+    canonicalPricesFromProduct(product),
+    priceUnit
+  );
   return {
     title: product.title || "",
     sku: product.sku || "",
@@ -61,9 +76,8 @@ function buildInitialForm(product: Product): FormState {
     category: product.category || PRODUCT_CATEGORIES[0],
     brand: product.brand || "",
     description: product.description || "",
-    purchasePrice: product.purchasePrice !== undefined ? String(product.purchasePrice) : "",
-    wholesalePrice: product.wholesalePrice !== undefined ? String(product.wholesalePrice) : "",
-    retailPrice: product.retailPrice !== undefined ? String(product.retailPrice) : "",
+    ...displayPrices,
+    priceUnit,
     taxBracket: product.taxBracket || TAX_BRACKETS[0],
     uom: product.uom || STOCK_UNITS[0],
     openingStock: product.openingStock !== undefined ? String(product.openingStock) : "0",
@@ -130,6 +144,9 @@ function Section({
 
 export function EditProductModal({ product, onClose, onSaved }: EditProductModalProps) {
   const [form, setForm] = useState<FormState>(() => buildInitialForm(product));
+  const [canonicalPrices, setCanonicalPrices] = useState<CanonicalPrices>(() =>
+    canonicalPricesFromProduct(product)
+  );
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [removeImage, setRemoveImage] = useState(false);
@@ -150,16 +167,29 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
   }, [onClose, saving]);
 
   const margins = useMemo(() => {
-    const cost = Number(String(form.purchasePrice).replace(/,/g, "")) || 0;
-    const wholesale = Number(String(form.wholesalePrice).replace(/,/g, "")) || 0;
-    const retail = Number(String(form.retailPrice).replace(/,/g, "")) || 0;
+    const cost = canonicalPrices.purchasePrice ?? 0;
+    const wholesale = canonicalPrices.wholesalePrice ?? 0;
+    const retail = canonicalPrices.retailPrice ?? 0;
     const wholesalePct = cost > 0 ? (((wholesale - cost) / cost) * 100).toFixed(1) : "0.0";
     const retailPct = cost > 0 ? (((retail - cost) / cost) * 100).toFixed(1) : "0.0";
     return { wholesalePct, retailPct, wholesaleAmount: Math.max(0, wholesale - cost) };
-  }, [form.purchasePrice, form.wholesalePrice, form.retailPrice]);
+  }, [canonicalPrices]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function setPrice(field: PriceField, value: string) {
+    setForm((current) => ({ ...current, [field]: value }));
+    setCanonicalPrices((current) => ({
+      ...current,
+      [field]: canonicalPriceFromDisplay(value, form.priceUnit),
+    }));
+  }
+
+  function setPriceUnit(unit: StockUnit) {
+    const display = displayPricesFromCanonical(canonicalPrices, unit);
+    setForm((current) => ({ ...current, priceUnit: unit, ...display }));
   }
 
   function onImageChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -394,36 +424,50 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
             </Section>
 
             <Section index="SEC #02" title="B. Pricing Tiers & FBR Taxation" subtitle="Cost, wholesale, retail, and tax regime">
+              <Field label="Price Entry Unit" className="md:max-w-xs">
+                <select
+                  value={form.priceUnit}
+                  onChange={(event) => setPriceUnit(event.target.value as StockUnit)}
+                  className={inputClass}
+                >
+                  {STOCK_UNITS.map((unit) => (
+                    <option key={unit} value={unit}>{unit}</option>
+                  ))}
+                </select>
+                <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                  All prices below are converted and stored per Piece.
+                </span>
+              </Field>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <Field label="1. Purchase Price (Cost)">
+                <Field label={`1. Purchase Price (Cost) / ${form.priceUnit}`}>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
                     value={form.purchasePrice}
-                    onChange={(event) => set("purchasePrice", event.target.value)}
+                    onChange={(event) => setPrice("purchasePrice", event.target.value)}
                     className={`${monoInputClass} text-right`}
                     placeholder="0.00"
                   />
                 </Field>
-                <Field label="2. Wholesale Price (Trade)">
+                <Field label={`2. Wholesale Price (Trade) / ${form.priceUnit}`}>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
                     value={form.wholesalePrice}
-                    onChange={(event) => set("wholesalePrice", event.target.value)}
+                    onChange={(event) => setPrice("wholesalePrice", event.target.value)}
                     className={`${monoInputClass} text-right`}
                     placeholder="0.00"
                   />
                 </Field>
-                <Field label="3. Retail MSRP (Consumer)">
+                <Field label={`3. Retail MSRP (Consumer) / ${form.priceUnit}`}>
                   <input
                     type="number"
                     min={0}
                     step="0.01"
                     value={form.retailPrice}
-                    onChange={(event) => set("retailPrice", event.target.value)}
+                    onChange={(event) => setPrice("retailPrice", event.target.value)}
                     className={`${monoInputClass} text-right`}
                     placeholder="0.00"
                   />
@@ -433,7 +477,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                 <div className="flex flex-wrap items-center gap-2 font-mono-data text-mono-data md:col-span-7">
                   <span className="rounded border border-[#D1E8DC] bg-[#EBF5F0] px-2.5 py-1 font-semibold text-[#2E7D58]">
                     Wholesale Margin: +{margins.wholesalePct}% (Rs.{" "}
-                    {margins.wholesaleAmount.toLocaleString()})
+                    {margins.wholesaleAmount.toLocaleString()} / Piece)
                   </span>
                   <span className="rounded border border-outline-variant bg-surface-container-lowest px-2.5 py-1">
                     MSRP Spread: +{margins.retailPct}%

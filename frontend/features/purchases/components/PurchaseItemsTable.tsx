@@ -5,8 +5,13 @@ import { useState } from "react";
 import type { Product } from "../../../app/products/types";
 import { UNIT_OPTIONS } from "../constants";
 import type { PurchaseLineItem } from "../types";
-import { calculateLineTax, calculateLineTotal } from "../utils";
-import { toBasePieces } from "../../../app/lib/units";
+import {
+  calculateLineTax,
+  calculateLineTotal,
+  formatUnitPrice,
+  priceUnitLabel,
+} from "../utils";
+import { formatStockWithPieces, toBasePieces } from "../../../app/lib/units";
 import { ProductPicker } from "./ProductPicker";
 
 type PurchaseItemsTableProps = {
@@ -101,7 +106,7 @@ export function PurchaseItemsTable({
               <th className="min-w-[240px] py-2.5 pl-4 pr-2 font-medium">Product / SKU</th>
               <th className="w-28 px-2 py-2.5 font-medium">Qty</th>
               <th className="w-28 px-2 py-2.5 font-medium">Unit</th>
-              <th className="w-32 px-2 py-2.5 text-right font-medium">Unit Price (Rs.)</th>
+              <th className="w-32 px-2 py-2.5 text-right font-medium">Unit Price</th>
               <th className="w-28 px-2 py-2.5 text-right font-medium">Discount</th>
               <th className="w-32 px-2 py-2.5 font-medium">Tax (GST)</th>
               <th className="w-36 px-3 py-2.5 text-right font-medium">Line Total (Rs.)</th>
@@ -131,6 +136,7 @@ export function PurchaseItemsTable({
                             name: value,
                             productId: "",
                             sku: "",
+                            priceBasis: "manual",
                           })
                         }
                         onProductSelect={(product) => onProductSelect(item.rowId, product)}
@@ -148,7 +154,7 @@ export function PurchaseItemsTable({
                             item.lowStock ? "font-semibold text-error" : "text-secondary"
                           }`}
                         >
-                          Available {item.availableStock} pcs ? ordered {Math.max(item.quantity, 0)} {item.unit} ? received {Math.max(item.receivedQuantity || 0, 0)} {item.unit}
+                          Available {formatStockWithPieces(item.availableStock)} · ordered {Math.max(item.quantity, 0)} {priceUnitLabel(item.unit)} · received {Math.max(item.receivedQuantity || 0, 0)} {priceUnitLabel(item.unit)}
                         </span>
                       ) : null}
                     </div>
@@ -194,26 +200,33 @@ export function PurchaseItemsTable({
                     {item.productId ? (
                       <div className="flex flex-col items-end">
                         <span className="font-mono-data text-mono-data text-on-surface">
-                          {item.unitPrice.toLocaleString("en-PK")}
+                          {formatUnitPrice(item.unitPrice, item.unit)}
                         </span>
                         <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                          {Number(item.unitPrice) || 0} / unit
+                          {item.priceBasis === "manual"
+                            ? "Manual price"
+                            : "Derived from catalog price per Piece"}
                         </span>
                       </div>
                     ) : (
-                      <input
-                        type="number"
-                        min={0}
-                        step="1"
-                        value={item.unitPrice}
-                        onChange={(event) =>
-                          onItemChange(item.rowId, {
-                            unitPrice: Math.max(Number(event.target.value) || 0, 0),
-                          })
-                        }
-                        aria-label={`Unit price for line ${index + 1}`}
-                        className={CELL_INPUT_CLASS}
-                      />
+                      <div className="flex flex-col items-end">
+                        <input
+                          type="number"
+                          min={0}
+                          step="1"
+                          value={item.unitPrice}
+                          onChange={(event) =>
+                            onItemChange(item.rowId, {
+                              unitPrice: Math.max(Number(event.target.value) || 0, 0),
+                            })
+                          }
+                          aria-label={`Unit price for line ${index + 1}`}
+                          className={CELL_INPUT_CLASS}
+                        />
+                        <span className="mt-0.5 block font-mono-data-sm text-mono-data-sm text-secondary">
+                          / {priceUnitLabel(item.unit)} (manual)
+                        </span>
+                      </div>
                     )}
                   </td>
                   <td className="px-2 py-2.5">

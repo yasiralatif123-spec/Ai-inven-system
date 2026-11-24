@@ -14,6 +14,11 @@ const saleOrderItemSchema = new mongoose.Schema(
     quantity: { type: Number, required: true, min: 1 },
     baseQuantity: { type: Number, default: 0, min: 0 },
     unitLabel: { type: String, default: "pcs", trim: true },
+    priceBasis: {
+      type: String,
+      enum: ["catalog", "manual"],
+      default: "catalog",
+    },
     basePrice: { type: Number, default: 0, min: 0 },
     unitPrice: { type: Number, required: true, min: 0 },
     available: { type: Number, default: 0, min: 0 },

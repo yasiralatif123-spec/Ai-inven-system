@@ -31,6 +31,11 @@ const purchaseItemSchema = new mongoose.Schema({
   receivedBaseQuantity: { type: Number, default: 0, min: 0 },
   receipts: { type: [purchaseReceiptSchema], default: [] },
   unit: { type: String, default: "Carton", trim: true },
+  priceBasis: {
+    type: String,
+    enum: ["catalog", "manual"],
+    default: "catalog",
+  },
   basePrice: { type: Number, default: 0, min: 0 },
   unitPrice: { type: Number, required: true, min: 0 },
   discount: { type: Number, default: 0, min: 0 },

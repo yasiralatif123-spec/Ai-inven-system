@@ -15,7 +15,7 @@ import {
   fetchStockMovements,
 } from "./services/inventory.service";
 import { formatNumber, movementToEntry, toStockRows } from "./utils";
-import { toBasePieces } from "../lib/units";
+import { parseMoneyInput } from "../lib/units";
 
 function isToday(value: string) {
   const date = new Date(value);
@@ -154,22 +154,18 @@ export default function InventoryPage() {
   const alertRows = useMemo(() => filteredRows.filter(isAlertRow), [filteredRows]);
 
   const summary = useMemo(() => {
-    const productById = new Map(products.map((product) => [product._id, product]));
     return depotRows.reduce(
       (acc, row) => {
-        const product = productById.get(row.productId);
-        const unitFactor = toBasePieces(1, product?.uom || "Piece") || 1;
-        const pricePerPiece = Number(row.purchasePrice || 0) / unitFactor;
         acc.totalUnits += row.available;
         acc.reservedUnits += row.reserved;
-        acc.stockValue += row.available * pricePerPiece;
+        acc.stockValue += row.available * (parseMoneyInput(row.purchasePrice) ?? 0);
         if (row.status === "critical") acc.criticalCount += 1;
         if (row.status === "low") acc.lowCount += 1;
         return acc;
       },
       { totalUnits: 0, reservedUnits: 0, stockValue: 0, criticalCount: 0, lowCount: 0 }
     );
-  }, [depotRows, products]);
+  }, [depotRows]);
 
   const movementEntries = useMemo(() => movements.map(movementToEntry), [movements]);
   const adjustmentEntries = useMemo(
@@ -298,7 +294,7 @@ export default function InventoryPage() {
       "Unit",
       "Min Safety",
       "Status",
-      "Purchase Price",
+      "Purchase Price / Piece",
     ];
     const lines = exportRows.map((row) => [
       row.sku,

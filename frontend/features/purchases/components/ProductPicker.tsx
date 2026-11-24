@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Product } from "../../../app/products/types";
+import { formatStockWithPieces, parseMoneyInput } from "../../../app/lib/units";
 
 type ProductPickerProps = {
   value: string;
@@ -207,8 +208,8 @@ export function ProductPicker({
 
                       </span>
                       <span className="shrink-0 font-mono-data-sm text-mono-data-sm">
-                        Stock {Math.max(Number(product.openingStock) || 0, 0)} · Rs.{" "}
-                        {Number(product.purchasePrice || 0).toLocaleString("en-PK")}
+                        {formatStockWithPieces(product.openingStock)} · Rs.{" "}
+                        {(parseMoneyInput(product.purchasePrice) ?? 0).toLocaleString("en-PK")} / Piece
                       </span>
                     </span>
                   </button>

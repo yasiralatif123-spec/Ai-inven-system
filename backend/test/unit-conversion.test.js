@@ -1,4 +1,14 @@
-const { toBasePieces, fromBasePieces, normalizeUnit, convertPrice } = require("../src/utils/units");
+const {
+  toBasePieces,
+  fromBasePieces,
+  normalizeUnit,
+  convertPrice,
+  pricePerPiece,
+  priceForUnit,
+  parseMoneyInput,
+  parseStoredMoney,
+  roundMoney,
+} = require("../src/utils/units");
 
 describe("unit conversion utility", () => {
   test("normalizes supported units", () => {
@@ -42,5 +52,41 @@ describe("unit conversion utility", () => {
     expect(convertPrice(120, "Box", "Carton")).toBe(240);
     expect(convertPrice(10, "Piece", "Box")).toBe(120);
     expect(convertPrice(10, "Piece", "Carton")).toBe(240);
+  });
+
+  test("converts canonical per-Piece prices into each unit", () => {
+    expect(pricePerPiece(240, "Carton")).toBe(10);
+    expect(pricePerPiece(120, "Box")).toBe(10);
+    expect(priceForUnit(10, "Carton")).toBe(240);
+    expect(priceForUnit(10, "Box")).toBe(120);
+    expect(priceForUnit(10, "Piece")).toBe(10);
+    expect(priceForUnit(10, "kg")).toBeNull();
+  });
+
+  test("parses money without silently accepting malformed values", () => {
+    expect(parseMoneyInput(undefined)).toBe(0);
+    expect(parseMoneyInput("")).toBe(0);
+    expect(parseMoneyInput("1,250.50")).toBe(1250.5);
+    expect(parseMoneyInput(12.345)).toBe(12.35);
+    expect(parseMoneyInput("NaN")).toBeNull();
+    expect(parseMoneyInput("Infinity")).toBeNull();
+    expect(parseMoneyInput(Number.POSITIVE_INFINITY)).toBeNull();
+    expect(parseMoneyInput(-1)).toBeNull();
+    expect(parseMoneyInput("12abc")).toBeNull();
+    expect(parseMoneyInput({})).toBeNull();
+  });
+
+  test("distinguishes missing saved money from an explicit zero", () => {
+    expect(parseStoredMoney(undefined)).toBeNull();
+    expect(parseStoredMoney(null)).toBeNull();
+    expect(parseStoredMoney("")).toBeNull();
+    expect(parseStoredMoney(0)).toBe(0);
+    expect(parseStoredMoney("240.50")).toBe(240.5);
+  });
+
+  test("rounds money safely", () => {
+    expect(roundMoney(1.005)).toBe(1.01);
+    expect(roundMoney(Number.NaN)).toBe(0);
+    expect(roundMoney(Number.POSITIVE_INFINITY)).toBe(0);
   });
 });

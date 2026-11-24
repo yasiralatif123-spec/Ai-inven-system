@@ -56,16 +56,31 @@ Additional restrictions:
 
 ## Pricing behavior
 
+Product prices are stored canonically **per Piece** in `Product.wholesalePrice`.
 For a newly created order, an item whose `sku` (or `productId`) matches a catalog
-product is priced from that product's `wholesalePrice`; the submitted `unitPrice`
-is ignored. Manual items keep the client-supplied price. Updating an existing
-order preserves the price already saved on that order.
+product is priced from that canonical price into the item's selected unit; the
+submitted `unitPrice` is ignored:
 
 ```text
+unitPrice = priceForUnit(product.wholesalePrice, item.unitLabel)
 lineTotal = quantity × unitPrice
 subtotal  = sum(lineTotal)
 total     = subtotal - discount + freight
 ```
+
+For example, with `wholesalePrice: 10` per Piece, a `Carton` line has
+`unitPrice: 240`; a `Box` line has `unitPrice: 120`.
+
+Each item records its immutable `priceBasis`, `basePrice` (per Piece), and
+`unitPrice` (per selected unit) as saved snapshots:
+
+- `priceBasis: "catalog"` items preserve the saved `unitPrice` and `basePrice`
+  when an edit keeps the same product and unit, even if catalog prices change.
+- Changing the product or unit reprices a catalog line from current canonical
+  prices. Changing quantity alone never changes the price.
+- `priceBasis: "manual"` items have no matching catalog product. They must submit
+  a finite, non-negative `unitPrice`, which is stored as submitted.
+- Malformed, negative, `NaN`, or `Infinity` prices are rejected with `400`.
 
 `financials.tax` is stored as an embedded 18% amount but is not included in
 `total`. Unpaid orders use `dueDate: "Due on receipt"` and

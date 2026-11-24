@@ -3,7 +3,13 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { apiFetch } from "../../lib/api";
 import type { Product } from "../types";
-import { formatDate, formatRs, getMargin, getStatus, getStockMeta } from "../product-utils";
+import {
+  formatDate,
+  formatPricePerPiece,
+  getMargin,
+  getStatus,
+  getStockMeta,
+} from "../product-utils";
 
 type ProductDetailModalProps = {
   product: Product | null;
@@ -155,17 +161,17 @@ export function ProductDetailModal({ product, onClose, onEdit, onDeleted }: Prod
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div className="rounded border border-outline-variant bg-surface-container-low p-2.5">
-                <div className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Purchase</div>
-                <div className="mt-1 font-mono-data text-mono-data tabular-nums text-on-surface">{formatRs(product.purchasePrice)}</div>
+                <div className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Purchase / Piece</div>
+                <div className="mt-1 font-mono-data text-mono-data tabular-nums text-on-surface">{formatPricePerPiece(product.purchasePrice)}</div>
               </div>
               <div className="rounded border border-outline-variant bg-surface-container-low p-2.5">
-                <div className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Wholesale</div>
-                <div className="mt-1 font-mono-data text-mono-data tabular-nums text-on-surface">{formatRs(product.wholesalePrice)}</div>
+                <div className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Wholesale / Piece</div>
+                <div className="mt-1 font-mono-data text-mono-data tabular-nums text-on-surface">{formatPricePerPiece(product.wholesalePrice)}</div>
                 <div className="font-mono-data-sm text-mono-data-sm text-primary">{margin}</div>
               </div>
               <div className="rounded border border-outline-variant bg-surface-container-low p-2.5">
-                <div className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Retail (MSRP)</div>
-                <div className="mt-1 font-mono-data text-mono-data tabular-nums text-on-surface">{formatRs(product.retailPrice)}</div>
+                <div className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Retail (MSRP) / Piece</div>
+                <div className="mt-1 font-mono-data text-mono-data tabular-nums text-on-surface">{formatPricePerPiece(product.retailPrice)}</div>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">

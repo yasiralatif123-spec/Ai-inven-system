@@ -2,7 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import type { Product } from "../../../app/products/types";
-import { formatStockWithPieces, toBasePieces, STOCK_UNITS } from "../../../app/lib/units";
+import {
+  formatStockWithPieces,
+  normalizeUnit,
+  parseMoneyInput,
+  priceForUnit,
+  STOCK_UNITS,
+  toBasePieces,
+} from "../../../app/lib/units";
 import {
   HUB_OPTIONS,
   ORDER_STATUS_OPTIONS,
@@ -34,11 +41,22 @@ type EditableItem = {
   quantity: string;
   unitLabel: string;
   unitPrice: string;
+  basePrice?: number;
+  priceBasis?: "catalog" | "manual";
 };
 
 function toEditableItems(items: DraftOrderItemInput[]): EditableItem[] {
   if (items.length === 0) {
-    return [{ name: "", sku: "", quantity: "1", unitLabel: "Piece", unitPrice: "0" }];
+    return [
+      {
+        name: "",
+        sku: "",
+        quantity: "1",
+        unitLabel: "Piece",
+        unitPrice: "0",
+        priceBasis: "manual",
+      },
+    ];
   }
   return items.map((item) => ({
     name: item.name,
@@ -46,11 +64,28 @@ function toEditableItems(items: DraftOrderItemInput[]): EditableItem[] {
     quantity: String(item.quantity),
     unitLabel: item.unitLabel,
     unitPrice: String(item.unitPrice),
+    basePrice: item.basePrice,
+    priceBasis: item.priceBasis,
   }));
 }
 
 function emptyItem(): EditableItem {
-  return { name: "", sku: "", quantity: "1", unitLabel: "Piece", unitPrice: "0" };
+  return {
+    name: "",
+    sku: "",
+    quantity: "1",
+    unitLabel: "Piece",
+    unitPrice: "0",
+    priceBasis: "manual",
+  };
+}
+
+function canonicalSalePrice(product: Product): number {
+  return parseMoneyInput(product.wholesalePrice) ?? 0;
+}
+
+function saleUnitPrice(product: Product, unit: string): number {
+  return priceForUnit(canonicalSalePrice(product), unit) ?? 0;
 }
 
 const NEW_ITEM_INPUT_CLASS =
@@ -120,6 +155,7 @@ export function OrderFormDialog({
       const product = productForItem(item);
       const quantity = Number(item.quantity);
       const unitPrice = Number(item.unitPrice);
+      const requestedPieces = toBasePieces(quantity, item.unitLabel);
       const available = product ? Number(product.openingStock) || 0 : null;
 
       if (!item.name.trim()) {
@@ -131,9 +167,9 @@ export function OrderFormDialog({
       if (!Number.isFinite(unitPrice) || unitPrice < 0) {
         validationIssues.push(`${label}: unit price cannot be negative.`);
       }
-      if (available !== null && Number.isFinite(quantity) && quantity > available) {
+      if (available !== null && Number.isFinite(requestedPieces) && requestedPieces > available) {
         validationIssues.push(
-          `${label}: only ${available} unit${available === 1 ? "" : "s"} available for ${product?.title || "this product"}.`
+          `${label}: only ${formatStockWithPieces(available)} available for ${product?.title || "this product"} (${requestedPieces} pcs requested).`
         );
       }
     });
@@ -162,13 +198,15 @@ export function OrderFormDialog({
   }
 
   function selectProduct(index: number, product: Product) {
-    const normalizedUom = (product.uom || "").trim();
-    const unitLabel = ["Carton", "Box", "Piece"].includes(normalizedUom) ? normalizedUom : "Piece";
+    const unitLabel = normalizeUnit(product.uom) || "Piece";
+    const basePrice = canonicalSalePrice(product);
     updateItem(index, {
       name: product.title,
       sku: product.sku,
       unitLabel,
-      unitPrice: String(Number(product.wholesalePrice) || 0),
+      basePrice,
+      priceBasis: "catalog",
+      unitPrice: String(saleUnitPrice(product, unitLabel)),
     });
   }
 
@@ -204,11 +242,16 @@ export function OrderFormDialog({
     setError(null);
 
     const payloadItems: DraftOrderItemInput[] = items.map((item) => {
-      const product = productForItem(item);      return {
+      const product = productForItem(item);
+      const unitLabel = normalizeUnit(item.unitLabel) || "Piece";
+      return {
         name: item.name.trim(),
-        sku: item.sku.trim(),        quantity: Number(item.quantity),
-        unitLabel: item.unitLabel.trim() || "Piece",
-        basePrice: product ? Number(product.wholesalePrice) || 0 : Number(item.unitPrice),
+        sku: item.sku.trim(),
+        quantity: Number(item.quantity),
+        unitLabel,
+        priceBasis: item.priceBasis ?? (product ? "catalog" : "manual"),
+        basePrice:
+          item.basePrice ?? (product ? canonicalSalePrice(product) : Number(item.unitPrice)),
         unitPrice: Number(item.unitPrice),
       };
     });
@@ -376,18 +419,7 @@ export function OrderFormDialog({
                           </span>
                           <input
                             value={item.quantity}
-                            onChange={(event) => {
-                              const quantity = event.target.value;
-                              const product = productForItem(item);
-                              updateItem(index, {
-                                quantity,
-                                ...(product
-                                  ? {
-                                      unitPrice: String(Number(product.wholesalePrice)||0),
-                                    }
-                                  : {}),
-                              });
-                            }}
+                            onChange={(event) => updateItem(index, { quantity: event.target.value })}
                             type="number"
                             min="1"
                             step="1"
@@ -401,8 +433,16 @@ export function OrderFormDialog({
                             Unit
                           </span>
                           <select
-                            value={["Carton", "Box", "Piece"].includes(item.unitLabel) ? item.unitLabel : "Piece"}
-                            onChange={(event) => updateItem(index, { unitLabel: event.target.value })}
+                            value={normalizeUnit(item.unitLabel) || "Piece"}
+                            onChange={(event) => {
+                              const unitLabel = normalizeUnit(event.target.value) || "Piece";
+                              updateItem(index, {
+                                unitLabel,
+                                ...(product && item.priceBasis !== "manual"
+                                  ? { unitPrice: String(saleUnitPrice(product, unitLabel)) }
+                                  : {}),
+                              });
+                            }}
                             aria-label={`Item ${index + 1} unit`}
                             className={NEW_ITEM_TEXT_INPUT_CLASS}
                           >
@@ -414,7 +454,7 @@ export function OrderFormDialog({
 
                         <label className="col-span-2 min-w-0 sm:col-span-2">
                           <span className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
-                            Unit Price
+                            Unit Price / {item.unitLabel}
                           </span>
                           <input
                             value={item.unitPrice}

@@ -191,7 +191,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               Depot: <strong className="text-on-surface">{row.warehouse}</strong>
             </span>
             <span className="shrink-0 text-on-surface">
-              Cost: <strong>{formatRs(row.purchasePrice)} / unit</strong>
+              Cost: <strong>{formatRs(row.purchasePrice)} / Piece</strong>
             </span>
           </div>
         </div>

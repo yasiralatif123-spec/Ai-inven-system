@@ -5,7 +5,18 @@ import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AppShell } from "../../components/AppShell";
 import { apiFetch } from "../../lib/api";
+import type { StockUnit } from "../../lib/units";
 import { PRODUCT_CATEGORIES, STOCK_UNITS, TAX_BRACKETS, WAREHOUSES } from "../product-options";
+import {
+  canonicalPriceFromDisplay,
+  displayPricesFromCanonical,
+  type CanonicalPrices,
+  type PriceField,
+} from "../price-fields";
+
+function emptyCanonicalPrices(): CanonicalPrices {
+  return { purchasePrice: null, wholesalePrice: null, retailPrice: null };
+}
 
 const initialForm = {
   title: "",
@@ -17,8 +28,9 @@ const initialForm = {
   purchasePrice: "",
   wholesalePrice: "",
   retailPrice: "",
+  priceUnit: "Piece" as StockUnit,
   taxBracket: "Standard Sales Tax (18% FBR SRO)",
-  uom: "Carton / Master Case",
+  uom: "Carton",
   openingStock: "0",
   reorderThreshold: "",
   warehouse: "Lahore Central Warehouse (Depot 01 - Kot Lakhpat)",
@@ -40,6 +52,7 @@ export default function AddProductPage() {
 function AddProductForm() {
   const router = useRouter();
   const [form, setForm] = useState(blankForm);
+  const [canonicalPrices, setCanonicalPrices] = useState<CanonicalPrices>(emptyCanonicalPrices);
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
@@ -48,21 +61,36 @@ function AddProductForm() {
 
   function resetForm() {
     setForm(blankForm());
+    setCanonicalPrices(emptyCanonicalPrices());
     setImage(null);
     setPreview("");
   }
 
   const margins = useMemo(() => {
-    const cost = Number(String(form.purchasePrice).replace(/,/g, "")) || 0;
-    const wholesale = Number(String(form.wholesalePrice).replace(/,/g, "")) || 0;
-    const retail = Number(String(form.retailPrice).replace(/,/g, "")) || 0;
+    const cost = canonicalPrices.purchasePrice ?? 0;
+    const wholesale = canonicalPrices.wholesalePrice ?? 0;
+    const retail = canonicalPrices.retailPrice ?? 0;
     const wPct = cost > 0 ? (((wholesale - cost) / cost) * 100).toFixed(1) : "0.0";
     const rPct = cost > 0 ? (((retail - cost) / cost) * 100).toFixed(1) : "0.0";
     return { wPct, rPct, wAmt: Math.max(0, wholesale - cost), rAmt: Math.max(0, retail - cost) };
-  }, [form.purchasePrice, form.wholesalePrice, form.retailPrice]);
+  }, [canonicalPrices]);
 
   function set<K extends keyof typeof initialForm>(key: K, value: (typeof initialForm)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function setPrice(field: PriceField, value: string) {
+    setForm((f) => ({ ...f, [field]: value }));
+    setCanonicalPrices((current) => ({
+      ...current,
+      [field]: canonicalPriceFromDisplay(value, form.priceUnit),
+    }));
+  }
+
+  function setPriceUnit(unit: StockUnit) {
+    // Always rebuild from canonical values so repeated unit changes never drift.
+    const display = displayPricesFromCanonical(canonicalPrices, unit);
+    setForm((f) => ({ ...f, priceUnit: unit, ...display }));
   }
 
   function onImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -192,6 +220,24 @@ function AddProductForm() {
               </div>
               <span className="rounded bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-secondary">SEC #02</span>
             </div>
+            <div className="flex flex-col gap-1.5 rounded border border-outline-variant bg-surface-container-low p-3 md:max-w-xs">
+              <label className="font-label-caps text-label-caps uppercase tracking-wider text-secondary" htmlFor="priceUnit">
+                Price Entry Unit
+              </label>
+              <select
+                id="priceUnit"
+                value={form.priceUnit}
+                onChange={(event) => setPriceUnit(event.target.value as StockUnit)}
+                className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 focus:border-primary-container focus:outline-none"
+              >
+                {STOCK_UNITS.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
+              <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                All prices below are converted and stored per Piece.
+              </span>
+            </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {([
                 { key: "purchasePrice", label: "1. Purchase Price (Cost)" },
@@ -199,14 +245,16 @@ function AddProductForm() {
                 { key: "retailPrice", label: "3. Retail MSRP (Consumer)" },
               ] as const).map((f) => (
                 <div key={f.key} className="flex flex-col gap-1.5 rounded border border-outline-variant bg-surface-container-low p-3">
-                  <label className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">{f.label}</label>
-                  <input value={form[f.key]} onChange={(e) => set(f.key, e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 text-right font-mono-data focus:border-primary-container focus:outline-none" placeholder="0.00" />
+                  <label className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+                    {f.label} / {form.priceUnit}
+                  </label>
+                  <input value={form[f.key]} onChange={(e) => setPrice(f.key, e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 text-right font-mono-data focus:border-primary-container focus:outline-none" placeholder="0.00" />
                 </div>
               ))}
             </div>
             <div className="grid grid-cols-1 items-center gap-4 rounded border border-outline-variant bg-surface-container p-3.5 md:grid-cols-12">
               <div className="md:col-span-7 flex flex-wrap items-center gap-2 font-mono-data text-mono-data">
-                <span className="rounded border border-[#D1E8DC] bg-[#EBF5F0] px-2.5 py-1 font-semibold text-[#2E7D58]">Wholesale Margin: +{margins.wPct}% (Rs. {margins.wAmt.toLocaleString()})</span>
+                <span className="rounded border border-[#D1E8DC] bg-[#EBF5F0] px-2.5 py-1 font-semibold text-[#2E7D58]">Wholesale Margin: +{margins.wPct}% (Rs. {margins.wAmt.toLocaleString()} / Piece)</span>
                 <span className="rounded border border-outline-variant bg-surface-container-lowest px-2.5 py-1">MSRP Spread: +{margins.rPct}%</span>
               </div>
               <div className="md:col-span-5 flex flex-col gap-1">

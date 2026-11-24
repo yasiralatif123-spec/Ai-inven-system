@@ -1,8 +1,13 @@
+import { parseMoneyInput } from "../lib/units";
 import type { Product } from "./types";
 
 export function formatRs(value?: number) {
   const n = Number(value || 0);
   return `Rs. ${n.toLocaleString("en-PK")}`;
+}
+
+export function formatPricePerPiece(value?: number) {
+  return `${formatRs(parseMoneyInput(value) ?? 0)} / Piece`;
 }
 
 export function formatDate(value?: string | null) {
@@ -54,6 +59,8 @@ export function getStockMeta(p: Product) {
 }
 
 export function getMargin(p: Product) {
-  if (!p.purchasePrice || p.purchasePrice <= 0 || p.wholesalePrice === undefined) return "-";
-  return `${(((p.wholesalePrice - p.purchasePrice) / p.purchasePrice) * 100).toFixed(1)}% margin`;
+  const cost = parseMoneyInput(p.purchasePrice);
+  const wholesale = parseMoneyInput(p.wholesalePrice);
+  if (!cost || cost <= 0 || wholesale === null) return "-";
+  return `${(((wholesale - cost) / cost) * 100).toFixed(1)}% margin`;
 }

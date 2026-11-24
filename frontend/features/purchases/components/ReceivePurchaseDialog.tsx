@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { PurchaseDto, PurchaseReceiveInput } from "../types";
-import { formatRs, itemRemainingQuantity } from "../utils";
+import { formatUnitPrice, itemRemainingQuantity } from "../utils";
 
 type ReceivePurchaseDialogProps = {
   purchase: PurchaseDto | null;
@@ -195,7 +195,7 @@ export function ReceivePurchaseDialog({
                       </td>
                       <td className="px-3 py-2 text-right font-mono-data">{remaining}</td>
                       <td className="px-3 py-2 text-right font-mono-data">
-                        {formatRs(item.unitPrice)}
+                        {formatUnitPrice(item.unitPrice, item.unit)}
                       </td>
                       <td className="px-3 py-2">
                         <input

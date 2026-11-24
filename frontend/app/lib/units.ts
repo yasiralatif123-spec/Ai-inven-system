@@ -44,3 +44,52 @@ export function formatStockWithPieces(totalPieces: unknown) {
 export function unitLabel(unit: unknown): string {
   return normalizeUnit(unit) || String(unit ?? "").trim() || "Piece";
 }
+
+export function roundMoney(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.round((numeric + Number.EPSILON) * 100) / 100;
+}
+
+/** Parses a money input without turning malformed values into zero. */
+export function parseMoneyInput(value: unknown): number | null {
+  if (value === undefined || value === null) return 0;
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= 0 ? roundMoney(value) : null;
+  }
+  if (typeof value !== "string") return null;
+
+  const text = value.trim().replace(/,/g, "");
+  if (!text) return 0;
+  if (!/^-?\d+(?:\.\d+)?$/.test(text)) return null;
+
+  const amount = Number(text);
+  return Number.isFinite(amount) && amount >= 0 ? roundMoney(amount) : null;
+}
+
+export function pricePerPiece(price: unknown, unit: unknown): number | null {
+  const normalized = normalizeUnit(unit);
+  const amount = Number(price);
+  if (!normalized || !Number.isFinite(amount)) return null;
+  const factor = PIECES_PER_UNIT[normalized];
+  if (factor <= 0) return null;
+  return roundMoney(amount / factor);
+}
+
+export function priceForUnit(canonicalPerPiece: unknown, unit: unknown): number | null {
+  const normalized = normalizeUnit(unit);
+  const amount = Number(canonicalPerPiece);
+  if (!normalized || !Number.isFinite(amount)) return null;
+  return roundMoney(amount * PIECES_PER_UNIT[normalized]);
+}
+
+export function convertPrice(price: unknown, fromUnit: unknown, toUnit: unknown): number | null {
+  const perPiece = pricePerPiece(price, fromUnit);
+  if (perPiece === null) return null;
+  return priceForUnit(perPiece, toUnit);
+}
+
+/** Price basis used in labels, e.g. `Rs. 100 / Piece`. */
+export function priceBasisLabel(unit: unknown): string {
+  return normalizeUnit(unit) || "Piece";
+}

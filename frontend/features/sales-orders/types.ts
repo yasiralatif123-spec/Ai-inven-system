@@ -19,6 +19,7 @@ export type OrderItem = {
   quantity: number;
   baseQuantity?: number;
   unitLabel: string;
+  priceBasis?: "catalog" | "manual";
   basePrice?: number;
   unitPrice: number;
   available: number;
@@ -70,6 +71,7 @@ export type DraftOrderItemInput = {
   sku: string;
   quantity: number;
   unitLabel: string;
+  priceBasis?: "catalog" | "manual";
   basePrice?: number;
   unitPrice: number;
 };

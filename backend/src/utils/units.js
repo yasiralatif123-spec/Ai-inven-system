@@ -65,14 +65,16 @@ function formatStock(totalPieces) {
 }
 
 function roundMoney(value) {
-  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return Math.round((numeric + Number.EPSILON) * 100) / 100;
 }
 
 function pricePerPiece(price, unit) {
   const factor = toPiecesPerUnit(unit);
   const amount = Number(price);
   if (!Number.isFinite(amount) || factor === null || factor <= 0) return null;
-  return amount / factor;
+  return roundMoney(amount / factor);
 }
 
 function priceForUnit(pricePerPieceValue, unit) {
@@ -99,6 +101,37 @@ function assertPositiveQuantity(value) {
   return qty !== null && qty > 0 ? qty : null;
 }
 
+/**
+ * Parses a monetary request value without silently converting invalid input
+ * into zero. Empty values are treated as an explicit zero so existing forms
+ * can omit optional prices. Returns null for malformed, negative, or non-finite
+ * values so callers can reject them.
+ */
+function parseMoneyInput(value) {
+  if (value === undefined || value === null) return 0;
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= 0 ? roundMoney(value) : null;
+  }
+  if (typeof value !== "string") return null;
+
+  const text = value.trim().replace(/,/g, "");
+  if (!text) return 0;
+  if (!/^-?\d+(?:\.\d+)?$/.test(text)) return null;
+
+  const amount = Number(text);
+  return Number.isFinite(amount) && amount >= 0 ? roundMoney(amount) : null;
+}
+
+/**
+ * Reads a money value saved on an existing document. Unlike parseMoneyInput,
+ * a missing value is `null` so callers can distinguish a missing legacy field
+ * from an explicitly saved zero.
+ */
+function parseStoredMoney(value) {
+  if (value === undefined || value === null || value === "") return null;
+  return parseMoneyInput(value);
+}
+
 module.exports = {
   CANONICAL_UNITS,
   PIECES_PER_UNIT,
@@ -112,5 +145,7 @@ module.exports = {
   pricePerPiece,
   priceForUnit,
   convertPrice,
+  parseMoneyInput,
+  parseStoredMoney,
   assertPositiveQuantity,
 };

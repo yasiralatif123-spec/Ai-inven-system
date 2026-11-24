@@ -2,7 +2,13 @@ const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const { ensureCloudinaryConfigured } = require("../config/cloudinary");
 const { tenantFilter, findOwned } = require("../utils/tenant");
-const { normalizeUnit } = require("../utils/units");
+const {
+  normalizeUnit,
+  isSupportedUnit,
+  parseMoneyInput,
+  pricePerPiece,
+  roundMoney,
+} = require("../utils/units");
 
 function uploadBufferToCloudinary(buffer, folder = "inv_system/products") {
   const cloudinary = ensureCloudinaryConfigured();
@@ -41,7 +47,51 @@ function toBoolean(value) {
   return Boolean(value);
 }
 
+class ProductValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ProductValidationError";
+  }
+}
 
+function resolveProductUom(value) {
+  if (value === undefined || value === null || String(value).trim() === "") return "Piece";
+  const normalized = normalizeUnit(value);
+  if (!normalized || !isSupportedUnit(normalized)) {
+    throw new ProductValidationError("uom must be Piece, Box, or Carton");
+  }
+  return normalized;
+}
+
+function resolvePricing(body) {
+  const priceUnit = normalizeUnit(body.priceUnit ?? "Piece");
+  if (!priceUnit || !isSupportedUnit(priceUnit)) {
+    throw new ProductValidationError("priceUnit must be Piece, Box, or Carton");
+  }
+
+  const fields = ["purchasePrice", "wholesalePrice", "retailPrice"];
+  const canonical = {};
+  for (const field of fields) {
+    const amount = parseMoneyInput(body[field]);
+    if (amount === null) {
+      throw new ProductValidationError(`${field} must be a finite, non-negative number`);
+    }
+    const perPiece = pricePerPiece(amount, priceUnit);
+    if (perPiece === null) {
+      throw new ProductValidationError(`${field} could not be converted per Piece`);
+    }
+    canonical[field] = roundMoney(perPiece);
+  }
+
+  return { priceUnit, ...canonical };
+}
+
+function handleControllerError(error, res, next) {
+  if (error instanceof ProductValidationError) {
+    return res.status(400).json({ message: error.message });
+  }
+  return next(error);
+}
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -66,9 +116,6 @@ async function createProduct(req, res, next) {
       category,
       brand,
       description,
-      purchasePrice,
-      wholesalePrice,
-      retailPrice,
       taxBracket,
       uom,
       openingStock,
@@ -110,6 +157,9 @@ async function createProduct(req, res, next) {
         .json({ message: "Reorder alert threshold must be 0 or greater" });
     }
 
+    const pricing = resolvePricing(req.body);
+    const normalizedUom = resolveProductUom(uom);
+
     let imageUrl = "";
     let imagePublicId = "";
     if (req.file && req.file.buffer) {
@@ -125,11 +175,12 @@ async function createProduct(req, res, next) {
       category: String(category).trim(),
       brand: String(brand).trim(),
       description: description ? String(description).trim() : "",
-      purchasePrice: toNumber(purchasePrice),
-      wholesalePrice: toNumber(wholesalePrice),
-      retailPrice: toNumber(retailPrice),
+      purchasePrice: pricing.purchasePrice,
+      wholesalePrice: pricing.wholesalePrice,
+      retailPrice: pricing.retailPrice,
+      priceUnit: pricing.priceUnit,
       taxBracket: taxBracket ? String(taxBracket).trim() : "",
-      uom: normalizeUnit(uom) || (uom ? String(uom).trim() : ""),
+      uom: normalizedUom,
       openingStock: toNumber(openingStock),
       reorderThreshold: reorderThresholdNum,
       warehouse: warehouse ? String(warehouse).trim() : "",
@@ -150,7 +201,7 @@ async function createProduct(req, res, next) {
 
     return res.status(201).json({ message: "Product created", product });
   } catch (error) {
-    return next(error);
+    return handleControllerError(error, res, next);
   }
 }
 
@@ -169,7 +220,7 @@ async function getProducts(req, res, next) {
     const products = await Product.find(filter).sort({ createdAt: -1 });
     return res.status(200).json({ products });
   } catch (error) {
-    return next(error);
+    return handleControllerError(error, res, next);
   }
 }
 
@@ -185,7 +236,7 @@ async function getProductById(req, res, next) {
     }
     return res.status(200).json({ product });
   } catch (error) {
-    return next(error);
+    return handleControllerError(error, res, next);
   }
 }
 
@@ -202,7 +253,7 @@ async function getProductBySku(req, res, next) {
     }
     return res.status(200).json({ product });
   } catch (error) {
-    return next(error);
+    return handleControllerError(error, res, next);
   }
 }
 
@@ -225,9 +276,6 @@ async function updateProduct(req, res, next) {
       category,
       brand,
       description,
-      purchasePrice,
-      wholesalePrice,
-      retailPrice,
       taxBracket,
       uom,
       openingStock,
@@ -267,6 +315,9 @@ async function updateProduct(req, res, next) {
         .json({ message: "Reorder alert threshold must be 0 or greater" });
     }
 
+    const pricing = resolvePricing(req.body);
+    const normalizedUom = resolveProductUom(uom);
+
     const previousPublicId = product.imagePublicId || "";
     const shouldRemoveImage = String(removeImage).toLowerCase() === "true";
     let uploadedImage = null;
@@ -286,11 +337,12 @@ async function updateProduct(req, res, next) {
     product.category = String(category).trim();
     product.brand = String(brand).trim();
     product.description = description ? String(description).trim() : "";
-    product.purchasePrice = toNumber(purchasePrice);
-    product.wholesalePrice = toNumber(wholesalePrice);
-    product.retailPrice = toNumber(retailPrice);
+    product.purchasePrice = pricing.purchasePrice;
+    product.wholesalePrice = pricing.wholesalePrice;
+    product.retailPrice = pricing.retailPrice;
+    product.priceUnit = pricing.priceUnit;
     product.taxBracket = taxBracket ? String(taxBracket).trim() : "";
-    product.uom = normalizeUnit(uom) || (uom ? String(uom).trim() : "");
+    product.uom = normalizedUom;
     product.openingStock = toNumber(openingStock);
     product.reorderThreshold = reorderThresholdNum;
     product.warehouse = warehouse ? String(warehouse).trim() : "";
@@ -316,7 +368,7 @@ async function updateProduct(req, res, next) {
 
     return res.status(200).json({ message: "Product updated", product });
   } catch (error) {
-    return next(error);
+    return handleControllerError(error, res, next);
   }
 }
 
@@ -340,7 +392,7 @@ async function deleteProduct(req, res, next) {
 
     return res.status(200).json({ message: "Product deleted", id });
   } catch (error) {
-    return next(error);
+    return handleControllerError(error, res, next);
   }
 }
 

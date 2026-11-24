@@ -1,4 +1,5 @@
 import type { Product } from "../../app/products/types";
+import { formatStockWithPieces, normalizeUnit, parseMoneyInput, priceForUnit } from "../../app/lib/units";
 import type {
   HubKey,
   PaymentTerms,
@@ -84,16 +85,26 @@ export function roundAmount(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+/** Catalog purchase prices are canonical per Piece. */
 export function purchaseBasePrice(product: Product): number {
-  const value = Number(product.purchasePrice);
-  return Number.isFinite(value) ? Math.max(value, 0) : 0;
+  return parseMoneyInput(product.purchasePrice) ?? 0;
+}
+
+/** Derives the catalog price into the unit selected on the purchase line. */
+export function purchaseUnitPrice(product: Product, unit: string): number {
+  return roundAmount(priceForUnit(purchaseBasePrice(product), unit) ?? 0);
+}
+
+export function priceUnitLabel(unit: string): string {
+  return normalizeUnit(unit) || "Piece";
+}
+
+export function formatUnitPrice(value: number, unit: string): string {
+  return `${formatRs(value)} / ${priceUnitLabel(unit)}`;
 }
 
 function effectiveLineUnitPrice(item: PurchaseLineItem): number {
-  if (item.lowStock && item.productId) {
-    return roundAmount(Math.max(Number(item.basePrice) || 0, 0));
-  }
-  return Math.max(Number(item.unitPrice) || 0, 0);
+  return roundAmount(Math.max(Number(item.unitPrice) || 0, 0));
 }
 
 export function calculateLineTotal(item: PurchaseLineItem): number {
@@ -159,10 +170,10 @@ export function purchaseItemsSummary(dto: PurchaseDto): string {
     .map((item) => {
       const ordered = Number(item.quantity) || 0;
       const received = Number(item.receivedQuantity) || 0;
-      const unit = item.unit || "units";
+      const unit = priceUnitLabel(item.unit);
       const baseQty = Number(item.baseQuantity) || 0;
-      const base = baseQty > 0 ? `, ${baseQty} pcs` : "";
-      return `${item.name} (${received}/${ordered} ${unit}${base}) - ${formatRs(item.unitPrice)}`;
+      const base = baseQty > 0 ? `, ${formatStockWithPieces(baseQty)}` : "";
+      return `${item.name} (${received}/${ordered} ${unit}${base}) - ${formatUnitPrice(item.unitPrice, unit)}`;
     })
     .join("; ");
 }

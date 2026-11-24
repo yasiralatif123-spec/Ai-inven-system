@@ -1,7 +1,7 @@
 import type { Product } from "../../app/products/types";
 import type { StockMovementDto } from "../../app/inventory/data";
-import { formatRs, getUnitShort, toStockRows } from "../../app/inventory/utils";
-import { toBasePieces } from "../../app/lib/units";
+import { formatRs, toStockRows } from "../../app/inventory/utils";
+import { formatStockWithPieces, parseMoneyInput } from "../../app/lib/units";
 import type { SalesOrder } from "../sales-orders/types";
 import type { Supplier } from "../suppliers/types";
 import type {
@@ -226,9 +226,7 @@ export function getDashboardKpis(
     salesChangePct: percentChange(todaySales, yesterdaySales),
     stockValue: products.reduce((total, product) => {
       const stockPieces = safeAmount(product.openingStock);
-      const unitFactor = toBasePieces(1, (product as any).uom || "Piece") || 1;
-      const pricePerPiece = safeAmount(product.purchasePrice) / unitFactor;
-      return total + stockPieces * pricePerPiece;
+      return total + stockPieces * (parseMoneyInput(product.purchasePrice) ?? 0);
     }, 0),
     lowStockCount: lowStock.length,
     urgentCount: lowStock.filter((row) => row.status === "critical").length,
@@ -290,7 +288,7 @@ export function getActivityItems(
       id: `movement-${movement._id}`,
       kind: "movement",
       title: `Stock ${movement.direction === "in" ? "added to" : "deducted from"} ${movement.productTitle}`,
-      detail: `${safeAmount(movement.quantity)} ${getUnitShort(movement.unit)} · ${
+      detail: `${formatStockWithPieces(movement.quantity)} · ${
         movement.reason || movement.reference || movement.notes || "No reason recorded"
       } · ${movement.performedBy || "Admin"}`,
       tone: movement.direction === "in" ? "primary" : "error",

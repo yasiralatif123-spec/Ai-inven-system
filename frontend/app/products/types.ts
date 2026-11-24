@@ -1,3 +1,5 @@
+import type { StockUnit } from "../lib/units";
+
 export type Product = {
   _id: string;
   title: string;
@@ -9,6 +11,8 @@ export type Product = {
   purchasePrice?: number;
   wholesalePrice?: number;
   retailPrice?: number;
+  /** Unit used when prices were entered; stored values are always per Piece. */
+  priceUnit?: StockUnit;
   taxBracket?: string;
   uom?: string;
   openingStock?: number;

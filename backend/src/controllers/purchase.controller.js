@@ -5,7 +5,14 @@ const StockMovement = require("../models/StockMovement");
 const Supplier = require("../models/Supplier");
 const { runWithSession } = require("../utils/db");
 const { tenantFilter } = require("../utils/tenant");
-const { normalizeUnit, toBasePieces, isSupportedUnit } = require("../utils/units");
+const {
+  normalizeUnit,
+  toBasePieces,
+  isSupportedUnit,
+  priceForUnit,
+  parseMoneyInput,
+  parseStoredMoney,
+} = require("../utils/units");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -93,6 +100,25 @@ function round(value) {
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
+}
+
+function requireMoney(value, label) {
+  const amount = parseMoneyInput(value);
+  if (amount === null) {
+    throw new ValidationError(`${label} must be a finite, non-negative number`);
+  }
+  return amount;
+}
+
+function sameCatalogSnapshot(previousItem, product, productId, sku) {
+  if (!previousItem) return false;
+  const previousId = cleanString(previousItem.productId).toLowerCase();
+  const currentId = cleanString(product?._id || productId).toLowerCase();
+  if (previousId && currentId) return previousId === currentId;
+
+  const previousSku = cleanString(previousItem.sku).toLowerCase();
+  const currentSku = cleanString(sku).toLowerCase();
+  return Boolean(previousSku && currentSku && previousSku === currentSku);
 }
 
 function toDate(value, fallback) {
@@ -189,13 +215,16 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
 
   for (const [index, rawItem] of body.items.entries()) {
     const name = cleanString(rawItem?.name);
-    const quantity = Math.floor(toNumber(rawItem?.quantity));
-    const submittedUnitPrice = toNumber(rawItem?.unitPrice);
+    const quantity = toWholeNumber(rawItem?.quantity);
+    const submittedUnitPrice = requireMoney(
+      rawItem?.unitPrice,
+      `Item ${index + 1} unit price`
+    );
     const productId = cleanString(rawItem?.productId);
     const sku = cleanString(rawItem?.sku);
     const rawUnit = cleanString(rawItem?.unit) || cleanString(rawItem?.unitLabel) || "Carton";
     const unit = normalizeUnit(rawUnit);
-    if (!name || quantity <= 0 || submittedUnitPrice < 0) {
+    if (!name || quantity === null || quantity <= 0) {
       throw new ValidationError(
         `Item ${index + 1} needs a name, a positive quantity, and a non-negative unit price`
       );
@@ -220,12 +249,32 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
     }
 
     const existingItem = findExistingItem(rawItem, index, existingItems);
-    const basePrice = product ? basePurchasePrice(product) : submittedUnitPrice;
-    const unitPrice = product
-      ? existingItem
-        ? Number(existingItem?.unitPrice) || basePrice
-        : basePrice
+    const catalogBasePrice = product
+      ? requireMoney(product.purchasePrice, `Catalog price for ${product.title}`)
+      : null;
+    const catalogUnitPrice = catalogBasePrice === null
+      ? null
+      : priceForUnit(catalogBasePrice, unit);
+    const keepSnapshot = Boolean(
+      product &&
+        existingItem &&
+        cleanString(existingItem.priceBasis) !== "manual" &&
+        sameCatalogSnapshot(existingItem, product, productId, sku) &&
+        normalizeUnit(existingItem.unit) === unit
+    );
+    const savedBasePrice = keepSnapshot ? parseStoredMoney(existingItem.basePrice) : null;
+    const savedUnitPrice = keepSnapshot ? parseStoredMoney(existingItem.unitPrice) : null;
+    const basePrice = product
+      ? savedBasePrice !== null
+        ? savedBasePrice
+        : catalogBasePrice ?? 0
       : submittedUnitPrice;
+    const unitPrice = product
+      ? savedUnitPrice !== null
+        ? savedUnitPrice
+        : catalogUnitPrice ?? 0
+      : submittedUnitPrice;
+    const priceBasis = product ? "catalog" : "manual";
 
     const previousReceived = Math.max(0, Number(existingItem?.receivedQuantity) || 0);
     const previousReceivedBase = Math.max(
@@ -321,8 +370,14 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
           );
 
     const itemSubtotal = round(quantity * unitPrice);
-    const discount = clamp(toNumber(rawItem?.discount), 0, itemSubtotal);
-    const taxRate = clamp(toNumber(rawItem?.taxRate, 18), 0, 100);
+    const discount = clamp(requireMoney(rawItem?.discount, `Item ${index + 1} discount`), 0, itemSubtotal);
+    const taxRate = clamp(
+      rawItem?.taxRate === undefined || rawItem?.taxRate === null || rawItem?.taxRate === ""
+        ? 18
+        : requireMoney(rawItem.taxRate, `Item ${index + 1} tax rate`),
+      0,
+      100
+    );
     const taxAmount = round(((itemSubtotal - discount) * taxRate) / 100);
     const lineTotal = round(itemSubtotal - discount + taxAmount);
 
@@ -337,6 +392,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       receivedBaseQuantity,
       receipts,
       unit,
+      priceBasis,
       basePrice,
       unitPrice,
       discount,
@@ -349,7 +405,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
   const subtotal = round(items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
   const discount = round(items.reduce((sum, item) => sum + item.discount, 0));
   const tax = round(items.reduce((sum, item) => sum + item.taxAmount, 0));
-  const freight = Math.max(toNumber(body.freight), 0);
+  const freight = requireMoney(body.freight, "Freight");
   const total = round(subtotal - discount + tax + freight);
 
   if (total <= 0) {
@@ -358,7 +414,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
 
   // Initial payment is accepted only on create. Edits record payments through
   // the dedicated /payment endpoint so the existing ledger stays immutable.
-  const paymentAmount = existingPurchase ? 0 : Math.max(toNumber(body.paymentAmount), 0);
+  const paymentAmount = existingPurchase ? 0 : requireMoney(body.paymentAmount, "Payment amount");
   if (paymentAmount > total) {
     throw new ValidationError(`Payment cannot exceed the purchase total of ${total}`);
   }

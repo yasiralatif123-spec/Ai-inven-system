@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { PaymentStatus, SalesOrder } from "../../sales-orders/types";
+import { priceBasisLabel } from "../../../app/lib/units";
 import { formatRs } from "../utils";
 import {
   formatProfileDate,
@@ -32,7 +33,10 @@ function exportOrders(orders: SalesOrder[]) {
       order.id,
       formatProfileDate(order.createdAt),
       `${order.unitCount} units (${order.items
-        .map((item) => `${item.name} · ${item.quantity} × ${item.unitPrice} = ${item.lineTotal}`)
+        .map(
+          (item) =>
+            `${item.name} · ${item.quantity} ${priceBasisLabel(item.unitLabel)} × ${item.unitPrice} / ${priceBasisLabel(item.unitLabel)} = ${item.lineTotal}`
+        )
         .join(", ")})`,
       String(order.amount),
       order.paymentStatus,
@@ -185,7 +189,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
                               ) : null}
                             </div>
                             <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-                              {item.quantity} × {formatRs(item.unitPrice)} = {formatRs(item.lineTotal)}
+                              {item.quantity} {priceBasisLabel(item.unitLabel)} × {formatRs(item.unitPrice)} / {priceBasisLabel(item.unitLabel)} = {formatRs(item.lineTotal)}
                             </div>
                           </div>
                         ))}

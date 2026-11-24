@@ -12,6 +12,7 @@ export type PurchaseLineItem = {
   receivedQuantity?: number;
   receivedBaseQuantity?: number;
   unit: string;
+  priceBasis?: "catalog" | "manual";
   basePrice?: number;
   unitPrice: number;
   discount: number;
@@ -56,6 +57,7 @@ export type CreatePurchasePayload = {
     receivedQuantity?: number;
     receivedBaseQuantity?: number;
     unit: string;
+    priceBasis?: "catalog" | "manual";
     basePrice?: number;
     unitPrice: number;
     discount: number;
@@ -102,6 +104,7 @@ export type PurchaseDto = {
     receivedBaseQuantity?: number;
     receipts: PurchaseReceipt[];
     unit: string;
+    priceBasis?: "catalog" | "manual";
     basePrice?: number;
     unitPrice: number;
     discount: number;

@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import type { Product } from "../../../app/products/types";
+import { formatStockWithPieces, parseMoneyInput } from "../../../app/lib/units";
 
 type ProductAutocompleteProps = {
   value: string;
@@ -25,8 +26,13 @@ type DropdownPosition = {
   maxHeight: number;
 };
 
-function formatPrice(product: Product): number {
-  return product.wholesalePrice || product.retailPrice || product.purchasePrice || 0;
+function formatPrice(product: Product): string {
+  const candidates = [product.wholesalePrice, product.retailPrice, product.purchasePrice];
+  const amount = candidates.reduce<number>((selected, candidate) => {
+    if (selected > 0) return selected;
+    return parseMoneyInput(candidate) ?? 0;
+  }, 0);
+  return `${amount.toLocaleString("en-PK")} / Piece`;
 }
 
 export function ProductAutocomplete({
@@ -207,8 +213,7 @@ export function ProductAutocomplete({
 
                   </span>
                   <span className="shrink-0 font-mono-data-sm text-mono-data-sm">
-                    Stock {Math.max(Number(product.openingStock) || 0, 0)} · Rs.{" "}
-                    {formatPrice(product)}
+                    {formatStockWithPieces(product.openingStock)} · Rs. {formatPrice(product)}
                   </span>
                 </span>
               </button>

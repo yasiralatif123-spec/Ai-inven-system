@@ -4,6 +4,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Product } from "../../../app/products/types";
+import { normalizeUnit } from "../../../app/lib/units";
 import type { Supplier } from "../../suppliers/types";
 import { DEFAULT_TAX_RATE } from "../constants";
 import { usePurchaseLookups } from "../hooks/usePurchaseLookups";
@@ -21,6 +22,7 @@ import {
   formatRs,
   purchaseBasePrice,
   purchaseSupplierToSupplier,
+  purchaseUnitPrice,
   taxRateFromBracket,
   toIsoDate,
 } from "../utils";
@@ -220,6 +222,7 @@ export function CreatePurchaseView() {
               availableStock: Number(item.availableStock) || 0,
               receivedQuantity: Number(item.receivedQuantity) || 0,
               unit: item.unit,
+              priceBasis: item.priceBasis,
               basePrice: item.basePrice,
               unitPrice: item.unitPrice,
               discount: item.discount || 0,
@@ -295,8 +298,9 @@ export function CreatePurchaseView() {
           availableStock: stock,
           lowStock: lowStockParam === "1",
           basePrice: purchaseBasePrice(product),
-          unitPrice: 0,
-          unit: product.uom || "Carton",
+          priceBasis: "catalog",
+          unitPrice: purchaseUnitPrice(product, normalizeUnit(product.uom) || "Carton"),
+          unit: normalizeUnit(product.uom) || "Carton",
           taxRate: taxRateFromBracket(product.taxBracket),
         };
         return [prefilled, ...current.slice(1)];
@@ -376,18 +380,18 @@ export function CreatePurchaseView() {
       current.map((item) => {
         if (item.rowId !== rowId) return item;
         const next = { ...item, ...patch };
-        const shouldRecalculate =
-          
-          Object.prototype.hasOwnProperty.call(patch, "quantity");
-        if (!shouldRecalculate || !next.productId) return next;
+        // Quantity changes must not overwrite an explicitly entered price.
+        // Unit changes reprice catalog lines from the canonical per-Piece price.
+        if (!Object.prototype.hasOwnProperty.call(patch, "unit") || !next.productId) return next;
 
         const product = products.find((candidate) => candidate._id === next.productId);
         if (!product) return next;
-        
+
         return {
           ...next,
           basePrice: purchaseBasePrice(product),
-          unitPrice: next.lowStock ? 0 : (Number(product.purchasePrice)||0),
+          priceBasis: "catalog",
+          unitPrice: purchaseUnitPrice(product, next.unit),
         };
       })
     );
@@ -396,14 +400,16 @@ export function CreatePurchaseView() {
   function addProductRow(product?: Product) {
     const row = createRow();
     if (product) {
-            row.productId = product._id;
+      const unit = normalizeUnit(product.uom) || "Carton";
+      row.productId = product._id;
       row.name = product.title;
       row.sku = product.sku;
-            row.availableStock = availableStock(product);
+      row.availableStock = availableStock(product);
       row.quantity = 0;
       row.basePrice = purchaseBasePrice(product);
-            row.unitPrice = Number(product.purchasePrice)||0;
-      row.unit = product.uom || "Carton";
+      row.priceBasis = "catalog";
+      row.unitPrice = purchaseUnitPrice(product, unit);
+      row.unit = unit;
       row.taxRate = taxRateFromBracket(product.taxBracket);
     }
     setItems((current) => [...current, row]);
@@ -417,8 +423,7 @@ export function CreatePurchaseView() {
       availableStock: availableStock(product),
       quantity: 0,
       lowStock: false,
-      basePrice: purchaseBasePrice(product),
-      unit: product.uom || "Carton",
+      unit: normalizeUnit(product.uom) || "Carton",
       taxRate: taxRateFromBracket(product.taxBracket),
     });
   }
@@ -472,16 +477,18 @@ export function CreatePurchaseView() {
             quantity: 0,
             unitPrice: 0,
             unit: "Carton",
+            priceBasis: "manual",
             taxRate: DEFAULT_TAX_RATE,
           };
         }
 
         const product = products.find((candidate) => candidate._id === item.productId);
         if (!product) return item;
-                return {
+        return {
           ...item,
           basePrice: purchaseBasePrice(product),
-          unitPrice: (Number(product.purchasePrice)||0),
+          unitPrice: purchaseUnitPrice(product, item.unit),
+          priceBasis: "catalog",
         };
       })
     );

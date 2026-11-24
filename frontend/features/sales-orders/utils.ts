@@ -1,4 +1,5 @@
 import type { Product } from "../../app/products/types";
+import { priceBasisLabel } from "../../app/lib/units";
 import type {
   DateFilter,
   DraftOrderInput,
@@ -56,6 +57,7 @@ export function draftOrderFromSalesOrder(order: SalesOrder): DraftOrderInput {
     sku: item.sku,
     quantity: item.quantity,
     unitLabel: item.unitLabel,
+    priceBasis: item.priceBasis,
     basePrice: item.basePrice,
     unitPrice: item.unitPrice,
   }));
@@ -208,6 +210,7 @@ export function ordersToCsv(orders: SalesOrder[]): string {
     "Customer",
     "Location",
     "Items",
+    "Unit Price Basis",
     "Amount (Rs.)",
     "Payment",
     "Status",
@@ -219,6 +222,12 @@ export function ordersToCsv(orders: SalesOrder[]): string {
     order.customer,
     order.location,
     `${order.skuCount} SKUs (${order.unitCount}u)`,
+    order.items
+      .map(
+        (item) =>
+          `${item.name}: ${item.unitPrice} / ${priceBasisLabel(item.unitLabel)}`
+      )
+      .join("; "),
     order.amount,
     order.paymentLabel,
     order.status,

@@ -10,11 +10,18 @@ const productSchema = new mongoose.Schema(
     category: { type: String, required: true, trim: true },
     brand: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: "" },
-    purchasePrice: { type: Number, default: 0 },
-    wholesalePrice: { type: Number, default: 0 },
-    retailPrice: { type: Number, default: 0 },
+    // Canonical prices are always stored per Piece. priceUnit records only the
+    // unit the user entered prices in; it is an input/display preference.
+    purchasePrice: { type: Number, default: 0, min: 0 },
+    wholesalePrice: { type: Number, default: 0, min: 0 },
+    retailPrice: { type: Number, default: 0, min: 0 },
+    priceUnit: {
+      type: String,
+      enum: ["Piece", "Box", "Carton"],
+      default: "Piece",
+    },
     taxBracket: { type: String, default: "" },
-    uom: { type: String, default: "" },
+    uom: { type: String, default: "Piece" },
     openingStock: { type: Number, default: 0 },
     reorderThreshold: { type: Number, default: 0 },
     warehouse: { type: String, default: "" },

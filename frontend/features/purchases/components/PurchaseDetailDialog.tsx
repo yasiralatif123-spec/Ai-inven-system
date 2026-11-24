@@ -1,7 +1,13 @@
 "use client";
 
 import type { PurchaseRecord } from "../purchaseData";
-import { formatDate, formatRs, itemRemainingQuantity, paymentTermsLabel } from "../utils";
+import {
+  formatDate,
+  formatRs,
+  formatUnitPrice,
+  itemRemainingQuantity,
+  paymentTermsLabel,
+} from "../utils";
 import { formatStockWithPieces } from "../../../app/lib/units";
 
 type PurchaseDetailDialogProps = {
@@ -115,7 +121,7 @@ export function PurchaseDetailDialog({ purchase, onClose }: PurchaseDetailDialog
                     {Number.isFinite(Number(item.baseQuantity)) ? <div className="font-mono-data-sm text-mono-data-sm text-secondary">{formatStockWithPieces(Math.max(0, Number(item.baseQuantity) - (Number(item.receivedBaseQuantity)||0)))}</div> : null}
                   </td>
                   <td className="px-3 py-2 text-right font-mono-data">
-                    {formatRs(item.unitPrice)}
+                    {formatUnitPrice(item.unitPrice, item.unit)}
                   </td>
                   <td className="px-3 py-2 text-right font-mono-data">
                     {formatRs(item.lineTotal)}
