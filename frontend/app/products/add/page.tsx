@@ -135,11 +135,11 @@ function AddProductForm() {
 
   return (
     <AppShell activePath="products">
-      <div className="flex w-full flex-col gap-6 text-on-surface pb-20">
+      <div className="flex w-full flex-col gap-6 pb-28 text-on-surface">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 font-mono-data-sm text-mono-data-sm text-secondary">
-              <Link href="/products" className="hover:text-primary hover:underline">Products</Link>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+              <Link href="/products" className="rounded-md px-1 py-0.5 transition duration-200 hover:bg-surface-container hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">Products</Link>
               <span className="text-outline-variant">/</span>
               <span>Catalog Management</span>
               <span className="text-outline-variant">/</span>
@@ -150,91 +150,91 @@ function AddProductForm() {
           </div>
         </div>
 
-        {error ? <div className="rounded border border-error/30 bg-error-container/30 px-3 py-2 text-error font-body-default">{error}</div> : null}
-        {success ? <div className="rounded border border-[#D1E8DC] bg-[#EBF5F0] px-3 py-2 text-[#2E7D58] font-body-default">{success}</div> : null}
+        {error ? <div className="rounded-xl border border-error/30 bg-error-container/30 px-4 py-3 font-body-default text-body-default text-error shadow-panel">{error}</div> : null}
+        {success ? <div className="rounded-xl border border-primary/20 bg-primary-fixed/20 px-4 py-3 font-body-default text-body-default text-primary shadow-panel">{success}</div> : null}
 
         <form autoComplete="off" className="flex flex-col gap-6" onSubmit={(e) => { e.preventDefault(); submit(false); }}>
           {/* A. Basic Information */}
-          <div className="flex flex-col gap-5 rounded border border-outline-variant bg-surface-container-lowest p-5">
-            <div className="flex items-start justify-between border-b border-outline-variant pb-3">
+          <div className="flex flex-col gap-5 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-panel">
+            <div className="flex items-start justify-between border-b border-outline-variant pb-4">
               <div>
                 <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-primary"></span><span className="font-label-caps text-label-caps uppercase tracking-wider">A. Basic Information</span></div>
-                <p className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">Identification, barcode, and catalog classification</p>
+                <p className="mt-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">Identification, barcode, and catalog classification</p>
               </div>
-              <span className="rounded bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-secondary">SEC #01</span>
+              <span className="rounded-lg bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">SEC #01</span>
             </div>
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
               <div className="flex flex-col gap-1.5 lg:col-span-4">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface">Product Master Image</label>
-                <div className="relative flex min-h-[220px] cursor-pointer flex-col items-center justify-center rounded border-2 border-dashed border-outline-variant bg-surface-container-low p-6 text-center transition-colors hover:border-primary">
+                <div className="relative flex min-h-[240px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-low p-8 text-center transition duration-200 hover:border-primary-container hover:bg-surface-container">
                   <input accept="image/png,image/jpeg" className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" type="file" onChange={onImageChange} />
                   {preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={preview} alt="Preview" className="max-h-40 rounded object-contain" />
+                    <img src={preview} alt="Preview" className="max-h-44 rounded-lg object-contain shadow-panel" />
                   ) : (
                     <>
-                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-outline-variant bg-surface-container-high text-primary"><span className="material-symbols-outlined text-[24px]">add_photo_alternate</span></div>
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-outline-variant bg-surface-container-high text-primary"><span className="material-symbols-outlined text-[26px]">add_photo_alternate</span></div>
                       <div className="font-body-medium text-body-medium text-on-surface">Upload product image</div>
-                      <p className="mt-1 max-w-[200px] font-body-dense text-body-dense text-secondary">PNG, JPG up to 5MB (stored in Cloudinary)</p>
+                      <p className="mt-1.5 max-w-[220px] font-body-dense text-body-dense text-on-surface-variant">PNG, JPG up to 5MB (stored in Cloudinary)</p>
                     </>
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:col-span-8">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:col-span-8">
                 <div className="flex flex-col gap-1.5 md:col-span-2">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="title">Product Title <span className="text-error">*</span></label>
-                  <input id="title" value={form.title} onChange={(e) => set("title", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-body-default text-body-default focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. Dalda Cooking Oil 5L Tin (Case of 4)" />
+                  <input id="title" value={form.title} onChange={(e) => set("title", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. Dalda Cooking Oil 5L Tin (Case of 4)" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="sku">SKU / Item Code <span className="text-error">*</span></label>
-                  <input id="sku" value={form.sku} onChange={(e) => set("sku", e.target.value.toUpperCase())} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data text-mono-data uppercase focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. DAL-CO-5L" />
+                  <input id="sku" value={form.sku} onChange={(e) => set("sku", e.target.value.toUpperCase())} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data uppercase transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. DAL-CO-5L" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="barcode">Barcode / EAN-13</label>
-                  <input id="barcode" value={form.barcode} onChange={(e) => set("barcode", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data text-mono-data focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. 8964000124891" />
+                  <input id="barcode" value={form.barcode} onChange={(e) => set("barcode", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. 8964000124891" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="category">Category <span className="text-error">*</span></label>
-                  <select id="category" value={form.category} onChange={(e) => set("category", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-body-default focus:border-primary-container focus:outline-none">
+                  <select id="category" value={form.category} onChange={(e) => set("category", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container">
                     {PRODUCT_CATEGORIES.map((o)=><option key={o}>{o}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="brand">Brand / Manufacturer <span className="text-error">*</span></label>
-                  <input id="brand" value={form.brand} onChange={(e) => set("brand", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-body-default focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. Dalda Foods Ltd" />
+                  <input id="brand" value={form.brand} onChange={(e) => set("brand", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. Dalda Foods Ltd" />
                 </div>
               </div>
             </div>
             <div className="flex flex-col gap-1.5 border-t border-outline-variant pt-2">
               <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="description">Commercial Specs &amp; Invoice Note</label>
-              <textarea id="description" value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} className="w-full rounded border border-outline-variant bg-surface-container-lowest p-2.5 font-body-default focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="Packaging, storage, composition, etc." />
+              <textarea id="description" value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default leading-relaxed transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="Packaging, storage, composition, etc." />
             </div>
           </div>
 
           {/* B. Pricing */}
-          <div className="flex flex-col gap-5 rounded border border-outline-variant bg-surface-container-lowest p-5">
-            <div className="flex items-start justify-between border-b border-outline-variant pb-3">
+          <div className="flex flex-col gap-5 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-panel">
+            <div className="flex items-start justify-between border-b border-outline-variant pb-4">
               <div>
                 <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-primary"></span><span className="font-label-caps text-label-caps uppercase tracking-wider">B. Pricing Tiers &amp; FBR Taxation</span></div>
-                <p className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">Cost, wholesale, retail, and tax regime</p>
+                <p className="mt-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">Cost, wholesale, retail, and tax regime</p>
               </div>
-              <span className="rounded bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-secondary">SEC #02</span>
+              <span className="rounded-lg bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">SEC #02</span>
             </div>
-            <div className="flex flex-col gap-1.5 rounded border border-outline-variant bg-surface-container-low p-3 md:max-w-xs">
-              <label className="font-label-caps text-label-caps uppercase tracking-wider text-secondary" htmlFor="priceUnit">
+            <div className="flex flex-col gap-2 rounded-xl border border-outline-variant bg-surface-container-low p-4 md:max-w-sm">
+              <label className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant" htmlFor="priceUnit">
                 Price Entry Unit
               </label>
               <select
                 id="priceUnit"
                 value={form.priceUnit}
                 onChange={(event) => setPriceUnit(event.target.value as StockUnit)}
-                className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 focus:border-primary-container focus:outline-none"
+                className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
               >
                 {STOCK_UNITS.map((unit) => (
                   <option key={unit} value={unit}>{unit}</option>
                 ))}
               </select>
-              <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+              <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                 All prices below are converted and stored per Piece.
               </span>
             </div>
@@ -244,22 +244,22 @@ function AddProductForm() {
                 { key: "wholesalePrice", label: "2. Wholesale Price (Trade)" },
                 { key: "retailPrice", label: "3. Retail MSRP (Consumer)" },
               ] as const).map((f) => (
-                <div key={f.key} className="flex flex-col gap-1.5 rounded border border-outline-variant bg-surface-container-low p-3">
-                  <label className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+                <div key={f.key} className="flex flex-col gap-2 rounded-lg border border-outline-variant bg-surface-container-low p-4">
+                  <label className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
                     {f.label} / {form.priceUnit}
                   </label>
-                  <input value={form[f.key]} onChange={(e) => setPrice(f.key, e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 text-right font-mono-data focus:border-primary-container focus:outline-none" placeholder="0.00" />
+                  <input value={form[f.key]} onChange={(e) => setPrice(f.key, e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-right font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="0.00" />
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-1 items-center gap-4 rounded border border-outline-variant bg-surface-container p-3.5 md:grid-cols-12">
+            <div className="grid grid-cols-1 items-center gap-4 rounded-xl border border-outline-variant bg-surface-container p-4 md:grid-cols-12">
               <div className="md:col-span-7 flex flex-wrap items-center gap-2 font-mono-data text-mono-data">
-                <span className="rounded border border-[#D1E8DC] bg-[#EBF5F0] px-2.5 py-1 font-semibold text-[#2E7D58]">Wholesale Margin: +{margins.wPct}% (Rs. {margins.wAmt.toLocaleString()} / Piece)</span>
-                <span className="rounded border border-outline-variant bg-surface-container-lowest px-2.5 py-1">MSRP Spread: +{margins.rPct}%</span>
+                <span className="rounded-lg border border-primary/20 bg-primary-fixed/20 px-3 py-1.5 font-semibold text-primary">Wholesale Margin: +{margins.wPct}% (Rs. {margins.wAmt.toLocaleString()} / Piece)</span>
+                <span className="rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-1.5">MSRP Spread: +{margins.rPct}%</span>
               </div>
               <div className="md:col-span-5 flex flex-col gap-1">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">FBR Sales Tax Regime</label>
-                <select value={form.taxBracket} onChange={(e) => set("taxBracket", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-body-default focus:border-primary-container focus:outline-none">
+                <select value={form.taxBracket} onChange={(e) => set("taxBracket", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container">
                   {TAX_BRACKETS.map((o)=><option key={o}>{o}</option>)}
                 </select>
               </div>
@@ -267,25 +267,25 @@ function AddProductForm() {
           </div>
 
           {/* C. Inventory */}
-          <div className="flex flex-col gap-5 rounded border border-outline-variant bg-surface-container-lowest p-5">
-            <div className="flex items-start justify-between border-b border-outline-variant pb-3">
+          <div className="flex flex-col gap-5 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-panel">
+            <div className="flex items-start justify-between border-b border-outline-variant pb-4">
               <div>
                 <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-primary"></span><span className="font-label-caps text-label-caps uppercase tracking-wider">C. Inventory, Packaging &amp; Warehouse</span></div>
-                <p className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">Stock units, depot, and reorder thresholds</p>
+                <p className="mt-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">Stock units, depot, and reorder thresholds</p>
               </div>
-              <span className="rounded bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-secondary">SEC #03</span>
+              <span className="rounded-lg bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">SEC #03</span>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">Base Stock Unit (UOM)</label>
-                <select value={form.uom} onChange={(e) => set("uom", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 focus:border-primary-container focus:outline-none">
+                <select value={form.uom} onChange={(e) => set("uom", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container">
                   {STOCK_UNITS.map((o)=><option key={o}>{o}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">Opening Stock (Base Pieces)</label>
-                <input type="number" min={0} value={form.openingStock} onChange={(e) => set("openingStock", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data focus:border-primary-container focus:outline-none" />
-                <span className="font-mono-data-sm text-mono-data-sm text-secondary">Stored internally as pieces. 1 Carton = 24 pcs, 1 Box = 12 pcs.</span>
+                <input type="number" min={0} value={form.openingStock} onChange={(e) => set("openingStock", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" />
+                <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">Stored internally as pieces. 1 Carton = 24 pcs, 1 Box = 12 pcs.</span>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">
@@ -297,32 +297,32 @@ function AddProductForm() {
                   required
                   value={form.reorderThreshold || 0}
                   onChange={(e) => set("reorderThreshold", e.target.value)}
-                  className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data focus:border-primary-container focus:outline-none"
+                  className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
                 />
-                <span className="font-mono-data-sm text-mono-data-sm text-secondary">Alert when available stock falls below this number of pieces.</span>
+                <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">Alert when available stock falls below this number of pieces.</span>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 border-t border-outline-variant pt-2 md:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">Primary Depot Allocation</label>
-                <select value={form.warehouse} onChange={(e) => set("warehouse", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 focus:border-primary-container focus:outline-none">
+                <select value={form.warehouse} onChange={(e) => set("warehouse", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container">
                   {WAREHOUSES.map((o)=><option key={o}>{o}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">Storage Bay / Pallet Rack ID</label>
-                <input value={form.rackBay} onChange={(e) => set("rackBay", e.target.value)} className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data focus:border-primary-container focus:outline-none" placeholder="e.g. Aisle 4, Bay C-12, Level 2" />
+                <input value={form.rackBay} onChange={(e) => set("rackBay", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. Aisle 4, Bay C-12, Level 2" />
               </div>
             </div>
           </div>
 
           {/* D. Compliance & Status */}
-          <div className="flex flex-col gap-5 rounded border border-outline-variant bg-surface-container-lowest p-5">
-            <div className="flex items-start justify-between border-b border-outline-variant pb-3">
+          <div className="flex flex-col gap-5 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-panel">
+            <div className="flex items-start justify-between border-b border-outline-variant pb-4">
               <div>
                 <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-primary"></span><span className="font-label-caps text-label-caps uppercase tracking-wider">D. Compliance, Expiry &amp; Catalog Status</span></div>
               </div>
-              <span className="rounded bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-secondary">SEC #04</span>
+              <span className="rounded-lg bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">SEC #04</span>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {([
@@ -330,34 +330,34 @@ function AddProductForm() {
                 ["draft", "Draft", "Hidden from sales terminals"],
                 ["discontinued", "Discontinued", "Prevent future reorders"],
               ] as const).map(([val, label, desc]) => (
-                <label key={val} className={`flex cursor-pointer items-center gap-3 rounded border p-3 ${form.catalogStatus===val ? "border-primary-container bg-surface-container" : "border-outline-variant bg-surface-container-lowest"}`}>
-                  <input type="radio" name="catalog_status" checked={form.catalogStatus===val} onChange={() => set("catalogStatus", val)} className="h-4 w-4 text-primary" />
-                  <div><div className="font-body-medium text-body-medium">{label}</div><div className="font-mono-data-sm text-[11px] text-secondary">{desc}</div></div>
+                <label key={val} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition duration-200 hover:border-outline ${form.catalogStatus===val ? "border-primary-container bg-primary-fixed/20" : "border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low"}`}>
+                  <input type="radio" name="catalog_status" checked={form.catalogStatus===val} onChange={() => set("catalogStatus", val)} className="h-4 w-4 accent-primary" />
+                  <div><div className="font-body-medium text-body-medium text-on-surface">{label}</div><div className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">{desc}</div></div>
                 </label>
               ))}
             </div>
             <div className="flex flex-col gap-3 border-t border-outline-variant pt-2">
-              <label className="flex items-start gap-2.5"><input type="checkbox" checked={form.batchTracking} onChange={(e)=>set("batchTracking", e.target.checked)} className="mt-0.5 h-4 w-4 rounded" /><div><div className="font-body-medium">Enable Strict Batch / Lot Tracking</div><div className="font-mono-data-sm text-secondary">For FEFO stock rotation</div></div></label>
-              <div className="flex flex-col gap-1.5 pl-6">
-                <label className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">Initial Batch Expiry Date</label>
-                <input type="date" value={form.expiryDate} onChange={(e)=>set("expiryDate", e.target.value)} className="h-[34px] max-w-xs rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data" />
+              <label className="flex items-start gap-3 rounded-lg border border-outline-variant bg-surface-container-low p-3"><input type="checkbox" checked={form.batchTracking} onChange={(e)=>set("batchTracking", e.target.checked)} className="mt-0.5 h-4 w-4 rounded accent-primary" /><div><div className="font-body-medium text-body-medium text-on-surface">Enable Strict Batch / Lot Tracking</div><div className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">For FEFO stock rotation</div></div></label>
+              <div className="flex flex-col gap-2 pl-7">
+                <label className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">Initial Batch Expiry Date</label>
+                <input type="date" value={form.expiryDate} onChange={(e)=>set("expiryDate", e.target.value)} className="h-9 w-full max-w-xs rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" />
               </div>
             </div>
           </div>
 
           {/* Sticky Actions */}
-          <div className="fixed bottom-0 left-60 right-0 z-40 flex items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 py-2.5 shadow-sm">
-            <div className="flex items-center gap-2 font-mono-data-sm text-mono-data-sm text-secondary">
-              <span className="material-symbols-outlined text-[16px] text-primary">cloud_upload</span>
+          <div className="fixed bottom-0 left-60 right-0 z-40 flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant bg-surface-container-lowest px-8 py-3 shadow-panel">
+            <div className="flex items-center gap-2 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+              <span className="material-symbols-outlined text-[17px] text-primary">cloud_upload</span>
               <span>Image will be uploaded to Cloudinary on save</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <Link href="/products" className="flex h-[34px] items-center rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium hover:bg-surface-container">Cancel</Link>
-              <button type="button" disabled={submitting} onClick={() => submit(true)} className="hidden h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-primary hover:bg-surface-container sm:flex disabled:opacity-50">
-                <span className="material-symbols-outlined text-[16px]">library_add</span><span>Save &amp; Create Another</span>
+              <Link href="/products" className="flex h-9 items-center rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">Cancel</Link>
+              <button type="button" disabled={submitting} onClick={() => submit(true)} className="hidden h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-primary transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container sm:flex disabled:opacity-50">
+                <span className="material-symbols-outlined text-[17px]">library_add</span><span>Save &amp; Create Another</span>
               </button>
-              <button type="submit" disabled={submitting} className="flex h-[34px] items-center gap-1.5 rounded bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-sm transition-colors hover:bg-primary disabled:opacity-50">
-                <span className="material-symbols-outlined text-[17px]">check_circle</span><span>{submitting ? "Saving..." : "Save Product"}</span>
+              <button type="submit" disabled={submitting} className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-5 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50">
+                <span className="material-symbols-outlined text-[18px]">check_circle</span><span>{submitting ? "Saving..." : "Save Product"}</span>
               </button>
             </div>
           </div>

@@ -19,6 +19,34 @@ const SEVERITY_ORDER: Record<StockRow["status"], number> = {
   optimal: 3,
 };
 
+const STATUS_BADGE_CLASS: Record<StockRow["status"], string> = {
+  critical: "border-error/20 bg-error-container/30 text-error",
+  low: "border-outline-variant bg-surface-container text-on-surface-variant",
+  "in-stock": "border-primary/20 bg-primary-fixed/20 text-primary",
+  optimal: "border-primary/20 bg-primary-fixed/20 text-primary",
+};
+
+const STATUS_ROW_CLASS: Record<StockRow["status"], string> = {
+  critical: "bg-error-container/10",
+  low: "bg-surface-container-low/60",
+  "in-stock": "",
+  optimal: "",
+};
+
+const STATUS_BAR_CLASS: Record<StockRow["status"], string> = {
+  critical: "bg-error",
+  low: "bg-tertiary",
+  "in-stock": "bg-primary",
+  optimal: "bg-primary",
+};
+
+const STATUS_VALUE_CLASS: Record<StockRow["status"], string> = {
+  critical: "text-error",
+  low: "text-tertiary",
+  "in-stock": "text-on-surface",
+  optimal: "text-on-surface",
+};
+
 export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
   const [sortBy, setSortBy] = useState<SortKey>("severity");
 
@@ -41,21 +69,23 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
   ).length;
 
   return (
-    <div className="overflow-hidden rounded border border-outline-variant bg-surface-container-lowest">
-      <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-4 py-2.5">
+    <div className="overflow-hidden rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-surface-container px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-secondary">table_view</span>
+          <span className="material-symbols-outlined text-[19px] text-on-surface-variant">table_view</span>
           <span className="font-headline-md text-headline-md text-on-surface">Wholesale Stock Racks</span>
-          <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+          <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
             {scope === "alerts" ? "(Active Alerts)" : "(Active Depot Ledger)"}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-label-caps text-label-caps uppercase text-secondary">Sort:</span>
+          <span className="font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
+            Sort:
+          </span>
           <select
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value as SortKey)}
-            className="h-6 cursor-pointer border-0 bg-transparent p-0 font-mono-data text-[11px] text-on-surface focus:ring-0"
+            className="h-7 cursor-pointer rounded-md border border-outline-variant bg-surface-container-lowest px-2 font-mono-data-sm text-mono-data-sm text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
           >
             <option value="severity">Status Severity (Critical First)</option>
             <option value="available">Highest Available Units</option>
@@ -68,28 +98,28 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="h-8 border-b border-outline-variant bg-surface-container-high/60 font-label-caps text-label-caps uppercase text-secondary">
-              <th className="w-8 py-1.5 pl-3.5 pr-2">
+            <tr className="h-10 border-b border-outline-variant bg-surface-container-low/80 font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
+              <th className="w-8 py-2.5 pl-4 pr-2">
                 <input
-                  className="cursor-pointer rounded border-outline-variant text-primary focus:ring-0"
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-outline-variant text-primary focus:ring-2 focus:ring-primary-container"
                   type="checkbox"
                   aria-label="Select all products"
                 />
               </th>
-              <th className="px-3 py-1.5">Product &amp; SKU</th>
-              <th className="px-3 py-1.5">Depot Location</th>
-              <th className="px-3 py-1.5 text-right">Available</th>
-              <th className="px-3 py-1.5 text-right">Reserved</th>
-              <th className="px-3 py-1.5 text-right">Total On-Hand</th>
-              <th className="px-3 py-1.5 text-right">Min. Safety</th>
-              <th className="px-3 py-1.5 text-center">Status</th>
-              <th className="py-1.5 pl-2 pr-3.5 text-right">Action</th>
+              <th className="whitespace-nowrap px-3.5 py-2.5">Product &amp; SKU</th>
+              <th className="whitespace-nowrap px-3.5 py-2.5">Depot Location</th>
+              <th className="whitespace-nowrap px-3.5 py-2.5 text-right">Available</th>
+              <th className="whitespace-nowrap px-3.5 py-2.5 text-right">Reserved</th>
+              <th className="whitespace-nowrap px-3.5 py-2.5 text-right">Total On-Hand</th>
+              <th className="whitespace-nowrap px-3.5 py-2.5 text-right">Min. Safety</th>
+              <th className="whitespace-nowrap px-3.5 py-2.5 text-center">Status</th>
+              <th className="whitespace-nowrap py-2.5 pl-2 pr-4 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant font-body-default text-body-default">
             {sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-secondary">
+                <td colSpan={9} className="px-4 py-12 text-center text-on-surface-variant">
                   No products match the current filters.
                 </td>
               </tr>
@@ -105,77 +135,77 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
                 return (
                   <tr
                     key={row.id}
-                    className={`transition-colors hover:bg-surface-container-low ${meta.rowClass}`}
+                    className={`transition duration-200 hover:bg-surface-container-low ${STATUS_ROW_CLASS[row.status]}`}
                   >
-                    <td className="py-2 pl-3.5 pr-2">
+                    <td className="py-3 pl-4 pr-2">
                       <input
-                        className="rounded border-outline-variant text-primary focus:ring-0"
+                        className="h-3.5 w-3.5 rounded border-outline-variant text-primary focus:ring-2 focus:ring-primary-container"
                         type="checkbox"
                         aria-label={`Select ${row.name}`}
                       />
                     </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-col">
-                        <span className="font-body-medium text-body-medium font-semibold text-on-surface">
+                    <td className="px-3.5 py-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-body-medium text-body-dense font-semibold text-on-surface">
                           {row.name}
                         </span>
-                        <div className="mt-0.5 flex items-center gap-1.5">
-                          <span className="rounded border border-outline-variant bg-surface-container px-1 py-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="rounded-md border border-outline-variant bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                             {row.sku}
                           </span>
-                          <span className="font-label-caps text-[10px] uppercase text-secondary">
+                          <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">
                             {row.brand} - {row.pack}
                           </span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2">
-                      <span className="flex items-center gap-1 font-mono-data-sm text-mono-data-sm font-medium text-on-surface">
-                        <span className="material-symbols-outlined text-[14px] text-secondary">warehouse</span>
+                    <td className="px-3.5 py-3">
+                      <span className="flex items-center gap-1.5 font-mono-data-sm text-mono-data-sm font-medium text-on-surface">
+                        <span className="material-symbols-outlined text-[15px] text-on-surface-variant">warehouse</span>
                         {row.location}
                       </span>
                     </td>
-                    <td className={`px-3 py-2 text-right font-mono-data text-mono-data font-bold ${meta.valueClass}`}>
-                      <div className="flex flex-col items-end">
+                    <td className={`px-3.5 py-3 text-right font-mono-data text-mono-data-sm font-bold tabular-nums ${STATUS_VALUE_CLASS[row.status]}`}>
+                      <div className="flex flex-col items-end gap-1.5">
                         <span>{row.stockDisplay}</span>
-                        <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                        <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                           {formatNumber(row.available)} pcs
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-right font-mono-data text-mono-data text-secondary">
+                    <td className="px-3.5 py-3 text-right font-mono-data text-mono-data tabular-nums text-on-surface-variant">
                       {row.reserved ? `${formatNumber(row.reserved)} pcs` : "0"}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono-data text-mono-data font-semibold text-on-surface">
-                      <div className="flex flex-col items-end">
+                    <td className="px-3.5 py-3 text-right font-mono-data text-mono-data-sm font-semibold tabular-nums text-on-surface">
+                      <div className="flex flex-col items-end gap-1.5">
                         <span>{row.stockDisplay}</span>
-                        <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                        <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                           {formatNumber(totalOnHand)} pcs
                         </span>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex flex-col items-end">
-                        <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                    <td className="px-3.5 py-3 text-right">
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                           {row.minSafety ? `Min: ${formatNumber(row.minSafety)} pcs` : "Min: Not set"}
                         </span>
-                        <div className="mt-1 h-1 w-14 overflow-hidden rounded-full bg-outline-variant">
-                          <div className={`h-full ${meta.barClass}`} style={{ width: barWidth }} />
+                        <div className="mt-1.5 h-1.5 w-16 overflow-hidden rounded-full bg-outline-variant/60">
+                          <div className={`h-full ${STATUS_BAR_CLASS[row.status]}`} style={{ width: barWidth }} />
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="px-3.5 py-3 text-center">
                       <span
-                        className={`inline-flex rounded border px-1.5 py-0.5 font-label-caps text-label-caps font-semibold uppercase ${meta.badgeClass}`}
+                        className={`inline-flex whitespace-nowrap rounded-md border px-2 py-1 font-label-caps text-label-caps font-semibold uppercase tracking-wide ${STATUS_BADGE_CLASS[row.status]}`}
                       >
                         {meta.label}
                       </span>
                     </td>
-                    <td className="py-2 pl-2 pr-3.5 text-right">
+                    <td className="py-3 pl-2 pr-4 text-right">
                       <button
                         type="button"
                         onClick={() => onAdjust(row)}
-                        className="rounded border border-outline-variant bg-surface-container px-2 py-1 font-body-medium text-[12px] text-primary transition-colors hover:bg-surface-container-highest"
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
                       >
                         Adjust
                       </button>
@@ -188,7 +218,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant bg-surface-container-low px-4 py-2 font-mono-data-sm text-mono-data-sm text-secondary">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant bg-surface-container-low px-4 py-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
         <div className="flex flex-wrap items-center gap-2">
           <span>
             {rows.length === 0
@@ -204,8 +234,8 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
               : "All SKUs are above their safety thresholds"}
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#2E7D58]" />
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
           Live from MongoDB
         </div>
       </div>

@@ -40,11 +40,11 @@ function refreshedStockRow(product: Product, _previous: StockRow | null) {
 }
 
 const ACTIVE_TAB_CLASS =
-  "flex items-center gap-1.5 whitespace-nowrap rounded border border-outline-variant/60 bg-surface-container-lowest px-3 py-1.5 font-body-medium text-body-medium text-primary shadow-sm";
+  "flex flex-1 min-w-fit items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-primary-container bg-primary-fixed/20 px-3.5 py-2 font-body-medium text-body-medium text-primary shadow-panel transition duration-200";
 const INACTIVE_TAB_CLASS =
-  "flex items-center gap-1.5 whitespace-nowrap rounded px-3 py-1.5 font-body-default text-body-default text-on-surface-variant transition-colors hover:text-on-surface";
+  "flex flex-1 min-w-fit items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container";
 const EMPTY_ACTION_CLASS =
-  "rounded bg-primary-container px-3 py-1.5 font-body-medium text-body-medium font-semibold text-on-primary transition-colors hover:bg-primary";
+  "inline-flex h-9 items-center justify-center rounded-lg bg-primary-container px-4 font-body-medium text-body-medium font-semibold text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container";
 
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -204,35 +204,35 @@ export default function InventoryPage() {
       label: "Stock Overview",
       badge: formatNumber(depotRows.length),
       badgeClass:
-        "rounded-full bg-primary-container px-1.5 py-0.5 font-mono-data-sm text-[10px] text-on-primary",
+        "rounded-md bg-primary-container px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-primary",
     },
     {
       key: "movements",
       label: "Stock Movements",
       badge: `Today: ${formatNumber(todayMovements)}`,
       badgeClass:
-        "rounded border border-outline-variant bg-surface-container-highest px-1.5 py-0.5 font-mono-data-sm text-[10px] text-secondary",
+        "rounded-md border border-outline-variant bg-surface-container-lowest px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant",
     },
     {
       key: "adjustments",
       label: "Adjustments",
       badge: `${formatNumber(adjustmentMovements)} logged`,
       badgeClass:
-        "rounded border border-[#F4E3C4] bg-[#FDF6E8] px-1.5 py-0.5 font-mono-data-sm text-[10px] text-[#B47818]",
+        "rounded-md border border-outline-variant bg-surface-container-lowest px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant",
     },
     {
       key: "transfers",
       label: "Transfers",
       badge: "0 transit",
       badgeClass:
-        "rounded bg-secondary-container px-1.5 py-0.5 font-mono-data-sm text-[10px] text-on-secondary-container",
+        "rounded-md bg-secondary-container px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-secondary-container",
     },
     {
       key: "alerts",
       label: "Alerts",
       badge: `${formatNumber(alertCount)} alerts`,
       badgeClass:
-        "rounded border border-[#F7D1CD] bg-[#FDF0EE] px-1.5 py-0.5 font-mono-data-sm text-[10px] font-semibold text-[#BA3C34]",
+        "rounded-md border border-error/20 bg-error-container/30 px-2 py-1 font-mono-data-sm text-mono-data-sm font-semibold text-error",
     },
   ];
 
@@ -332,20 +332,20 @@ export default function InventoryPage() {
 
   return (
     <AppShell activePath="inventory">
-      <div className="flex flex-col gap-4 text-on-surface">
-        <div className="flex flex-col justify-between gap-3 border-b border-outline-variant pb-2 md:flex-row md:items-center">
+      <div className="flex flex-col gap-5 text-on-surface">
+        <div className="flex flex-col justify-between gap-4 border-b border-outline-variant pb-4 md:flex-row md:items-end">
           <div className="flex flex-col">
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="font-headline-xl text-headline-xl tracking-tight text-on-surface">Inventory</h1>
-              <span className="inline-flex max-w-[260px] items-center truncate rounded border border-outline-variant bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm font-semibold uppercase text-primary">
+              <span className="inline-flex max-w-[260px] items-center truncate rounded-md border border-outline-variant bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm font-semibold uppercase text-on-surface-variant">
                 Depot: {depotLabel}
               </span>
-              <span className="inline-flex items-center gap-1 rounded border border-[#D1E8DC] bg-[#EBF5F0] px-2 py-0.5 font-label-caps text-label-caps uppercase text-[#2E7D58]">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#2E7D58]" />
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary-fixed/20 px-2.5 py-1 font-label-caps text-label-caps uppercase text-primary">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                 Live from MongoDB
               </span>
             </div>
-            <p className="mt-0.5 font-body-default text-body-default text-secondary">
+            <p className="mt-1 font-body-default text-body-default text-on-surface-variant">
               Real-time stock ledger, physical audits, warehouse transfers &amp; low-threshold alerts
             </p>
           </div>
@@ -353,26 +353,26 @@ export default function InventoryPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+              className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
-              <span className="material-symbols-outlined text-[16px] text-secondary">picture_as_pdf</span>
+              <span className="material-symbols-outlined text-[17px] text-on-surface-variant">picture_as_pdf</span>
               <span>Stock Audit Report (PDF)</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("transfers")}
-              className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+              className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
-              <span className="material-symbols-outlined text-[16px] text-secondary">sync_alt</span>
+              <span className="material-symbols-outlined text-[17px] text-on-surface-variant">sync_alt</span>
               <span>Transfer Stock</span>
             </button>
             <button
               type="button"
               onClick={handleAdjustAction}
               disabled={!activeRow}
-              className="flex h-[34px] items-center gap-1.5 rounded bg-primary-container px-3.5 font-body-medium text-body-medium text-on-primary shadow-sm transition-colors hover:bg-primary disabled:opacity-50"
+              className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-[16px]">tune</span>
+              <span className="material-symbols-outlined text-[18px]">tune</span>
               <span>+ Adjust Stock</span>
             </button>
           </div>
@@ -387,11 +387,66 @@ export default function InventoryPage() {
           skuCount={depotRows.length}
         />
 
-        <div className="flex flex-col items-stretch justify-between gap-3 pt-1 lg:flex-row lg:items-center">
+        <div className="flex flex-col items-stretch gap-4 pt-1">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            <div className="relative flex-1 sm:w-72">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-2.5 text-[18px] text-on-surface-variant">
+                search
+              </span>
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-14 font-body-default text-body-default text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+                placeholder={
+                  activeTab === "alerts"
+                    ? "Filter alerts by SKU, product, bay..."
+                    : "Filter by SKU, product, bay..."
+                }
+                type="text"
+              />
+              <span className="pointer-events-none absolute right-2 top-2 rounded-md border border-outline-variant bg-surface-container-high px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+                {exportRows.length}
+              </span>
+            </div>
+
+            <div className="relative">
+              <select
+                value={depotFilter}
+                onChange={(event) => handleDepotChange(event.target.value)}
+                className="h-9 cursor-pointer appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-8 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+              >
+                <option value="all">All Depots</option>
+                {depots.map((depot) => (
+                  <option key={depot} value={depot}>
+                    {depot}
+                  </option>
+                ))}
+              </select>
+              <span className="material-symbols-outlined pointer-events-none absolute right-2 top-2.5 text-[18px] text-on-surface-variant">
+                arrow_drop_down
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={exportRows.length === 0}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
+              title={
+                activeTab === "alerts"
+                  ? "Export active alerts as CSV"
+                  : "Export current inventory sheet as CSV"
+              }
+            >
+              <span className="material-symbols-outlined text-[17px]">file_download</span>
+              <span className="hidden sm:inline">Export</span>
+            </button>
+          </div>
+
           <div
             role="tablist"
             aria-label="Inventory views"
-            className="flex items-center overflow-x-auto rounded border border-outline-variant bg-surface-container p-0.5"
+            className="flex w-full flex-wrap items-center gap-2 rounded-xl border border-outline-variant/80 bg-surface-container p-1.5 shadow-panel"
           >
             {tabs.map((tab) => (
               <button
@@ -409,76 +464,19 @@ export default function InventoryPage() {
               </button>
             ))}
           </div>
-
-          {activeTab === "overview" || activeTab === "alerts" ? (
-            <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-              <div className="relative flex-1 sm:w-72">
-                <span className="material-symbols-outlined pointer-events-none absolute left-2.5 top-2 text-[16px] text-outline">
-                  search
-                </span>
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  className="h-8 w-full rounded border border-outline-variant bg-surface-container-lowest pl-8 pr-12 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container"
-                  placeholder={
-                    activeTab === "alerts"
-                      ? "Filter alerts by SKU, product, bay..."
-                      : "Filter by SKU, product, bay..."
-                  }
-                  type="text"
-                />
-                <span className="pointer-events-none absolute right-2 top-1.5 rounded border border-outline-variant bg-surface-container-high px-1 py-0.5 font-mono-data-sm text-[10px] text-outline">
-                  {exportRows.length}
-                </span>
-              </div>
-
-              <div className="relative">
-                <select
-                  value={depotFilter}
-                  onChange={(event) => handleDepotChange(event.target.value)}
-                  className="h-8 cursor-pointer appearance-none rounded border border-outline-variant bg-surface-container-lowest pl-2.5 pr-7 font-body-medium text-body-medium text-on-surface focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container"
-                >
-                  <option value="all">All Depots</option>
-                  {depots.map((depot) => (
-                    <option key={depot} value={depot}>
-                      {depot}
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-1.5 top-2 text-[16px] text-secondary">
-                  arrow_drop_down
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={exportCsv}
-                disabled={exportRows.length === 0}
-                className="flex h-8 items-center gap-1 rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-body-default text-body-default text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-50"
-                title={
-                  activeTab === "alerts"
-                    ? "Export active alerts as CSV"
-                    : "Export current inventory sheet as CSV"
-                }
-              >
-                <span className="material-symbols-outlined text-[16px]">file_download</span>
-                <span className="hidden sm:inline">Export</span>
-              </button>
-            </div>
-          ) : null}
         </div>
 
-        <div className="flex w-full items-center justify-between rounded border border-outline-variant bg-surface-container-high px-3 py-2 text-secondary">
+        <div className="flex w-full items-center justify-between gap-4 rounded-xl border border-outline-variant/80 bg-surface-container-high px-4 py-3 text-on-surface-variant shadow-panel">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[18px] text-primary">verified_user</span>
-            <span className="font-body-dense text-body-dense text-on-surface">
+            <span className="font-body-default text-body-default text-on-surface-variant">
               <strong className="font-semibold text-primary">Strict Ledger Integrity:</strong> Direct in-cell
               quantity edits are disabled. All inventory adjustments require a documented audit trail via the{" "}
               <strong className="font-semibold">&quot;Adjust Stock&quot;</strong> protocol with mandatory reason
               classification, incident reference, and supporting notes.
             </span>
           </div>
-          <div className="hidden items-center gap-2 font-mono-data-sm text-mono-data-sm text-secondary md:flex">
+          <div className="hidden items-center gap-2 font-mono-data-sm text-mono-data-sm text-on-surface-variant md:flex">
             <span>
               Products: <strong>{products.length}</strong>
             </span>
@@ -490,14 +488,14 @@ export default function InventoryPage() {
         </div>
 
         {error ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-[#F7D1CD] bg-[#FDF0EE] px-3 py-2 font-body-dense text-body-dense text-[#BA3C34]">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-error/30 bg-error-container/30 px-4 py-3 font-body-default text-body-default text-error shadow-panel">
             <span>
               <strong>Could not load inventory:</strong> {error}
             </span>
             <button
               type="button"
               onClick={() => setReloadToken((token) => token + 1)}
-              className="rounded border border-[#F7D1CD] bg-surface-container-lowest px-2 py-1 font-body-medium text-body-medium text-[#BA3C34] hover:bg-[#FDF0EE]"
+              className="rounded-lg border border-error/30 bg-surface-container-lowest px-3 py-1.5 font-body-medium text-body-medium text-error transition duration-200 hover:bg-error-container/40 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
             >
               Retry
             </button>
@@ -505,14 +503,14 @@ export default function InventoryPage() {
         ) : null}
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center gap-2 rounded border border-outline-variant bg-surface-container-lowest px-4 py-14 text-center">
-            <span className="material-symbols-outlined animate-spin text-[24px] text-primary">
+          <div className="flex flex-col items-center justify-center gap-2.5 rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-4 py-16 text-center shadow-panel">
+            <span className="material-symbols-outlined animate-spin text-[26px] text-primary">
               progress_activity
             </span>
             <p className="font-body-medium text-body-medium font-semibold text-on-surface">
               Loading inventory from MongoDB...
             </p>
-            <p className="font-body-dense text-body-dense text-secondary">
+            <p className="font-body-default text-body-default text-on-surface-variant">
               Fetching products and the latest stock movements.
             </p>
           </div>
@@ -534,11 +532,11 @@ export default function InventoryPage() {
             aria-labelledby={`inventory-tab-${activeTab}`}
           >
             {activeTab === "overview" ? (
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
+              <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
                 <div
                   className={`${
                     adjustOpen && activeRow ? "xl:col-span-8" : "xl:col-span-12"
-                  } flex flex-col space-y-4`}
+                  } flex flex-col space-y-5`}
                 >
                   <StockTable rows={filteredRows} onAdjust={openAdjust} />
                   <MovementsLedger
@@ -633,17 +631,17 @@ export default function InventoryPage() {
                   }
                 />
               ) : (
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-[#F7D1CD] bg-[#FDF0EE] px-3 py-2">
-                    <div className="flex items-center gap-2 font-body-dense text-body-dense text-[#BA3C34]">
-                      <span className="material-symbols-outlined text-[18px]">warning</span>
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-error/20 bg-error-container/20 px-4 py-3 shadow-panel">
+                    <div className="flex items-center gap-2 font-body-default text-body-default text-error">
+                      <span className="material-symbols-outlined text-[19px]">warning</span>
                       <span>
                         <strong>{summary.criticalCount} critical</strong> and{" "}
                         <strong>{summary.lowCount} low-stock</strong> SKUs across{" "}
                         {depotPhrase} require replenishment.
                       </span>
                     </div>
-                    <span className="font-mono-data-sm text-mono-data-sm text-[#BA3C34]">
+                    <span className="font-mono-data-sm text-mono-data-sm text-error">
                       {formatNumber(alertRows.length)} shown
                     </span>
                   </div>

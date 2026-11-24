@@ -145,15 +145,15 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
   }
 
   return (
-    <div className="overflow-hidden rounded border border-outline-variant bg-surface-container-lowest xl:sticky xl:top-20">
-      <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded bg-primary-container text-on-primary">
-            <span className="material-symbols-outlined text-[15px]">edit_note</span>
+    <div className="overflow-hidden rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel xl:sticky xl:top-20">
+      <div className="flex items-center justify-between gap-2 border-b border-outline-variant bg-surface-container px-4 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-container text-on-primary">
+            <span className="material-symbols-outlined text-[16px]">edit_note</span>
           </span>
           <div>
             <h2 className="font-headline-md text-headline-md text-on-surface">Adjust Stock</h2>
-            <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+            <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
               Audit-logged stock adjustment
             </span>
           </div>
@@ -163,31 +163,33 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
           onClick={onClose}
           disabled={saving}
           aria-label="Close adjust stock panel"
-          className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-surface-container-highest disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container-high disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
         >
-          <span className="material-symbols-outlined text-[18px]">close</span>
+          <span className="material-symbols-outlined text-[19px]">close</span>
         </button>
       </div>
 
-      <div className="flex items-start gap-2 border-b border-[#F4E3C4] bg-[#FDF6E8]/60 px-4 py-2.5">
-        <span className="material-symbols-outlined mt-0.5 shrink-0 text-[16px] text-[#B47818]">gavel</span>
-        <p className="font-mono-data-sm text-mono-data-sm leading-tight text-on-surface">
+      <div className="flex items-start gap-2 border-b border-outline-variant bg-surface-container-low px-4 py-3">
+        <span className="material-symbols-outlined mt-0.5 shrink-0 text-[17px] text-primary">gavel</span>
+        <p className="font-mono-data-sm text-mono-data-sm leading-relaxed text-on-surface-variant">
           All adjustments are permanently logged to the immutable audit trail and immediately impact
           financial ledger balance valuations.
         </p>
       </div>
 
-      <form className="space-y-3.5 p-4" onSubmit={handleSubmit}>
-        <div className="flex flex-col gap-1 rounded border border-outline-variant bg-surface-container p-2.5">
-          <div className="flex items-center justify-between">
-            <span className="font-label-caps text-label-caps uppercase text-secondary">Selected SKU</span>
+      <form className="space-y-4 p-4" onSubmit={handleSubmit}>
+        <div className="flex flex-col gap-1 rounded-xl border border-outline-variant bg-surface-container p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
+              Selected SKU
+            </span>
             <span className="font-mono-data-sm text-mono-data-sm font-semibold text-primary">{row.sku}</span>
           </div>
           <span className="truncate font-body-medium text-body-medium font-semibold text-on-surface">
             {row.name}
           </span>
-          <div className="flex items-center justify-between gap-2 border-t border-outline-variant pt-1 font-mono-data-sm text-mono-data-sm">
-            <span className="truncate text-secondary">
+          <div className="flex items-center justify-between gap-2 border-t border-outline-variant pt-2 font-mono-data-sm text-mono-data-sm">
+            <span className="truncate text-on-surface-variant">
               Depot: <strong className="text-on-surface">{row.warehouse}</strong>
             </span>
             <span className="shrink-0 text-on-surface">
@@ -196,17 +198,17 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded border border-outline-variant bg-surface-container-low p-2.5">
-            <span className="block font-label-caps text-[10px] uppercase text-secondary">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-outline-variant bg-surface-container-low p-3">
+            <span className="block font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
               Current Physical Balance
             </span>
-            <span className="mt-1 block font-mono-data text-[15px] font-bold text-on-surface">
+            <span className="mt-1 block font-mono-data text-base font-bold tabular-nums text-on-surface">
               {formatNumber(row.available)} pcs
             </span>
-            <span className="block font-mono-data-sm text-[10px] text-secondary">{row.stockDisplay}</span>
+            <span className="block font-mono-data-sm text-mono-data-sm text-on-surface-variant">{row.stockDisplay}</span>
             <span
-              className={`font-mono-data-sm text-[10px] font-semibold ${
+              className={`font-mono-data-sm text-mono-data-sm font-semibold ${
                 belowMin ? "text-error" : "text-primary"
               }`}
             >
@@ -217,59 +219,59 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
                 : "No safety threshold set"}
             </span>
           </div>
-          <div className="rounded border border-outline-variant bg-surface-container-low p-2.5">
-            <span className="block font-label-caps text-[10px] uppercase text-secondary">
+          <div className="rounded-xl border border-outline-variant bg-surface-container-low p-3">
+            <span className="block font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
               New Projected Stock
             </span>
-            <span className="mt-1 block font-mono-data text-[15px] font-bold text-primary">
+            <span className="mt-1 block font-mono-data text-base font-bold tabular-nums text-primary">
               {formatNumber(projected)} pcs
             </span>
-            <span className="font-mono-data-sm text-[10px] font-medium text-secondary">
+            <span className="font-mono-data-sm text-mono-data-sm font-medium text-on-surface-variant">
               {delta} pcs (Net)
             </span>
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
+          <label className="mb-1.5 block font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
             Adjustment Direction
           </label>
-          <div className="grid grid-cols-2 gap-1.5 rounded border border-outline-variant bg-surface-container p-1">
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-outline-variant bg-surface-container p-1.5">
             <button
               type="button"
               onClick={() => changeDirection("deduct")}
-              className={`flex items-center justify-center gap-1 rounded py-1 font-body-medium text-body-medium transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-md py-1.5 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
                 direction === "deduct"
-                  ? "border border-outline-variant bg-surface-container-lowest font-semibold text-error shadow-sm"
-                  : "text-secondary hover:text-on-surface"
+                  ? "border border-outline-variant bg-surface-container-lowest font-semibold text-error shadow-panel"
+                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
               }`}
             >
-              <span className="material-symbols-outlined text-[14px]">remove_circle</span>
+              <span className="material-symbols-outlined text-[15px]">remove_circle</span>
               Stock Deduction (-)
             </button>
             <button
               type="button"
               onClick={() => changeDirection("add")}
-              className={`flex items-center justify-center gap-1 rounded py-1 font-body-medium text-body-medium transition-colors ${
+              className={`flex items-center justify-center gap-1.5 rounded-md py-1.5 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
                 direction === "add"
-                  ? "border border-outline-variant bg-surface-container-lowest font-semibold text-primary shadow-sm"
-                  : "text-secondary hover:text-on-surface"
+                  ? "border border-outline-variant bg-surface-container-lowest font-semibold text-primary shadow-panel"
+                  : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
               }`}
             >
-              <span className="material-symbols-outlined text-[14px]">add_circle</span>
+              <span className="material-symbols-outlined text-[15px]">add_circle</span>
               Stock Addition (+)
             </button>
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
+          <label className="mb-1.5 block font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
             Quantity to {direction === "deduct" ? "Deduct" : "Add"} <span className="text-error">*</span>
           </label>
-          <div className="grid grid-cols-[1fr_120px] gap-2">
-            <div className="flex h-[34px] w-full overflow-hidden rounded border border-outline-variant bg-surface-container-lowest focus-within:border-primary-container focus-within:ring-1 focus-within:ring-primary-container">
+          <div className="grid grid-cols-[1fr_120px] gap-3">
+            <div className="flex h-9 w-full overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest transition duration-200 focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
               <input
-                className="h-full min-w-0 flex-1 bg-transparent px-3 font-mono-data text-base font-bold text-on-surface focus:outline-none disabled:opacity-60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                className="h-full min-w-0 flex-1 bg-transparent px-3 font-mono-data text-base font-bold tabular-nums text-on-surface focus:outline-none disabled:opacity-60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 max={maxQuantity ?? undefined}
                 min={1}
                 step={1}
@@ -285,18 +287,18 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
                   onClick={() => stepQuantity(1)}
                   disabled={saving || (maxQuantity !== null && quantity >= maxQuantity)}
                   aria-label="Increase quantity by one"
-                  className="flex h-1/2 items-center justify-center text-secondary transition-colors hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-1/2 items-center justify-center text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  <span className="material-symbols-outlined text-[16px]">keyboard_arrow_up</span>
+                  <span className="material-symbols-outlined text-[17px]">keyboard_arrow_up</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => stepQuantity(-1)}
                   disabled={saving || quantity <= 1}
                   aria-label="Decrease quantity by one"
-                  className="flex h-1/2 items-center justify-center border-t border-outline-variant text-secondary transition-colors hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-1/2 items-center justify-center border-t border-outline-variant text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
                 >
-                  <span className="material-symbols-outlined text-[16px]">keyboard_arrow_down</span>
+                  <span className="material-symbols-outlined text-[17px]">keyboard_arrow_down</span>
                 </button>
               </div>
             </div>
@@ -304,7 +306,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               value={unit}
               onChange={(event) => changeUnit(event.target.value as StockUnit)}
               disabled={saving}
-              className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-2 font-mono-data text-sm focus:border-primary-container focus:outline-none"
+              className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60"
             >
               {STOCK_UNITS.map((option) => (
                 <option key={option} value={option}>
@@ -313,13 +315,13 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               ))}
             </select>
           </div>
-          <p className="mt-1 font-mono-data-sm text-mono-data-sm text-secondary">
+          <p className="mt-1.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
             1 {unit} = {toBasePieces(1, unit)} pieces. Equivalent: {formatNumber(quantityInPieces)} pcs.
           </p>
         </div>
 
         <div>
-          <label className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
+          <label className="mb-1.5 block font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
             Reason Classification <span className="text-error">*</span>
           </label>
           <div className="relative">
@@ -331,20 +333,20 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
                 setSuccess(null);
               }}
               disabled={saving}
-              className="h-[34px] w-full cursor-pointer appearance-none rounded border border-outline-variant bg-surface-container-lowest pl-2.5 pr-8 font-body-default text-body-default text-on-surface focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container disabled:opacity-60"
+              className="h-9 w-full cursor-pointer appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-9 font-body-default text-body-default text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60"
             >
               {ADJUSTMENT_REASONS.map((option) => (
                 <option key={option}>{option}</option>
               ))}
             </select>
-            <span className="material-symbols-outlined pointer-events-none absolute right-2 top-2 text-[18px] text-secondary">
+            <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-2.5 text-[18px] text-on-surface-variant">
               arrow_drop_down
             </span>
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
+          <label className="mb-1.5 block font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
             Incident Reference # <span className="text-error">*</span>
           </label>
           <input
@@ -355,14 +357,14 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               setSuccess(null);
             }}
             disabled={saving}
-            className="h-[34px] w-full rounded border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container disabled:opacity-60"
+            className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60"
             placeholder="e.g. INC-2026-092 or AUD-Q4"
             type="text"
           />
         </div>
 
         <div>
-          <label className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
+          <label className="mb-1.5 block font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
             Incident Detail / Notes <span className="text-error">*</span>
           </label>
           <textarea
@@ -373,17 +375,17 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               setSuccess(null);
             }}
             disabled={saving}
-            className="w-full resize-none rounded border border-outline-variant bg-surface-container-lowest p-2.5 font-body-dense text-body-dense text-on-surface placeholder:text-outline focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container disabled:opacity-60"
+            className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default text-body-default text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60"
             placeholder="Specify cause, bay coordinates, affected batch number..."
             rows={2}
           />
         </div>
 
-        <div className="flex items-center justify-between rounded border border-outline-variant bg-surface-container-low p-2.5">
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-outline-variant bg-surface-container-low p-3">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px] text-primary">badge</span>
+            <span className="material-symbols-outlined text-[19px] text-primary">badge</span>
             <div className="flex flex-col">
-              <span className="font-label-caps text-[10px] uppercase text-secondary">
+              <span className="font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
                 Authorized Sign-off
               </span>
               <span className="font-body-medium text-body-medium font-semibold text-on-surface">
@@ -391,17 +393,17 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               </span>
             </div>
           </div>
-          <span className="font-mono-data-sm text-mono-data-sm text-secondary">Audit enabled</span>
+          <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">Audit enabled</span>
         </div>
 
         {error ? (
-          <div className="rounded border border-[#F7D1CD] bg-[#FDF0EE] px-2.5 py-2 font-body-dense text-body-dense text-[#BA3C34]">
+          <div className="rounded-lg border border-error/30 bg-error-container/30 px-3 py-2 font-body-default text-body-default text-error">
             {error}
           </div>
         ) : null}
 
         {success ? (
-          <div className="rounded border border-[#D1E8DC] bg-[#EBF5F0] px-2.5 py-2 font-body-dense text-body-dense text-[#2E7D58]">
+          <div className="rounded-lg border border-primary/20 bg-primary-fixed/20 px-3 py-2 font-body-default text-body-default text-on-primary-fixed">
             {success}
           </div>
         ) : null}
@@ -411,16 +413,16 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="h-9 w-1/3 rounded border border-outline-variant bg-surface-container-lowest font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container disabled:opacity-50"
+            className="h-9 w-1/3 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving || quantity < 1}
-            className="flex h-9 w-2/3 items-center justify-center gap-1.5 rounded bg-primary-container font-body-medium text-body-medium font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary disabled:opacity-50"
+            className="flex h-9 w-2/3 items-center justify-center gap-1.5 rounded-lg bg-primary-container font-body-medium text-body-medium font-semibold text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[16px]">
+            <span className="material-symbols-outlined text-[17px]">
               {saving ? "hourglass_top" : "verified"}
             </span>
             <span>{saving ? "Committing..." : "Commit Adjustment"}</span>

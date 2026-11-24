@@ -23,6 +23,22 @@ const FILTERS: Array<{ key: MovementFilter; label: string }> = [
   { key: "adjustment", label: "Adjustments" },
 ];
 
+const MOVEMENT_BADGE_CLASS: Record<MovementKind, string> = {
+  purchase: "border-primary/20 bg-primary-fixed/20 text-primary",
+  sale: "border-outline-variant bg-surface-container text-on-surface-variant",
+  return: "border-tertiary/20 bg-tertiary-fixed/30 text-tertiary",
+  writeoff: "border-error/20 bg-error-container/30 text-error",
+  adjustment: "border-outline-variant bg-surface-container text-on-surface-variant",
+};
+
+const MOVEMENT_ROW_CLASS: Record<MovementKind, string> = {
+  purchase: "",
+  sale: "",
+  return: "",
+  writeoff: "bg-error-container/10",
+  adjustment: "",
+};
+
 export function MovementsLedger({
   entries,
   showFilters = true,
@@ -70,19 +86,19 @@ export function MovementsLedger({
   }
 
   return (
-    <div className="overflow-hidden rounded border border-outline-variant bg-surface-container-lowest">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant bg-surface-container-low px-4 py-3">
+    <div className="overflow-hidden rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-surface-container px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-primary">history_toggle_off</span>
+          <span className="material-symbols-outlined text-[19px] text-primary">history_toggle_off</span>
           <div>
             <span className="font-headline-md text-headline-md text-on-surface">{title}</span>
-            <span className="ml-2 font-mono-data-sm text-mono-data-sm text-secondary">
+            <span className="ml-2 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
               {subtitle}
             </span>
           </div>
         </div>
         {showFilters ? (
-          <div className="flex flex-wrap items-center gap-1 font-mono-data text-[11px]">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface-container-low p-1 font-mono-data-sm text-mono-data-sm">
             {FILTERS.map((item) => {
               const isActive = filter === item.key;
               return (
@@ -90,10 +106,10 @@ export function MovementsLedger({
                   key={item.key}
                   type="button"
                   onClick={() => setFilter(item.key)}
-                  className={`rounded px-2 py-0.5 transition-colors ${
+                  className={`rounded-md px-2.5 py-1 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
                     isActive
-                      ? "border border-outline-variant bg-surface-container-highest font-bold text-primary"
-                      : "text-secondary hover:bg-surface-container"
+                      ? "border border-outline-variant bg-surface-container-lowest font-semibold text-primary shadow-panel"
+                      : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
                   }`}
                 >
                   {item.label} ({counts[item.key] || 0})
@@ -106,14 +122,14 @@ export function MovementsLedger({
 
       <div className="divide-y divide-outline-variant">
         {visibleEntries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center">
-            <span className="material-symbols-outlined text-[24px] text-outline">history</span>
+          <div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
+            <span className="material-symbols-outlined text-[26px] text-outline">history</span>
             <p className="font-body-medium text-body-medium font-semibold text-on-surface">
               {entries.length === 0
                 ? emptyTitle ?? "No stock movements recorded yet"
                 : "No movements match this filter"}
             </p>
-            <p className="font-body-dense text-body-dense text-secondary">
+            <p className="font-body-default text-body-default text-on-surface-variant">
               {entries.length === 0
                 ? emptyMessage ??
                   "Adjust stock from the panel to create the first audited ledger entry."
@@ -126,13 +142,13 @@ export function MovementsLedger({
             return (
               <div
                 key={entry.id}
-                className={`flex items-start justify-between px-4 py-3 transition-colors hover:bg-surface-container-low ${meta.rowClass || ""}`}
+                className={`flex items-start justify-between gap-4 px-4 py-3.5 transition duration-200 hover:bg-surface-container-low ${MOVEMENT_ROW_CLASS[entry.kind]}`}
               >
                 <div className="flex items-start gap-3">
                   <span
-                    className={`mt-0.5 flex items-center gap-1 whitespace-nowrap rounded border px-2 py-0.5 font-mono-data-sm text-mono-data-sm font-bold ${meta.badgeClass}`}
+                    className={`mt-0.5 flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 font-mono-data-sm text-mono-data-sm font-bold ${MOVEMENT_BADGE_CLASS[entry.kind]}`}
                   >
-                    <span className="material-symbols-outlined text-[12px]">{meta.icon}</span>
+                    <span className="material-symbols-outlined text-[13px]">{meta.icon}</span>
                     {entry.qty}
                   </span>
                   <div className="flex flex-col">
@@ -144,19 +160,19 @@ export function MovementsLedger({
                       >
                         {entry.title}
                       </span>
-                      <span className="rounded border border-outline-variant bg-surface-container px-1 py-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
+                      <span className="rounded-md border border-outline-variant bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                         {entry.sku}
                       </span>
                       <span className="font-mono-data-sm text-mono-data-sm font-semibold text-primary">
                         Ref: {entry.ref}
                       </span>
                     </div>
-                    <p className="mt-0.5 font-body-dense text-body-dense text-secondary">
+                    <p className="mt-0.5 font-body-default text-body-default text-on-surface-variant">
                       {entry.reason}
                     </p>
                     {entry.partyName ? (
-                      <p className="mt-0.5 flex items-center gap-1 font-body-dense text-body-dense text-secondary">
-                        <span className="material-symbols-outlined text-[13px] text-primary">
+                      <p className="mt-0.5 flex items-center gap-1 font-body-default text-body-default text-on-surface-variant">
+                        <span className="material-symbols-outlined text-[14px] text-primary">
                           {entry.kind === "purchase" ? "local_shipping" : "person"}
                         </span>
                         <span className="font-medium text-on-surface">{entry.partyLabel}:</span>{" "}
@@ -168,7 +184,7 @@ export function MovementsLedger({
                 <div className="flex shrink-0 items-center gap-3">
                   <div className="flex flex-col text-right font-mono-data-sm text-mono-data-sm">
                     <span className="font-medium text-on-surface">{entry.user}</span>
-                    <span className="text-secondary">{entry.time}</span>
+                    <span className="text-on-surface-variant">{entry.time}</span>
                   </div>
                   {onDelete && entry.kind === "adjustment" ? (
                     <button
@@ -180,9 +196,9 @@ export function MovementsLedger({
                       disabled={deleting}
                       aria-label={`Delete stock adjustment for ${entry.sku}`}
                       title="Delete stock adjustment"
-                      className="flex h-7 w-7 items-center justify-center rounded border border-outline-variant text-secondary transition-colors hover:bg-error-container hover:text-error disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant transition duration-200 hover:border-error/30 hover:bg-error-container/40 hover:text-error disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
                     >
-                      <span className="material-symbols-outlined text-[16px]">delete</span>
+                      <span className="material-symbols-outlined text-[17px]">delete</span>
                     </button>
                   ) : null}
                 </div>
@@ -193,15 +209,15 @@ export function MovementsLedger({
       </div>
 
       {pendingDelete ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 p-4 backdrop-blur-[2px]">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-movement-title"
-            className="w-full max-w-md rounded-lg border border-outline-variant bg-surface-container-lowest p-5 shadow-xl"
+            className="w-full max-w-md rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-panel"
           >
             <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-[22px] text-error">delete</span>
+              <span className="material-symbols-outlined text-[23px] text-error">delete</span>
               <div className="flex-1">
                 <h3
                   id="delete-movement-title"
@@ -209,17 +225,17 @@ export function MovementsLedger({
                 >
                   Delete stock adjustment?
                 </h3>
-                <p className="mt-1 font-body-dense text-body-dense text-secondary">
+                <p className="mt-1 font-body-default text-body-default text-on-surface-variant">
                   This removes the ledger entry and reverses the stock change. This cannot be
                   undone.
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 rounded border border-outline-variant bg-surface-container p-3">
+            <div className="mt-4 rounded-xl border border-outline-variant bg-surface-container p-3.5">
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`rounded border px-2 py-0.5 font-mono-data-sm text-mono-data-sm font-bold ${MOVEMENT_META[pendingDelete.kind].badgeClass}`}
+                  className={`rounded-md border px-2 py-1 font-mono-data-sm text-mono-data-sm font-bold ${MOVEMENT_BADGE_CLASS[pendingDelete.kind]}`}
                 >
                   {pendingDelete.qty}
                 </span>
@@ -227,31 +243,31 @@ export function MovementsLedger({
                   {pendingDelete.title}
                 </span>
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 font-mono-data-sm text-mono-data-sm">
-                <span className="text-secondary">SKU</span>
+              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 font-mono-data-sm text-mono-data-sm">
+                <span className="text-on-surface-variant">SKU</span>
                 <span className="text-right font-medium text-on-surface">{pendingDelete.sku}</span>
-                <span className="text-secondary">Reference</span>
+                <span className="text-on-surface-variant">Reference</span>
                 <span className="text-right font-medium text-on-surface">{pendingDelete.ref}</span>
                 {pendingDelete.partyName ? (
                   <>
-                    <span className="text-secondary">{pendingDelete.partyLabel}</span>
+                    <span className="text-on-surface-variant">{pendingDelete.partyLabel}</span>
                     <span className="text-right font-medium text-on-surface">
                       {pendingDelete.partyName}
                     </span>
                   </>
                 ) : null}
-                <span className="text-secondary">Recorded by</span>
+                <span className="text-on-surface-variant">Recorded by</span>
                 <span className="text-right font-medium text-on-surface">{pendingDelete.user}</span>
-                <span className="text-secondary">Recorded at</span>
+                <span className="text-on-surface-variant">Recorded at</span>
                 <span className="text-right font-medium text-on-surface">{pendingDelete.time}</span>
               </div>
-              <p className="mt-2 border-t border-outline-variant pt-2 font-body-dense text-body-dense text-secondary">
+              <p className="mt-2 border-t border-outline-variant pt-2 font-body-default text-body-default text-on-surface-variant">
                 {pendingDelete.reason}
               </p>
             </div>
 
             {deleteError ? (
-              <p className="mt-3 rounded border border-error-container bg-error-container/40 px-2.5 py-2 font-body-dense text-body-dense text-error">
+              <p className="mt-3 rounded-lg border border-error/30 bg-error-container/30 px-3 py-2 font-body-default text-body-default text-error">
                 {deleteError}
               </p>
             ) : null}
@@ -264,7 +280,7 @@ export function MovementsLedger({
                   setDeleteError(null);
                 }}
                 disabled={deleting}
-                className="h-[34px] rounded border border-outline-variant px-4 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container disabled:opacity-50"
+                className="h-9 rounded-lg border border-outline-variant px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:bg-surface-container disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
               >
                 Cancel
               </button>
@@ -272,7 +288,7 @@ export function MovementsLedger({
                 type="button"
                 onClick={() => void confirmDelete()}
                 disabled={deleting}
-                className="h-[34px] rounded bg-error px-4 font-body-medium text-body-medium text-on-error transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-9 rounded-lg bg-error px-4 font-body-medium text-body-medium text-on-error shadow-panel transition duration-200 hover:bg-error/90 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
               >
                 {deleting ? "Deleting..." : "Delete Adjustment"}
               </button>

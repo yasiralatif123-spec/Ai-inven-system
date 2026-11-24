@@ -51,10 +51,10 @@ type EditProductModalProps = {
 };
 
 const inputClass =
-  "h-[34px] w-full rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container";
+  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container";
 
 const monoInputClass =
-  "h-[34px] w-full rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data text-mono-data text-on-surface placeholder:text-outline focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container";
+  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container";
 
 function toDateInput(value?: string | null) {
   if (!value) return "";
@@ -102,8 +102,8 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface">
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+      <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
         {label}
         {required ? <span className="text-error"> *</span> : null}
       </span>
@@ -124,16 +124,16 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-3.5 rounded border border-outline-variant bg-surface-container-lowest p-4">
-      <div className="flex items-start justify-between gap-3 border-b border-outline-variant pb-2.5">
+    <section className="flex flex-col gap-4 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-panel">
+      <div className="flex items-start justify-between gap-3 border-b border-outline-variant pb-3.5">
         <div>
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-sm bg-primary" />
             <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface">{title}</span>
           </div>
-          {subtitle ? <p className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">{subtitle}</p> : null}
+          {subtitle ? <p className="mt-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">{subtitle}</p> : null}
         </div>
-        <span className="rounded bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
+        <span className="rounded-lg bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
           {index}
         </span>
       </div>
@@ -245,7 +245,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
       <button
         type="button"
         aria-label="Close edit product"
-        className="absolute inset-0 cursor-default bg-black/45 backdrop-blur-[2px]"
+        className="absolute inset-0 cursor-default bg-inverse-surface/50 backdrop-blur-[2px]"
         onClick={() => {
           if (!saving) onClose();
         }}
@@ -255,18 +255,18 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
         role="dialog"
         aria-modal="true"
         aria-label={`Edit ${product.title}`}
-        className="relative z-10 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded border border-outline-variant bg-surface-container-lowest shadow-2xl"
+        className="relative z-10 flex max-h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-3">
+        <div className="flex items-start justify-between gap-3 border-b border-outline-variant bg-surface-container-low px-5 py-4">
           <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-primary">edit_note</span>
-              <h2 className="font-headline-sm text-headline-sm text-on-surface">Edit Product</h2>
-              <span className="rounded border border-outline-variant bg-surface-container px-1.5 py-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="material-symbols-outlined text-[19px] text-primary">edit_note</span>
+              <h2 className="font-headline-md text-headline-md tracking-tight text-on-surface">Edit Product</h2>
+              <span className="rounded-lg border border-outline-variant bg-surface-container px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                 {product.sku}
               </span>
             </div>
-            <p className="mt-0.5 font-body-dense text-body-dense text-secondary">
+            <p className="mt-1 font-body-default text-body-default text-on-surface-variant">
               Update the product record. Changes are saved to MongoDB.
             </p>
           </div>
@@ -275,27 +275,27 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
             onClick={onClose}
             disabled={saving}
             aria-label="Close"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-outline-variant bg-surface-container-lowest text-secondary transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-50"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
         <form className="flex min-h-0 flex-1 flex-col" onSubmit={submit}>
-          <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-5">
             {error ? (
-              <div className="rounded border border-error/30 bg-error-container/30 px-3 py-2 font-body-default text-body-default text-error">
+              <div className="rounded-xl border border-error/30 bg-error-container/30 px-4 py-3 font-body-default text-body-default text-error shadow-panel">
                 {error}
               </div>
             ) : null}
 
             <Section index="SEC #01" title="A. Basic Information" subtitle="Identification, barcode, and catalog classification">
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
                 <div className="flex flex-col gap-1.5 lg:col-span-4">
-                  <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface">
+                  <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
                     Product Master Image
                   </span>
-                  <div className="relative flex min-h-[180px] flex-col items-center justify-center overflow-hidden rounded border-2 border-dashed border-outline-variant bg-surface-container-low p-3 text-center">
+                  <div className="relative flex min-h-[200px] flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-low p-4 text-center transition duration-200 hover:border-primary-container hover:bg-surface-container">
                     <input
                       accept="image/png,image/jpeg"
                       className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
@@ -304,14 +304,14 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     />
                     {currentImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={currentImage} alt={product.title} className="max-h-36 rounded object-contain" />
+                      <img src={currentImage} alt={product.title} className="max-h-40 rounded-lg object-contain shadow-panel" />
                     ) : (
                       <>
-                        <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-surface-container-high text-primary">
-                          <span className="material-symbols-outlined text-[22px]">add_photo_alternate</span>
+                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-outline-variant bg-surface-container-high text-primary">
+                          <span className="material-symbols-outlined text-[24px]">add_photo_alternate</span>
                         </div>
                         <div className="font-body-medium text-body-medium text-on-surface">Upload new image</div>
-                        <p className="mt-1 max-w-[200px] font-body-dense text-body-dense text-secondary">
+                        <p className="mt-1.5 max-w-[220px] font-body-dense text-body-dense text-on-surface-variant">
                           PNG, JPG up to 5MB. Stored in Cloudinary.
                         </p>
                       </>
@@ -321,7 +321,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     <button
                       type="button"
                       onClick={undoRemoveImage}
-                      className="flex h-7 items-center justify-center gap-1 rounded border border-outline-variant bg-surface-container-lowest font-body-dense text-body-dense text-primary hover:bg-surface-container"
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-primary transition duration-200 hover:border-outline hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
                     >
                       <span className="material-symbols-outlined text-[14px]">undo</span>
                       Undo remove image
@@ -334,7 +334,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                         setImage(null);
                         setPreview("");
                       }}
-                      className="flex h-7 items-center justify-center gap-1 rounded border border-outline-variant bg-surface-container-lowest font-body-dense text-body-dense text-secondary hover:bg-surface-container"
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
                     >
                       <span className="material-symbols-outlined text-[14px]">close</span>
                       Clear selected image
@@ -347,13 +347,13 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                         setPreview("");
                         setRemoveImage(true);
                       }}
-                      className="flex h-7 items-center justify-center gap-1 rounded border border-error/30 bg-error-container/20 font-body-dense text-body-dense text-error hover:bg-error-container/40"
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-error/30 bg-error-container/20 px-3 font-body-default text-body-default text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
                     >
                       <span className="material-symbols-outlined text-[14px]">delete</span>
                       Remove image
                     </button>
                   ) : null}
-                  <p className="font-mono-data-sm text-mono-data-sm text-secondary">
+                  <p className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                     {removeImage
                       ? "Current image will be deleted on save."
                       : image
@@ -366,7 +366,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-8">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-8">
                   <Field label="Product Title" required className="sm:col-span-2">
                     <input
                       value={form.title}
@@ -417,14 +417,14 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                   value={form.description}
                   onChange={(event) => set("description", event.target.value)}
                   rows={2}
-                  className="w-full rounded border border-outline-variant bg-surface-container-lowest p-2.5 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container"
+                  className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default text-body-default leading-relaxed text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
                   placeholder="Packaging, storage, composition, etc."
                 />
               </Field>
             </Section>
 
             <Section index="SEC #02" title="B. Pricing Tiers & FBR Taxation" subtitle="Cost, wholesale, retail, and tax regime">
-              <Field label="Price Entry Unit" className="md:max-w-xs">
+              <Field label="Price Entry Unit" className="md:max-w-sm">
                 <select
                   value={form.priceUnit}
                   onChange={(event) => setPriceUnit(event.target.value as StockUnit)}
@@ -434,11 +434,11 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     <option key={unit} value={unit}>{unit}</option>
                   ))}
                 </select>
-                <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                   All prices below are converted and stored per Piece.
                 </span>
               </Field>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <Field label={`1. Purchase Price (Cost) / ${form.priceUnit}`}>
                   <input
                     type="number"
@@ -473,13 +473,13 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                   />
                 </Field>
               </div>
-              <div className="grid grid-cols-1 items-center gap-3 rounded border border-outline-variant bg-surface-container p-3 md:grid-cols-12">
+              <div className="grid grid-cols-1 items-center gap-4 rounded-xl border border-outline-variant bg-surface-container p-4 md:grid-cols-12">
                 <div className="flex flex-wrap items-center gap-2 font-mono-data text-mono-data md:col-span-7">
-                  <span className="rounded border border-[#D1E8DC] bg-[#EBF5F0] px-2.5 py-1 font-semibold text-[#2E7D58]">
+                  <span className="rounded-lg border border-primary/20 bg-primary-fixed/20 px-3 py-1.5 font-semibold text-primary">
                     Wholesale Margin: +{margins.wholesalePct}% (Rs.{" "}
                     {margins.wholesaleAmount.toLocaleString()} / Piece)
                   </span>
-                  <span className="rounded border border-outline-variant bg-surface-container-lowest px-2.5 py-1">
+                  <span className="rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-1.5">
                     MSRP Spread: +{margins.retailPct}%
                   </span>
                 </div>
@@ -498,7 +498,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
             </Section>
 
             <Section index="SEC #03" title="C. Inventory, Packaging & Warehouse" subtitle="Stock units, depot, and reorder thresholds">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <Field label="Base Stock Unit (UOM)">
                   <select value={form.uom} onChange={(event) => set("uom", event.target.value)} className={inputClass}>
                     {STOCK_UNITS.map((option) => (
@@ -514,7 +514,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     onChange={(event) => set("openingStock", event.target.value)}
                     className={monoInputClass}
                   />
-                  <span className="font-mono-data-sm text-mono-data-sm text-secondary">Stored as pieces. 1 Carton = 24 pcs, 1 Box = 12 pcs.</span>
+                  <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">Stored as pieces. 1 Carton = 24 pcs, 1 Box = 12 pcs.</span>
                 </Field>
                 <Field label="Reorder Alert Threshold (Pieces)" required>
                   <input
@@ -525,10 +525,10 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     onChange={(event) => set("reorderThreshold", event.target.value)}
                     className={monoInputClass}
                   />
-                  <span className="font-mono-data-sm text-mono-data-sm text-secondary">Alert below this number of pieces.</span>
+                  <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">Alert below this number of pieces.</span>
                 </Field>
               </div>
-              <div className="grid grid-cols-1 gap-3 border-t border-outline-variant pt-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 border-t border-outline-variant pt-4 md:grid-cols-2">
                 <Field label="Primary Depot Allocation">
                   <select
                     value={form.warehouse}
@@ -552,14 +552,14 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
             </Section>
 
             <Section index="SEC #04" title="D. Compliance, Expiry & Catalog Status">
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 {CATALOG_STATUSES.map((option) => (
                   <label
                     key={option.value}
-                    className={`flex cursor-pointer items-center gap-2.5 rounded border p-2.5 ${
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3.5 transition duration-200 hover:border-outline ${
                       form.catalogStatus === option.value
-                        ? "border-primary-container bg-surface-container"
-                        : "border-outline-variant bg-surface-container-lowest"
+                        ? "border-primary-container bg-primary-fixed/20"
+                        : "border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low"
                     }`}
                   >
                     <input
@@ -571,14 +571,14 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     />
                     <span>
                       <span className="block font-body-medium text-body-medium text-on-surface">{option.label}</span>
-                      <span className="block font-mono-data-sm text-[11px] text-secondary">{option.description}</span>
+                      <span className="block font-mono-data-sm text-mono-data-sm text-on-surface-variant">{option.description}</span>
                     </span>
                   </label>
                 ))}
               </div>
 
-              <div className="flex flex-col gap-2.5 border-t border-outline-variant pt-3">
-                <label className="flex items-start gap-2.5">
+              <div className="flex flex-col gap-3 border-t border-outline-variant pt-4">
+                <label className="flex items-start gap-3 rounded-lg border border-outline-variant bg-surface-container-low p-3">
                   <input
                     type="checkbox"
                     checked={form.batchTracking}
@@ -589,10 +589,10 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     <span className="block font-body-medium text-body-medium text-on-surface">
                       Enable Strict Batch / Lot Tracking
                     </span>
-                    <span className="block font-mono-data-sm text-secondary">For FEFO stock rotation</span>
+                    <span className="block font-mono-data-sm text-mono-data-sm text-on-surface-variant">For FEFO stock rotation</span>
                   </span>
                 </label>
-                <Field label="Initial Batch Expiry Date" className="pl-6">
+                <Field label="Initial Batch Expiry Date" className="pl-7">
                   <input
                     type="date"
                     value={form.expiryDate}
@@ -604,23 +604,23 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
             </Section>
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-outline-variant bg-surface-container-low px-4 py-2.5">
-            <span className="truncate font-mono-data-sm text-mono-data-sm text-secondary">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant bg-surface-container-low px-5 py-3">
+            <span className="truncate font-mono-data-sm text-mono-data-sm text-on-surface-variant">
               ID: {product._id}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={saving}
-                className="flex h-[34px] items-center rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface hover:bg-surface-container disabled:opacity-50"
+                className="flex h-9 items-center rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="flex h-[34px] items-center gap-1.5 rounded bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-sm transition-colors hover:bg-primary disabled:opacity-50"
+                className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-5 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[17px]">save</span>
                 <span>{saving ? "Saving..." : "Save Changes"}</span>
