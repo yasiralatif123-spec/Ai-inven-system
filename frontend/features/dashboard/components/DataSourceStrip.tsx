@@ -4,33 +4,36 @@ import type { DashboardSources } from "../types";
 
 export function DataSourceStrip({ sources }: { sources: DashboardSources }) {
   return (
-    <section className="flex flex-wrap items-center justify-between gap-3 rounded border border-outline-variant bg-surface-container-lowest px-4 py-2.5 font-mono-data-sm text-mono-data-sm">
+    <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-5 py-3 font-mono-data-sm text-mono-data-sm shadow-panel">
       <div className="flex shrink-0 items-center gap-2 font-medium text-on-surface">
-        <span className="material-symbols-outlined text-[16px] text-primary-container">bolt</span>
+        <span className="material-symbols-outlined text-[17px] text-primary-container">bolt</span>
         <span>Live Data Sources</span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-secondary">
-        <Link href="/products" className="flex items-center gap-1.5 hover:text-on-surface">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-on-surface-variant">
+        <Link
+          href="/products"
+          className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+        >
           <span className="inline-block h-2 w-2 rounded-full bg-primary-container"></span>
           <span>
             Products: <span className="font-medium text-on-surface">{formatNumber(sources.products)}</span>
           </span>
         </Link>
-        <Link href="/inventory" className="flex items-center gap-1.5 hover:text-on-surface">
+        <Link href="/inventory" className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
           <span className="inline-block h-2 w-2 rounded-full bg-primary-container"></span>
           <span>
             Stock movements:{" "}
             <span className="font-medium text-on-surface">{formatNumber(sources.movements)}</span>
           </span>
         </Link>
-        <Link href="/sales-orders" className="flex items-center gap-1.5 hover:text-on-surface">
-          <span className="inline-block h-2 w-2 rounded-full bg-[#2E7D58]"></span>
+        <Link href="/sales-orders" className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
+          <span className="inline-block h-2 w-2 rounded-full bg-primary"></span>
           <span>
             Sale orders: <span className="font-medium text-on-surface">{formatNumber(sources.orders)}</span>
           </span>
         </Link>
-        <Link href="/suppliers" className="flex items-center gap-1.5 hover:text-on-surface">
+        <Link href="/suppliers" className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
           <span className="inline-block h-2 w-2 rounded-full bg-secondary"></span>
           <span>
             Suppliers: <span className="font-medium text-on-surface">{formatNumber(sources.suppliers)}</span>
@@ -38,7 +41,7 @@ export function DataSourceStrip({ sources }: { sources: DashboardSources }) {
         </Link>
       </div>
 
-      <div className="shrink-0 font-medium text-secondary">
+      <div className="shrink-0 font-medium text-on-surface-variant">
         Synced today at {sources.generatedAt}
       </div>
     </section>

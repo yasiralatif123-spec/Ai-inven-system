@@ -14,29 +14,29 @@ export function DashboardView() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-5">
-        <div className="h-[54px] animate-pulse rounded border border-outline-variant bg-surface-container-lowest" />
-        <div className="h-[110px] animate-pulse rounded border border-outline-variant bg-surface-container-lowest" />
-        <div className="h-[300px] animate-pulse rounded border border-outline-variant bg-surface-container-lowest" />
-        <div className="h-[360px] animate-pulse rounded border border-outline-variant bg-surface-container-lowest" />
+      <div className="flex flex-col gap-6">
+        <div className="h-[56px] animate-pulse rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel" />
+        <div className="h-[120px] animate-pulse rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel" />
+        <div className="h-[320px] animate-pulse rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel" />
+        <div className="h-[380px] animate-pulse rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel" />
       </div>
     );
   }
 
   if (error || !snapshot) {
     return (
-      <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded border border-outline-variant bg-surface-container-lowest p-6 text-center">
-        <span className="material-symbols-outlined text-[28px] text-error">error_outline</span>
+      <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-8 text-center shadow-panel">
+        <span className="material-symbols-outlined text-[32px] text-error">error_outline</span>
         <div className="font-body-medium text-body-medium text-on-surface">
           {error || "Dashboard data is unavailable."}
         </div>
-        <p className="font-body-dense text-body-dense text-secondary">
+        <p className="max-w-sm font-body-dense text-body-dense text-on-surface-variant">
           Products, stock movements, sale orders, and suppliers are loaded from the backend.
         </p>
         <button
           type="button"
           onClick={reload}
-          className="h-[34px] rounded bg-primary-container px-4 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary"
+          className="h-9 rounded-lg bg-primary-container px-5 font-body-medium text-body-medium text-on-primary transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
         >
           Retry
         </button>
@@ -45,12 +45,12 @@ export function DashboardView() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-5 text-on-surface">
+    <div className="flex w-full flex-col gap-6 text-on-surface">
       <DashboardQuickActions sources={snapshot.sources} />
       <DashboardKpis kpis={snapshot.kpis} />
       <SalesOverview charts={snapshot.charts} summaries={snapshot.chartSummaries} />
 
-      <section className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12">
+      <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <RecentOrders orders={snapshot.recentOrders} totals={snapshot.orderTotals} />
         <CriticalLowStock rows={snapshot.lowStock} />
       </section>

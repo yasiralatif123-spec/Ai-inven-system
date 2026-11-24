@@ -42,15 +42,15 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
   const hasData = summary.current > 0 || summary.prior > 0;
 
   return (
-    <section className="flex flex-col gap-3 rounded border border-outline-variant bg-surface-container-lowest p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant pb-2">
+    <section className="flex flex-col gap-4 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-panel">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant pb-3">
         <div>
-          <div className="font-headline-md text-headline-md text-on-surface">Sales Overview</div>
-          <div className="font-body-dense text-body-dense text-secondary">
+          <div className="font-headline-sm text-headline-sm tracking-tight text-on-surface">Sales Overview</div>
+          <div className="mt-0.5 font-body-dense text-body-dense text-on-surface-variant">
             Gross invoiced volume from saved orders ({formatRs(summary.current)} in this period)
           </div>
         </div>
-        <div className="inline-flex rounded border border-outline-variant bg-surface-container p-0.5">
+        <div className="inline-flex rounded-lg border border-outline-variant bg-surface-container p-1">
           {PERIODS.map((item) => {
             const active = period === item.key;
             return (
@@ -58,10 +58,10 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
                 key={item.key}
                 type="button"
                 onClick={() => setPeriod(item.key)}
-                className={`rounded px-2.5 py-1 font-mono-data-sm text-mono-data-sm transition-colors ${
+                className={`rounded-md px-3 py-1.5 font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
                   active
                     ? "border border-outline-variant bg-surface-container-lowest font-medium text-primary shadow-sm"
-                    : "text-secondary hover:text-on-surface"
+                    : "text-on-surface-variant hover:bg-surface-container-lowest/70 hover:text-on-surface"
                 }`}
               >
                 {item.label}
@@ -71,11 +71,11 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
         </div>
       </div>
 
-      <div className="relative h-56 w-full pt-2">
+      <div className="relative h-60 w-full pt-2">
         {hasData ? (
           <>
             <div
-              className="pointer-events-none absolute top-[10%] z-10 -translate-x-1/2 rounded border border-outline bg-on-surface px-2.5 py-1.5 text-left text-surface-container-lowest shadow"
+              className="pointer-events-none absolute top-[10%] z-10 -translate-x-1/2 rounded-lg border border-outline bg-inverse-surface px-3 py-2 text-left text-inverse-on-surface shadow-lg"
               style={{ left: `${Math.min(88, Math.max(12, (geometry.points[currentIndex].x / 800) * 100))}%` }}
             >
               <div className="flex items-center justify-between gap-3 font-label-caps text-label-caps uppercase text-surface-variant">
@@ -148,15 +148,15 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
             </svg>
           </>
         ) : (
-          <div className="flex h-full items-center justify-center font-body-dense text-body-dense text-secondary">
+          <div className="flex h-full items-center justify-center font-body-dense text-body-dense text-on-surface-variant">
             No sales recorded in this period yet.
           </div>
         )}
       </div>
 
-      <div className="border-t border-outline-variant pt-1 font-mono-data-sm text-mono-data-sm text-secondary">
+      <div className="border-t border-outline-variant pt-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
         <div
-          className="grid text-center"
+          className="grid text-center leading-relaxed"
           style={{
             gridTemplateColumns: `repeat(${buckets.length}, minmax(0, 1fr))`,
             paddingLeft: "5.625%",
@@ -169,13 +169,13 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
             </span>
           ))}
         </div>
-        <div className="mt-2 flex shrink-0 items-center justify-end gap-3">
+        <div className="mt-3 flex shrink-0 items-center justify-end gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="inline-block h-0.5 w-3 bg-primary-container"></span>
+            <span className="inline-block h-0.5 w-4 bg-primary-container"></span>
             <span className="text-on-surface">Current Period</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="inline-block h-0.5 w-3 border-t border-dashed border-outline-variant"></span>
+            <span className="inline-block h-0.5 w-4 border-t border-dashed border-outline-variant"></span>
             <span>Prior Period</span>
           </div>
         </div>
