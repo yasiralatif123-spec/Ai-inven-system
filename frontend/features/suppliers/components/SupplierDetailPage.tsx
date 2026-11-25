@@ -11,6 +11,21 @@ import { formatRs } from "../utils";
 import { SupplierMasterProfile } from "./SupplierMasterProfile";
 import { SupplierPurchaseLedger } from "./SupplierPurchaseLedger";
 import { SupplierDetailSummary } from "./SupplierDetailSummary";
+import {
+  PROFILE_BUTTON_PRIMARY,
+  PROFILE_BUTTON_QUIET,
+  PROFILE_BUTTON_SECONDARY,
+  PROFILE_CARD,
+  PROFILE_ID_TOKEN,
+  PROFILE_NUMERIC,
+  PROFILE_TABLE_ROW,
+  ProfileBadge,
+  ProfileEmptyState,
+  ProfileErrorState,
+  ProfileLoadingState,
+  ProfileMetaItem,
+  ProfileTabs,
+} from "../../profiles/profile-ui";
 
 type SupplierDetailPageProps = {
   supplierId: string;
@@ -18,11 +33,11 @@ type SupplierDetailPageProps = {
 
 type DetailTab = "purchase" | "payments" | "invoices" | "contact";
 
-const TABS: Array<{ value: DetailTab; label: string }> = [
-  { value: "purchase", label: "Purchase History" },
-  { value: "payments", label: "Payments" },
-  { value: "invoices", label: "Invoices" },
-  { value: "contact", label: "Contact & Bank Profile" },
+const TABS: Array<{ value: DetailTab; label: string; icon: string }> = [
+  { value: "purchase", label: "Purchase History", icon: "shopping_cart" },
+  { value: "payments", label: "Payments", icon: "payments" },
+  { value: "invoices", label: "Invoices", icon: "receipt_long" },
+  { value: "contact", label: "Contact & Bank Profile", icon: "badge" },
 ];
 
 export function SupplierDetailPage({ supplierId }: SupplierDetailPageProps) {
@@ -75,44 +90,21 @@ export function SupplierDetailPage({ supplierId }: SupplierDetailPageProps) {
 
   if (loading) {
     return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center gap-2 text-center">
-        <span className="material-symbols-outlined animate-spin text-[28px] text-primary">
-          progress_activity
-        </span>
-        <div className="font-body-medium text-body-medium text-on-surface">
-          Loading supplier profile…
-        </div>
-        <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-          Supplier ID: {supplierId}
-        </div>
-      </div>
+      <ProfileLoadingState
+        label="Loading supplier profile…"
+        detail={`Supplier ID: ${supplierId}`}
+      />
     );
   }
 
   if (error || !profile) {
     return (
-      <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-center">
-        <span className="material-symbols-outlined text-[32px] text-error">error_outline</span>
-        <div className="font-body-medium text-body-medium text-on-surface">
-          {error || "Supplier not found"}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setReloadKey((key) => key + 1)}
-            className="rounded bg-primary px-3.5 py-1.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary-hover"
-          >
-            Retry
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/suppliers")}
-            className="rounded border border-outline-variant px-3.5 py-1.5 font-body-medium text-body-medium text-secondary transition-colors hover:text-on-surface"
-          >
-            Back to Suppliers
-          </button>
-        </div>
-      </div>
+      <ProfileErrorState
+        message={error || "Supplier not found"}
+        onRetry={() => setReloadKey((key) => key + 1)}
+        onBack={() => router.push("/suppliers")}
+        backLabel="Back to Suppliers"
+      />
     );
   }
 
@@ -129,203 +121,184 @@ export function SupplierDetailPage({ supplierId }: SupplierDetailPageProps) {
 
   return (
     <div className="flex flex-col gap-3 pb-4" data-supplier-id={supplierId}>
-      <nav className="flex flex-wrap items-center gap-1.5 font-label-caps text-label-caps uppercase tracking-wider text-secondary">
-        <button type="button" onClick={() => router.push("/")} className="transition-colors hover:text-on-surface">
+      <nav className="flex flex-wrap items-center gap-1.5 font-body-dense text-body-dense text-secondary">
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          className="flex items-center gap-1.5 transition-colors hover:text-primary"
+        >
+          <span className="material-symbols-outlined text-[15px] text-primary">home</span>
           Wholesale Operations
         </button>
-        <span className="text-outline-variant">/</span>
+        <span className="material-symbols-outlined text-[13px] text-outline-variant">chevron_right</span>
         <button
           type="button"
           onClick={() => router.push("/suppliers")}
-          className="transition-colors hover:text-on-surface"
+          className="transition-colors hover:text-primary"
         >
           Suppliers
         </button>
-        <span className="text-outline-variant">/</span>
-        <span className="font-semibold text-primary">{header.name}</span>
+        <span className="material-symbols-outlined text-[13px] text-outline-variant">chevron_right</span>
+        <span className="font-body-medium font-semibold text-on-surface">{header.name}</span>
+        <span className={PROFILE_ID_TOKEN}>VENDOR #{header.vendorCode}</span>
       </nav>
 
-      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="font-headline-xl text-headline-xl tracking-tight text-on-surface">
-              {header.name}
-            </h1>
-            <span
-              className={`rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
-                header.status === "Active"
-                  ? "border border-success-border bg-success-container text-success"
-                  : "border border-warning-border bg-warning-container text-warning"
-              }`}
+      <section className={`${PROFILE_CARD} p-4`}>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-container font-headline-md text-headline-md font-semibold text-primary">
+              {(header.name || "?").slice(0, 1).toUpperCase()}
+            </span>
+
+            <div className="flex min-w-0 flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-headline-xl text-headline-xl tracking-tight text-on-surface">
+                  {header.name}
+                </h1>
+                <ProfileBadge tone={header.status === "Active" ? "success" : "warning"}>
+                  {header.status}
+                </ProfileBadge>
+                <ProfileBadge tone="primary">VENDOR #{header.vendorCode}</ProfileBadge>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                <ProfileMetaItem>
+                  <span className="font-body-medium text-on-surface">{header.contact}</span>
+                  <span className="text-secondary"> ({header.contactRole})</span>
+                </ProfileMetaItem>
+                <ProfileMetaItem icon="call" mono>
+                  {header.phone}
+                </ProfileMetaItem>
+                {header.email && header.email.includes("@") ? (
+                  <ProfileMetaItem icon="mail" mono>
+                    <a
+                      href={`mailto:${header.email}`}
+                      className="text-primary hover:underline"
+                    >
+                      {header.email}
+                    </a>
+                  </ProfileMetaItem>
+                ) : (
+                  <ProfileMetaItem icon="mail" mono>
+                    No email on file
+                  </ProfileMetaItem>
+                )}
+                <ProfileMetaItem icon="location_on">{header.location}</ProfileMetaItem>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.push(`/suppliers?edit=${supplierId}`)}
+              className={PROFILE_BUTTON_QUIET}
             >
-              {header.status}
-            </span>
-            <span className="rounded border border-outline-variant bg-surface-container-high px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
-              VENDOR #{header.vendorCode}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-body-dense text-body-dense text-on-surface-variant">
-            <span className="font-medium text-on-surface">{header.contact}</span>
-            <span className="text-secondary">({header.contactRole})</span>
-            <span className="text-outline-variant">·</span>
-            <span className="font-mono-data-sm text-mono-data-sm text-on-surface">
-              {header.phone}
-            </span>
-            <span className="text-outline-variant">·</span>
-            {header.email && header.email.includes("@") ? (
-              <a
-                href={`mailto:${header.email}`}
-                className="font-mono-data-sm text-mono-data-sm text-primary hover:underline"
-              >
-                {header.email}
-              </a>
-            ) : (
-              <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                No email on file
-              </span>
-            )}
-            <span className="text-outline-variant">·</span>
-            <span>{header.location}</span>
+              Edit Supplier
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/purchases?supplierId=${supplierId}`)}
+              className={PROFILE_BUTTON_SECONDARY}
+            >
+              <span className="material-symbols-outlined text-[16px] text-secondary">receipt_long</span>
+              Record Payment
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/purchases/create?supplierId=${supplierId}`)}
+              className={PROFILE_BUTTON_PRIMARY}
+            >
+              <span className="material-symbols-outlined text-[16px]">add_shopping_cart</span>
+              Create Purchase
+            </button>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 self-start lg:self-center">
-          <button
-            type="button"
-            onClick={() => router.push(`/suppliers?edit=${supplierId}`)}
-            className="px-2.5 py-1.5 font-body-medium text-body-medium text-secondary transition-colors hover:text-on-surface hover:underline"
-          >
-            Edit Supplier
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(`/purchases?supplierId=${supplierId}`)}
-            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-row-hover"
-          >
-            <span className="material-symbols-outlined text-[17px] text-secondary">receipt_long</span>
-            Record Payment
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(`/purchases/create?supplierId=${supplierId}`)}
-            className="flex h-[34px] items-center gap-1.5 rounded bg-primary px-4 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary-hover"
-          >
-            <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
-            Create Purchase
-          </button>
-        </div>
-      </div>
+      </section>
 
       <SupplierDetailSummary financials={financials} />
 
-      <div className="grid grid-cols-1 items-start gap-5">
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-1">
-            <div className="flex items-center gap-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => setActiveTab(tab.value)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 transition-colors ${
-                    activeTab === tab.value
-                      ? "-mb-[1px] border-b-2 border-primary bg-surface-container-lowest font-body-medium text-body-medium text-primary"
-                      : "font-body-default text-body-default text-on-surface-variant hover:text-on-surface"
-                  }`}
+      <div className="flex flex-col gap-3">
+        <ProfileTabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
+
+        {activeTab === "purchase" ? (
+          <SupplierPurchaseLedger
+            purchases={profile.purchases}
+            totalCount={financials.purchaseOrders}
+          />
+        ) : null}
+
+        {activeTab === "payments" ? (
+          profile.payments.length === 0 ? (
+            <div className={PROFILE_CARD}>
+              <ProfileEmptyState
+                compact
+                icon="payments"
+                title="No payments recorded for this supplier yet."
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {profile.payments.map((payment) => (
+                <div
+                  key={payment.id}
+                  className={`${PROFILE_CARD} ${PROFILE_TABLE_ROW} flex flex-wrap items-center justify-between gap-2 px-3.5 py-3`}
                 >
-                  <span>{tab.label}</span>
-                  {"count" in tab && tab.count !== undefined ? (
-                    <span
-                      className={`rounded px-1.5 py-0.5 font-mono-data-sm text-[10px] leading-tight ${
-                        activeTab === tab.value
-                          ? "bg-primary text-on-primary"
-                          : "border border-outline-variant bg-surface-container-high text-on-surface-variant"
-                      }`}
-                    >
-                      {tab.count}
+                  <div className="flex min-w-0 flex-col">
+                    <span className="font-body-medium text-body-medium text-on-surface">
+                      {payment.title}
                     </span>
-                  ) : null}
-                </button>
+                    <span className="font-mono-data-sm text-mono-data-sm text-secondary">
+                      {payment.detail}
+                    </span>
+                  </div>
+                  <span className={`${PROFILE_NUMERIC} text-secondary`}>{payment.date}</span>
+                </div>
               ))}
             </div>
-          </div>
+          )
+        ) : null}
 
-          {activeTab === "purchase" ? (
-            <SupplierPurchaseLedger
-              purchases={profile.purchases}
-              totalCount={financials.purchaseOrders}
-            />
-          ) : null}
-
-          {activeTab === "payments" ? (
-            <div className="overflow-hidden rounded border border-outline-variant bg-surface-container-lowest">
-              {profile.payments.length === 0 ? (
-                <div className="px-4 py-10 text-center font-body-dense text-body-dense text-secondary">
-                  No payments recorded for this supplier yet.
-                </div>
-              ) : (
-                profile.payments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant px-4 py-3 last:border-b-0"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-body-medium text-body-medium text-on-surface">
-                        {payment.title}
-                      </span>
-                      <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                        {payment.detail}
-                      </span>
-                    </div>
+        {activeTab === "invoices" ? (
+          profile.invoices.length === 0 ? (
+            <div className={PROFILE_CARD}>
+              <ProfileEmptyState
+                compact
+                icon="receipt_long"
+                title="No invoices recorded for this supplier yet."
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {profile.invoices.map((purchase) => (
+                <div
+                  key={purchase.id}
+                  className={`${PROFILE_CARD} ${PROFILE_TABLE_ROW} flex flex-wrap items-center justify-between gap-2 px-3.5 py-3`}
+                >
+                  <div className="flex min-w-0 flex-col">
+                    <span className={PROFILE_ID_TOKEN}>{purchase.id}</span>
                     <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                      {payment.date}
+                      {purchase.date} · {purchase.reference}
                     </span>
                   </div>
-                ))
-              )}
-            </div>
-          ) : null}
-
-          {activeTab === "invoices" ? (
-            <div className="overflow-hidden rounded border border-outline-variant bg-surface-container-lowest">
-              {profile.invoices.length === 0 ? (
-                <div className="px-4 py-10 text-center font-body-dense text-body-dense text-secondary">
-                  No invoices recorded for this supplier yet.
-                </div>
-              ) : (
-                profile.invoices.map((purchase) => (
-                  <div
-                    key={purchase.id}
-                    className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant px-4 py-3 last:border-b-0"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-mono-data font-medium text-primary">{purchase.id}</span>
-                      <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                        {purchase.date} · {purchase.reference}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="rounded border border-outline-variant px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-secondary">
-                        {purchase.status}
-                      </span>
-                      <span className="font-mono-data text-mono-data font-medium">
-                        {formatRs(purchase.total)}
-                      </span>
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <ProfileBadge tone="neutral">{purchase.status}</ProfileBadge>
+                    <span className={`${PROFILE_NUMERIC} font-medium`}>
+                      {formatRs(purchase.total)}
+                    </span>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
-          ) : null}
+          )
+        ) : null}
 
-          {activeTab === "contact" ? (
-            <SupplierMasterProfile
-              vendorCode={header.vendorCode}
-              rows={profile.masterProfile}
-            />
-          ) : null}
-        </section>
+        {activeTab === "contact" ? (
+          <SupplierMasterProfile
+            vendorCode={header.vendorCode}
+            rows={profile.masterProfile}
+          />
+        ) : null}
       </div>
     </div>
   );

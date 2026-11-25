@@ -9,6 +9,16 @@ import {
   getFulfillmentBadgeClasses,
   getPaymentBadgeClasses,
 } from "../profile";
+import {
+  PROFILE_BUTTON_ICON,
+  PROFILE_CARD,
+  PROFILE_ID_TOKEN,
+  PROFILE_NUMERIC,
+  PROFILE_TABLE_HEAD,
+  PROFILE_TABLE_ROW,
+  ProfileBadge,
+  ProfileEmptyState,
+} from "../../profiles/profile-ui";
 
 type CustomerOrdersLedgerProps = {
   orders: SalesOrder[];
@@ -86,7 +96,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded border border-outline-variant bg-surface-container-lowest p-2.5">
+      <div className={`${PROFILE_CARD} flex flex-wrap items-center justify-between gap-2.5 p-2.5`}>
         <div className="relative flex min-w-[220px] flex-1 items-center">
           <span className="material-symbols-outlined pointer-events-none absolute left-2.5 text-[17px] text-outline">
             search
@@ -98,11 +108,11 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
               setPage(1);
             }}
             placeholder="Search order ID, SKU or date…"
-            className="h-8 w-full max-w-sm rounded border border-outline-variant bg-surface pl-8 pr-3 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary focus:outline-none"
+            className="h-8 w-full max-w-sm rounded-lg border border-outline-variant bg-surface pl-8 pr-3 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
 
-        <div className="flex items-center gap-1.5 font-mono-data-sm text-mono-data-sm">
+        <div className="flex flex-wrap items-center gap-1.5 font-mono-data-sm text-mono-data-sm">
           <span className="px-1 text-label-caps uppercase text-secondary">Filter:</span>
           {FILTERS.map((filter) => (
             <button
@@ -112,10 +122,10 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
                 setPaymentFilter(filter.value);
                 setPage(1);
               }}
-              className={`rounded border px-2.5 py-1 font-body-medium ${
+              className={`rounded-lg border border-outline-variant px-2.5 py-1 font-body-medium transition-colors ${
                 paymentFilter === filter.value
-                  ? "border-outline-variant bg-surface-container-highest text-primary"
-                  : "border-outline-variant bg-surface text-on-surface-variant hover:bg-row-hover"
+                  ? "bg-primary-container/60 text-primary"
+                  : "bg-surface text-on-surface-variant hover:bg-row-hover"
               }`}
             >
               {filter.label}
@@ -127,21 +137,22 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
             onClick={() => exportOrders(filtered)}
             title="Export Ledger"
             aria-label="Export order ledger"
-            className="flex h-[30px] items-center rounded border border-outline-variant bg-surface px-2 text-secondary hover:bg-row-hover hover:text-on-surface"
+            className={PROFILE_BUTTON_ICON}
           >
             <span className="material-symbols-outlined text-[16px]">download</span>
           </button>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded border border-outline-variant bg-surface-container-lowest">
+      <div className={`${PROFILE_CARD} overflow-hidden`}>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full min-w-[940px] border-collapse text-left">
             <thead>
-              <tr className="h-8 border-b border-outline-variant bg-surface-container-low font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+              <tr className={PROFILE_TABLE_HEAD}>
                 <th className="px-3.5 py-2">Order ID</th>
                 <th className="px-3 py-2">Booking Date</th>
-                <th className="px-3 py-2">Manifest Items</th>                <th className="px-3 py-2 text-right">Order Amount</th>
+                <th className="px-3 py-2">Manifest Items</th>
+                <th className="px-3 py-2 text-right">Order Amount</th>
                 <th className="px-3 py-2 text-center">Payment</th>
                 <th className="px-3 py-2 text-center">Fulfillment</th>
                 <th className="px-3 py-2 text-right">Action</th>
@@ -150,24 +161,22 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
             <tbody className="divide-y divide-border font-body-default text-body-default text-on-surface">
               {paged.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center">
-                    <div className="font-body-medium text-body-medium text-on-surface">
-                      No saved orders match this view
-                    </div>
-                    <div className="mt-1 font-body-dense text-body-dense text-secondary">
-                      Orders for this customer appear here as they are created in Sales &amp; Orders.
-                    </div>
+                  <td colSpan={7}>
+                    <ProfileEmptyState
+                      compact
+                      icon="receipt_long"
+                      title="No saved orders match this view"
+                      description="Orders for this customer appear here as they are created in Sales & Orders."
+                    />
                   </td>
                 </tr>
               ) : (
                 paged.map((order) => (
-                  <tr key={order.id} className="transition-colors hover:bg-row-hover">
+                  <tr key={order.id} className={PROFILE_TABLE_ROW}>
                     <td className="px-3.5 py-2.5">
-                      <span className="rounded border border-outline-variant bg-surface-container px-1.5 py-0.5 font-mono-data text-mono-data font-medium">
-                        {order.id}
-                      </span>
+                      <span className={PROFILE_ID_TOKEN}>{order.id}</span>
                     </td>
-                    <td className="px-3 py-2.5 font-mono-data-sm text-mono-data-sm text-secondary">
+                    <td className="whitespace-nowrap px-3 py-2.5 font-mono-data-sm text-mono-data-sm text-secondary">
                       {formatProfileDate(order.createdAt)}
                     </td>
                     <td className="px-3 py-2.5">
@@ -195,26 +204,18 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
                         ))}
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-right font-mono-data text-mono-data font-semibold tabular-nums">
+                    <td className={`${PROFILE_NUMERIC} whitespace-nowrap px-3 py-2.5 text-right font-semibold`}>
                       {formatRs(order.amount)}
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      <span
-                        className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getPaymentBadgeClasses(
-                          order.paymentStatus
-                        )}`}
-                      >
+                      <ProfileBadge tone="none" className={getPaymentBadgeClasses(order.paymentStatus)}>
                         {order.paymentLabel || order.paymentStatus}
-                      </span>
+                      </ProfileBadge>
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      <span
-                        className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getFulfillmentBadgeClasses(
-                          order.status
-                        )}`}
-                      >
+                      <ProfileBadge tone="none" className={getFulfillmentBadgeClasses(order.status)}>
                         {order.status}
-                      </span>
+                      </ProfileBadge>
                     </td>
                     <td className="px-3 py-2.5 text-right">
                       <button
@@ -222,7 +223,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
                         onClick={() => onViewOrder(order)}
                         title={`View order ${order.id}`}
                         aria-label={`View order ${order.id}`}
-                        className="rounded p-1 text-secondary transition-colors hover:bg-surface-container-high hover:text-primary"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-secondary transition-colors hover:bg-surface-container-high hover:text-primary"
                       >
                         <span className="material-symbols-outlined text-[17px]">arrow_forward</span>
                       </button>
@@ -243,11 +244,11 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
               type="button"
               disabled={currentPage === 1}
               onClick={() => setPage((value) => Math.max(1, value - 1))}
-              className="rounded border border-outline-variant bg-surface px-2.5 py-1 text-secondary disabled:opacity-50"
+              className="rounded-lg border border-outline-variant bg-surface px-2.5 py-1 text-secondary transition-colors hover:bg-row-hover disabled:opacity-50"
             >
               Prev
             </button>
-            <span className="rounded bg-primary px-2.5 py-1 font-medium text-on-primary">
+            <span className="rounded-lg bg-primary px-2.5 py-1 font-medium text-on-primary">
               {currentPage}
             </span>
             <span className="px-1 text-secondary">of {totalPages}</span>
@@ -255,7 +256,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
               type="button"
               disabled={currentPage === totalPages}
               onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
-              className="rounded border border-outline-variant bg-surface px-2.5 py-1 text-secondary disabled:opacity-50"
+              className="rounded-lg border border-outline-variant bg-surface px-2.5 py-1 text-secondary transition-colors hover:bg-row-hover disabled:opacity-50"
             >
               Next
             </button>

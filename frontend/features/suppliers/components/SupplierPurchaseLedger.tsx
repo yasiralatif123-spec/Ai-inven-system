@@ -4,6 +4,17 @@ import { useMemo, useState } from "react";
 import type { Purchase, PurchaseStatus } from "../supplierDetailData";
 import { priceBasisLabel } from "../../../app/lib/units";
 import { formatRs } from "../utils";
+import {
+  PROFILE_BUTTON_SECONDARY,
+  PROFILE_CARD,
+  PROFILE_ID_TOKEN,
+  PROFILE_NUMERIC,
+  PROFILE_SUBHEADER,
+  PROFILE_TABLE_HEAD,
+  PROFILE_TABLE_ROW,
+  ProfileBadge,
+  ProfileEmptyState,
+} from "../../profiles/profile-ui";
 
 type StatusFilter = "all" | PurchaseStatus;
 
@@ -16,19 +27,20 @@ const FILTERS: Array<{ value: StatusFilter; label: string }> = [
   { value: "Cancelled", label: "Cancelled" },
 ];
 
-const STATUS_CLASSES: Record<PurchaseStatus, string> = {
-  Received: "border border-success-border bg-success-container text-success",
-  "Partially Received": "border border-warning-border bg-warning-container text-warning",
-  Ordered: "border border-outline-variant bg-secondary-container text-on-secondary-container",
-  Draft: "border border-outline-variant bg-surface-container text-secondary",
-  Cancelled: "border border-error/20 bg-error-container px-2 text-on-error-container",
+const STATUS_TONES: Record<PurchaseStatus, "success" | "warning" | "secondary" | "neutral" | "error"> = {
+  Received: "success",
+  "Partially Received": "warning",
+  Ordered: "secondary",
+  Draft: "neutral",
+  Cancelled: "error",
 };
 
 function exportPurchases(rows: Purchase[]) {
   const header = [
     "Purchase ID",
     "Date",
-    "Purchased Products",    "Ordered Quantity",
+    "Purchased Products",
+    "Ordered Quantity",
     "Received Quantity",
     "Total Amount",
     "Paid",
@@ -46,7 +58,7 @@ function exportPurchases(rows: Purchase[]) {
           `${line.name}${line.sku ? ` (${line.sku})` : ""} · qty ${line.quantity} ${priceBasisLabel(line.unit)} · unit price ${line.unitPrice} / ${priceBasisLabel(line.unit)} · total ${line.lineTotal} · received ${line.receivedQuantity}/${line.quantity} · ${line.date} · ${line.status}`
       ),
     ].join(" | "),
-        String(row.orderedQuantity),
+    String(row.orderedQuantity),
     String(row.receivedQuantity),
     String(row.total),
     String(row.paid),
@@ -97,8 +109,8 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded border border-outline-variant bg-surface-container-lowest p-2.5">
-        <div className="flex flex-1 flex-wrap items-center gap-2">
+      <div className={PROFILE_CARD}>
+        <div className={`${PROFILE_SUBHEADER} flex-wrap`}>
           <div className="relative w-64 max-w-full">
             <span className="material-symbols-outlined pointer-events-none absolute left-2.5 top-2 text-[16px] text-outline">
               search
@@ -107,67 +119,67 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search PO #, item, or invoice…"
-              className="h-[32px] w-full rounded border border-outline-variant bg-surface pl-8 pr-3 font-body-dense text-body-dense text-on-surface placeholder:text-outline focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-[32px] w-full rounded-lg border border-outline-variant bg-surface pl-8 pr-3 font-body-dense text-body-dense text-on-surface placeholder:text-outline focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
-          <div className="flex items-center gap-1 rounded border border-outline-variant bg-surface-container p-0.5">
+          <div className="flex flex-wrap items-center gap-1">
             {FILTERS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setFilter(option.value)}
-                className={`flex items-center gap-1 rounded px-2 py-0.5 font-body-dense ${
+                className={`flex items-center gap-1 rounded-lg border border-outline-variant px-2 py-1 font-body-dense transition-colors ${
                   filter === option.value
-                    ? "border border-outline-variant/60 bg-surface-container-lowest font-body-medium text-on-surface shadow-sm"
-                    : "text-secondary hover:text-on-surface"
+                    ? "bg-primary-container/60 font-body-medium text-primary"
+                    : "bg-surface text-on-surface-variant hover:bg-row-hover"
                 }`}
               >
                 {option.label}
                 {option.value === "Partially Received" ? (
-                  <span className="h-1.5 w-1.5 rounded-full bg-warning-container0" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-warning" />
                 ) : null}
               </button>
             ))}
           </div>
-        </div>
 
-        <button
-          type="button"
-          onClick={() => exportPurchases(rows)}
-          className="flex h-[32px] items-center gap-1.5 rounded border border-outline-variant bg-surface px-2.5 font-body-medium text-body-dense text-on-surface transition-colors hover:bg-row-hover"
-        >
-          <span className="material-symbols-outlined text-[16px] text-secondary">file_download</span>
-          Export CSV
-        </button>
+          <button
+            type="button"
+            onClick={() => exportPurchases(rows)}
+            className={PROFILE_BUTTON_SECONDARY}
+          >
+            <span className="material-symbols-outlined text-[16px] text-secondary">file_download</span>
+            Export CSV
+          </button>
+        </div>
       </div>
 
-      <div className="overflow-hidden rounded border border-outline-variant bg-surface-container-lowest">
+      <div className={`${PROFILE_CARD} overflow-hidden`}>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full min-w-[1080px] border-collapse text-left">
             <thead>
-              <tr className="h-8 border-b border-outline-variant bg-surface-container-low text-[11px] font-semibold uppercase tracking-wider text-secondary">
-                <th className="w-28 px-3">Purchase ID</th>
-                <th className="w-24 px-3">Date</th>
-                <th className="px-3">Purchased Products</th>
-                <th className="w-24 px-3 text-right">Ordered</th>
-                <th className="w-24 px-3 text-right">Received</th>
-                <th className="w-28 px-3 text-right">Total Amount</th>
-                <th className="w-24 px-3 text-right">Paid</th>
-                <th className="w-28 px-3 text-right">Remaining</th>
-                <th className="w-36 px-3 text-center">Status</th>
+              <tr className={PROFILE_TABLE_HEAD}>
+                <th className="w-28 px-3 py-2">Purchase ID</th>
+                <th className="w-24 px-3 py-2">Date</th>
+                <th className="px-3 py-2">Purchased Products</th>
+                <th className="w-24 px-3 py-2 text-right">Ordered</th>
+                <th className="w-24 px-3 py-2 text-right">Received</th>
+                <th className="w-28 px-3 py-2 text-right">Total Amount</th>
+                <th className="w-24 px-3 py-2 text-right">Paid</th>
+                <th className="w-28 px-3 py-2 text-right">Remaining</th>
+                <th className="w-36 px-3 py-2 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border font-body-default text-body-dense text-on-surface">
               {rows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-10 text-center">
-                    <div className="font-body-medium text-body-medium text-on-surface">
-                      No purchases match this filter
-                    </div>
-                    <div className="mt-1 font-body-dense text-body-dense text-secondary">
-                      Try a different status or search term.
-                    </div>
+                  <td colSpan={9}>
+                    <ProfileEmptyState
+                      compact
+                      icon="receipt_long"
+                      title="No purchases match this filter"
+                      description="Try a different status or search term."
+                    />
                   </td>
                 </tr>
               ) : (
@@ -205,12 +217,14 @@ function PurchaseRow({ purchase }: { purchase: Purchase }) {
 
   return (
     <tr
-      className={`bg-surface-container-lowest transition-colors hover:bg-row-hover ${
-        purchase.status === "Partially Received" ? "border-l-2 border-l-amber-600" : ""
+      className={`${PROFILE_TABLE_ROW} ${
+        purchase.status === "Partially Received" ? "border-l-2 border-l-warning" : ""
       }`}
     >
-      <td className="px-3 py-2 font-mono-data font-semibold text-primary">{purchase.id}</td>
-      <td className="px-3 py-2 font-mono-data-sm text-mono-data-sm text-secondary">
+      <td className="px-3 py-2">
+        <span className={PROFILE_ID_TOKEN}>{purchase.id}</span>
+      </td>
+      <td className="whitespace-nowrap px-3 py-2 font-mono-data-sm text-mono-data-sm text-secondary">
         {purchase.date}
       </td>
       <td className="px-3 py-2">
@@ -246,35 +260,27 @@ function PurchaseRow({ purchase }: { purchase: Purchase }) {
         </div>
       </td>
 
-      <td className="px-3 py-2 text-right font-mono-data text-mono-data text-secondary">
+      <td className={`${PROFILE_NUMERIC} whitespace-nowrap px-3 py-2 text-right text-secondary`}>
         {purchase.orderedQuantity}
       </td>
-      <td className="px-3 py-2 text-right font-mono-data text-mono-data text-secondary">
+      <td className={`${PROFILE_NUMERIC} whitespace-nowrap px-3 py-2 text-right text-secondary`}>
         {purchase.receivedQuantity}
       </td>
-      <td className="px-3 py-2 text-right font-mono-data font-medium">
+      <td className={`${PROFILE_NUMERIC} whitespace-nowrap px-3 py-2 text-right font-medium`}>
         {formatRs(purchase.total)}
       </td>
-      <td
-        className={`px-3 py-2 text-right font-mono-data ${
-          purchase.paid > 0 ? "text-success" : "text-secondary"
-        }`}
-      >
+      <td className={`${PROFILE_NUMERIC} whitespace-nowrap px-3 py-2 text-right ${
+        purchase.paid > 0 ? "text-success" : "text-secondary"
+      }`}>
         {formatRs(purchase.paid)}
       </td>
-      <td
-        className={`px-3 py-2 text-right font-mono-data ${
-          purchase.remaining > 0 ? "font-semibold text-error" : "text-secondary"
-        }`}
-      >
+      <td className={`${PROFILE_NUMERIC} whitespace-nowrap px-3 py-2 text-right ${
+        purchase.remaining > 0 ? "font-semibold text-error" : "text-secondary"
+      }`}>
         {formatRs(purchase.remaining)}
       </td>
       <td className="px-3 py-2 text-center">
-        <span
-          className={`inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${STATUS_CLASSES[purchase.status]}`}
-        >
-          {purchase.status}
-        </span>
+        <ProfileBadge tone={STATUS_TONES[purchase.status]}>{purchase.status}</ProfileBadge>
       </td>
     </tr>
   );

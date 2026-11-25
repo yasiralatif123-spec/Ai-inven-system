@@ -8,6 +8,12 @@ import {
   paymentTermsLabel,
   type CustomerActivity,
 } from "../profile";
+import {
+  PROFILE_CARD,
+  PROFILE_NUMERIC,
+  PROFILE_SUBHEADER,
+  ProfileBadge,
+} from "../../profiles/profile-ui";
 
 type CustomerAccountDossierProps = {
   customer: Customer;
@@ -22,9 +28,15 @@ const TONE_CLASSES: Record<CustomerActivity["tone"], string> = {
 
 function DetailRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="font-label-caps text-label-caps uppercase text-secondary">{label}</span>
-      <span className={`${mono ? "font-mono-data text-mono-data" : "font-body-medium text-body-medium"} text-on-surface`}>
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span className="font-label-caps text-label-caps uppercase tracking-wide text-secondary">
+        {label}
+      </span>
+      <span
+        className={`min-w-0 break-words font-body-medium text-body-medium text-on-surface ${
+          mono ? `${PROFILE_NUMERIC} font-medium` : ""
+        }`}
+      >
         {value || "—"}
       </span>
     </div>
@@ -44,58 +56,50 @@ export function CustomerAccountDossier({ customer, orders }: CustomerAccountDoss
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="rounded border border-outline-variant bg-surface-container-lowest p-4">
-        <div className="flex items-center justify-between border-b border-outline-variant pb-2">
+      <section className={PROFILE_CARD}>
+        <div className={PROFILE_SUBHEADER}>
           <div className="font-headline-md text-headline-md text-on-surface">
             Account Master Profile
           </div>
-          <span className="rounded border border-outline-variant bg-surface-container px-1.5 py-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
-            {priceMatrix}
-          </span>
+          <ProfileBadge tone="primary">{priceMatrix}</ProfileBadge>
         </div>
 
-        <div className="mt-3 flex flex-col gap-2.5 font-body-default text-body-default">
+        <div className="flex flex-col gap-3 px-4 py-3.5 font-body-default text-body-default">
           <DetailRow label="Trade Title" value={customer.business} />
           <DetailRow label="Contact Person" value={`${customer.name} (Proprietor)`} />
 
-          <div className="grid grid-cols-2 gap-2 border-t border-outline-variant pt-2">
+          <div className="grid grid-cols-2 gap-3 border-t border-outline-variant pt-3">
             <DetailRow label="Primary Phone" value={customer.phone} mono />
             <DetailRow label="Alternate Phone" value={customer.altPhone} mono />
           </div>
 
-          <div className="border-t border-outline-variant pt-2">
+          <div className="border-t border-outline-variant pt-3">
             <DetailRow label="Email Dispatch" value={customer.email} mono />
           </div>
 
-          <div className="border-t border-outline-variant pt-2">
+          <div className="border-t border-outline-variant pt-3">
             <DetailRow label="Warehouse / Shop Address" value={customer.address} />
             <div className="mt-1 font-mono-data-sm text-mono-data-sm text-secondary">
               Route: {customer.routeLabel}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 border-t border-outline-variant pt-2">
+          <div className="grid grid-cols-2 gap-3 border-t border-outline-variant pt-3">
             <DetailRow label="Payment Terms" value={paymentTermsLabel(customer.paymentTerms)} />
             <DetailRow label="Customer Type" value={customer.type} />
           </div>
 
-          <div className="flex items-center justify-between border-t border-outline-variant pt-2">
+          <div className="flex items-center justify-between gap-2 border-t border-outline-variant pt-3">
             <DetailRow label="FBR NTN / STRN" value={customer.ntn} mono />
-            {customer.ntn ? (
-              <span className="rounded border border-success-border bg-success-container px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
-                Active Filer
-              </span>
-            ) : (
-              <span className="rounded border border-outline-variant bg-surface-container px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-secondary">
-                Not on file
-              </span>
-            )}
+            <ProfileBadge tone={customer.ntn ? "success" : "neutral"}>
+              {customer.ntn ? "Active Filer" : "Not on file"}
+            </ProfileBadge>
           </div>
         </div>
       </section>
 
-      <section className="rounded border border-outline-variant bg-surface-container-lowest p-4">
-        <div className="flex items-center justify-between border-b border-outline-variant pb-2">
+      <section className={PROFILE_CARD}>
+        <div className={PROFILE_SUBHEADER}>
           <div className="font-headline-md text-headline-md text-on-surface">
             Chronological Ledger Log
           </div>
@@ -105,7 +109,7 @@ export function CustomerAccountDossier({ customer, orders }: CustomerAccountDoss
         </div>
 
         {activity.length === 0 ? (
-          <div className="py-6 text-center">
+          <div className="px-4 py-9 text-center">
             <div className="font-body-medium text-body-medium text-on-surface">
               No ledger activity yet
             </div>
@@ -114,9 +118,9 @@ export function CustomerAccountDossier({ customer, orders }: CustomerAccountDoss
             </div>
           </div>
         ) : (
-          <div className="mt-1 flex flex-col divide-y divide-border">
+          <div className="flex flex-col divide-y divide-border px-4">
             {activity.map((item) => (
-              <div key={item.id} className="flex flex-col gap-0.5 py-2.5 first:pt-0 last:pb-0">
+              <div key={item.id} className="flex flex-col gap-0.5 py-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className={`font-body-medium text-body-medium ${TONE_CLASSES[item.tone]}`}>
                     {item.title}
@@ -132,11 +136,11 @@ export function CustomerAccountDossier({ customer, orders }: CustomerAccountDoss
         )}
 
         {customer.notes ? (
-          <div className="mt-2 border-t border-outline-variant pt-2">
-            <span className="font-label-caps text-label-caps uppercase text-secondary">
+          <div className="border-t border-outline-variant px-4 py-3">
+            <span className="font-label-caps text-label-caps uppercase tracking-wide text-secondary">
               Internal Remarks
             </span>
-            <p className="mt-0.5 font-body-dense text-body-dense text-on-surface-variant">
+            <p className="mt-1 font-body-dense text-body-dense text-on-surface-variant">
               {customer.notes}
             </p>
           </div>

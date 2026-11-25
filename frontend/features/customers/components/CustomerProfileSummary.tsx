@@ -4,6 +4,11 @@ import type { SalesOrder } from "../../sales-orders/types";
 import type { Customer } from "../types";
 import { formatNumber, formatRs } from "../utils";
 import { getCustomerFinancials, paymentTermsLabel } from "../profile";
+import {
+  PROFILE_CARD,
+  PROFILE_METRIC_GRID,
+  ProfileMetric,
+} from "../../profiles/profile-ui";
 
 type CustomerProfileSummaryProps = {
   customer: Customer;
@@ -18,63 +23,38 @@ export function CustomerProfileSummary({ customer, orders = [] }: CustomerProfil
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded border border-outline-variant bg-surface-container-lowest p-4">
-        <div className="grid grid-cols-2 divide-y divide-border md:grid-cols-4 md:divide-x md:divide-y-0">
-          <div className="flex flex-col gap-1 pb-3 md:pb-0 md:pr-4">
-            <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
-              Total Purchases
-            </span>
-            <div className="font-metric-display text-metric-display tabular-nums text-on-surface">
-              {formatRs(customer.totalPurchases)}
-            </div>
-            <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-              {formatNumber(customer.orders)} orders recorded to date
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1 pt-3 md:px-4 md:pt-0">
-            <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
-              Total Paid
-            </span>
-            <div className="font-metric-display text-metric-display tabular-nums text-primary">
-              {formatRs(totalPaid)}
-            </div>
-            <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-              Reconciled bank &amp; cash
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1 pt-3 md:px-4 md:pt-0">
-            <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
-              Current Outstanding
-            </span>
-            <div className="font-metric-display text-metric-display tabular-nums text-warning">
-              {formatRs(customer.outstanding)}
-            </div>
-            <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-              Due current billing cycle
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1 pt-3 md:pl-4 md:pt-0">
-            <div className="flex items-center justify-between">
-              <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
-                Credit Limit
-              </span>
+      <div className={PROFILE_CARD}>
+        <div className={PROFILE_METRIC_GRID}>
+          <ProfileMetric
+            label="Total Purchases"
+            value={formatRs(customer.totalPurchases)}
+            caption={`${formatNumber(customer.orders)} orders recorded to date`}
+          />
+          <ProfileMetric
+            label="Total Paid"
+            value={formatRs(totalPaid)}
+            caption="Reconciled bank & cash"
+            valueTone="primary"
+          />
+          <ProfileMetric
+            label="Current Outstanding"
+            value={formatRs(customer.outstanding)}
+            caption="Due current billing cycle"
+            valueTone="warning"
+          />
+          <ProfileMetric
+            label="Credit Limit"
+            value={formatRs(customer.creditLimit)}
+            caption="Authorized wholesale ceiling"
+            accessory={
               <span className="font-mono-data-sm text-mono-data-sm text-secondary">
                 {paymentTermsLabel(customer.paymentTerms)}
               </span>
-            </div>
-            <div className="font-metric-display text-metric-display tabular-nums text-on-surface">
-              {formatRs(customer.creditLimit)}
-            </div>
-            <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-              Authorized wholesale ceiling
-            </div>
-          </div>
+            }
+          />
         </div>
 
-        <div className="mt-3 flex flex-col gap-1.5 border-t border-outline-variant pt-3">
+        <div className="flex flex-col gap-1.5 border-t border-outline-variant px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-1 font-mono-data-sm text-mono-data-sm">
             <span className="font-body-medium text-on-surface">
               Credit Line Exposure: {exposure}%
@@ -95,7 +75,7 @@ export function CustomerProfileSummary({ customer, orders = [] }: CustomerProfil
       </div>
 
       {warning ? (
-        <div className="flex flex-col gap-3 rounded border border-warning-border bg-warning-container p-3.5 text-on-surface sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-lg border border-warning-border bg-warning-container/40 p-3.5 text-on-surface sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2.5">
             <span className="material-symbols-outlined mt-0.5 shrink-0 text-[20px] text-warning">
               warning

@@ -3,6 +3,7 @@
 import type { SalesOrder } from "../../sales-orders/types";
 import type { Customer } from "../types";
 import { buildCustomerActivity, formatShortDate } from "../profile";
+import { PROFILE_CARD, PROFILE_SUBHEADER } from "../../profiles/profile-ui";
 
 type CustomerNotesProps = {
   customer: Customer;
@@ -20,33 +21,35 @@ export function CustomerNotes({ customer, orders }: CustomerNotesProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <section className="rounded border border-outline-variant bg-surface-container-lowest p-4">
-        <div className="font-headline-md text-headline-md text-on-surface">Internal Remarks</div>
+      <section className={PROFILE_CARD}>
+        <div className={PROFILE_SUBHEADER}>
+          <div className="font-headline-md text-headline-md text-on-surface">Internal Remarks</div>
+        </div>
         {customer.notes ? (
-          <p className="mt-2 whitespace-pre-wrap font-body-default text-body-default text-on-surface-variant">
+          <p className="whitespace-pre-wrap px-4 py-3.5 font-body-default text-body-default text-on-surface-variant">
             {customer.notes}
           </p>
         ) : (
-          <p className="mt-2 font-body-dense text-body-dense text-secondary">
+          <p className="px-4 py-3.5 font-body-dense text-body-dense text-secondary">
             No internal remarks saved for this account.
           </p>
         )}
       </section>
 
-      <section className="rounded border border-outline-variant bg-surface-container-lowest p-4">
-        <div className="flex items-center justify-between border-b border-outline-variant pb-2">
+      <section className={PROFILE_CARD}>
+        <div className={PROFILE_SUBHEADER}>
           <div className="font-headline-md text-headline-md text-on-surface">Account Activity</div>
           <span className="font-mono-data-sm text-mono-data-sm text-secondary">{activity.length} events</span>
         </div>
 
         {activity.length === 0 ? (
-          <div className="py-8 text-center font-body-dense text-body-dense text-secondary">
+          <div className="px-4 py-9 text-center font-body-dense text-body-dense text-secondary">
             Order and payment activity will appear here.
           </div>
         ) : (
-          <div className="mt-1 flex flex-col divide-y divide-border">
+          <div className="flex flex-col divide-y divide-border px-4">
             {activity.map((item) => (
-              <div key={item.id} className="flex flex-col gap-0.5 py-2.5 first:pt-0 last:pb-0">
+              <div key={item.id} className="flex flex-col gap-0.5 py-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className={`font-body-medium text-body-medium ${TONE_CLASSES[item.tone]}`}>
                     {item.title}
