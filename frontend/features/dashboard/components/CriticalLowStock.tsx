@@ -61,13 +61,13 @@ export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
                   <Link
                     href={`/purchases/create?${purchaseParams.toString()}`}
                     aria-label={`Create a purchase for ${row.title}`}
-                    className="h-8 rounded-lg bg-primary px-2.5 font-mono-data-sm text-mono-data-sm font-medium text-on-primary transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-2.5 text-center font-mono-data-sm text-mono-data-sm font-medium text-on-primary transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     Purchase
                   </Link>
                   <Link
                     href={`/inventory?${params.toString()}`}
-                    className="h-8 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data-sm text-mono-data-sm font-medium text-primary-container transition duration-200 hover:bg-row-hover hover:underline active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="inline-flex h-8 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 text-center font-mono-data-sm text-mono-data-sm font-medium text-black transition duration-200 hover:bg-row-hover hover:underline active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     Adjust Stock
                   </Link>

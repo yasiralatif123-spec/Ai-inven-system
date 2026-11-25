@@ -7,6 +7,7 @@ export type Product = {
   barcode?: string;
   category: string;
   brand: string;
+  brandId?: string | null;
   description?: string;
   purchasePrice?: number;
   wholesalePrice?: number;

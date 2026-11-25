@@ -162,7 +162,9 @@ export default function ProductsPage() {
                             <div className="flex min-w-0 flex-col">
                               <div className="flex items-center gap-1.5">
                                 <span className="truncate font-body-medium text-body-default text-on-surface">{p.title}</span>
-                                <span className="rounded-md border border-outline-variant bg-surface-container px-2 py-0.5 font-label-caps text-[10px] uppercase text-on-surface-variant">{p.brand}</span>
+                                {p.brand ? (
+                                  <span className="rounded-md border border-outline-variant bg-surface-container px-2 py-0.5 font-label-caps text-[10px] uppercase text-on-surface-variant">{p.brand}</span>
+                                ) : null}
                               </div>
                               <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">{p.barcode || p.rackBay || "-"}</span>
                             </div>

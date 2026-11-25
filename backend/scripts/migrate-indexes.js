@@ -7,6 +7,7 @@ const Supplier = require("../src/models/Supplier");
 const Customer = require("../src/models/Customer");
 const Purchase = require("../src/models/Purchase");
 const SaleOrder = require("../src/models/SaleOrder");
+const Brand = require("../src/models/Brand");
 
 const TARGETS = [
   {
@@ -38,6 +39,13 @@ const TARGETS = [
     model: SaleOrder,
     oldIndex: { name: "orderNumber_1", key: { orderNumber: 1 } },
     newIndex: { name: "businessId_1_orderNumber_1", key: { businessId: 1, orderNumber: 1 } },
+  },
+  {
+    // New collection: no legacy global index to drop, only the scoped index to create.
+    key: "brands",
+    model: Brand,
+    oldIndex: null,
+    newIndex: { name: "businessId_1_normalizedName_1", key: { businessId: 1, normalizedName: 1 } },
   },
 ];
 
@@ -85,6 +93,7 @@ function sameKey(a, b) {
 }
 
 function findOldGlobalUniqueIndex(indexes, target) {
+  if (!target.oldIndex) return null;
   return (
     indexes.find(
       (idx) =>

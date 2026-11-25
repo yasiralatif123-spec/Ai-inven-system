@@ -10,6 +10,7 @@ const saleOrderRoutes = require("./routes/sale-order.routes");
 const supplierRoutes = require("./routes/supplier.routes");
 const customerRoutes = require("./routes/customer.routes");
 const purchaseRoutes = require("./routes/purchase.routes");
+const brandRoutes = require("./routes/brand.routes");
 const errorHandler = require("./middlewares/error.middleware");
 const { checkOrigin } = require("./middlewares/origin.middleware");
 
@@ -56,6 +57,7 @@ app.use("/api/sale-orders", saleOrderRoutes);
 app.use("/api/suppliers", supplierRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/purchases", purchaseRoutes);
+app.use("/api/brands", brandRoutes);
 
 app.use(errorHandler);
 

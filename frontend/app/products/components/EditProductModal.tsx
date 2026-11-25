@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { apiFetch } from "../../lib/api";
 import type { StockUnit } from "../../lib/units";
+import { BrandSelect, useBrands } from "../../../features/brands";
 import {
   canonicalPriceFromDisplay,
   canonicalPricesFromProduct,
@@ -28,6 +29,7 @@ type FormState = {
   barcode: string;
   category: string;
   brand: string;
+  brandId: string;
   description: string;
   purchasePrice: string;
   wholesalePrice: string;
@@ -75,6 +77,7 @@ function buildInitialForm(product: Product): FormState {
     barcode: product.barcode || "",
     category: product.category || PRODUCT_CATEGORIES[0],
     brand: product.brand || "",
+    brandId: product.brandId || (product.brand ? "legacy" : ""),
     description: product.description || "",
     ...displayPrices,
     priceUnit,
@@ -152,6 +155,11 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
   const [removeImage, setRemoveImage] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const {
+    brands,
+    loading: brandsLoading,
+    error: brandsError,
+  } = useBrands({ active: false });
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -212,15 +220,21 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
     event.preventDefault();
     setError(null);
 
-    if (!form.title.trim() || !form.sku.trim() || !form.category.trim() || !form.brand.trim()) {
-      setError("Please fill required fields: Product Title, SKU, Category, and Brand/Manufacturer.");
+    if (!form.title.trim() || !form.sku.trim() || !form.category.trim()) {
+      setError("Please fill required fields: Product Title, SKU, and Category.");
       return;
     }
 
     try {
       setSaving(true);
+      const isLegacyBrand = form.brandId === "legacy";
+      const payload: FormState = {
+        ...form,
+        brandId: isLegacyBrand ? "" : form.brandId,
+        brand: isLegacyBrand ? product.brand || "" : "",
+      };
       const body = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
+      Object.entries(payload).forEach(([key, value]) => {
         if (Array.isArray(value)) value.forEach((entry) => body.append(key, String(entry)));
         else body.append(key, String(value));
       });
@@ -402,14 +416,26 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                       ))}
                     </select>
                   </Field>
-                  <Field label="Brand / Manufacturer" required>
-                    <input
-                      value={form.brand}
-                      onChange={(event) => set("brand", event.target.value)}
-                      className={inputClass}
-                      placeholder="e.g. Dalda Foods Ltd"
-                    />
-                  </Field>
+                  <BrandSelect
+                    value={form.brandId}
+                    onChange={(brandId) => {
+                      const selected = brands.find((brand) => brand._id === brandId);
+                      setForm((current) => ({
+                        ...current,
+                        brandId,
+                        brand:
+                          brandId === "legacy"
+                            ? product.brand || ""
+                            : selected?.name || "",
+                      }));
+                    }}
+                    brands={brands}
+                    loading={brandsLoading}
+                    error={brandsError}
+                    inputClassName={inputClass}
+                    legacyBrand={product.brandId ? undefined : product.brand || undefined}
+                    includeInactiveIds={product.brandId ? [product.brandId] : []}
+                  />
                 </div>
               </div>
               <Field label="Commercial Specs & Invoice Note">

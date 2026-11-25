@@ -133,8 +133,12 @@ export function ProductDetailModal({ product, onClose, onEdit, onDeleted }: Prod
               <span className="rounded-md border border-outline-variant bg-surface-container px-2 py-1 text-on-surface">
                 {product.sku}
               </span>
-              <span>{product.brand}</span>
-              <span className="text-outline-variant">·</span>
+              {product.brand ? (
+                <>
+                  <span>{product.brand}</span>
+                  <span className="text-outline-variant">·</span>
+                </>
+              ) : null}
               <span>{product.category}</span>
             </div>
           </div>
@@ -218,7 +222,7 @@ export function ProductDetailModal({ product, onClose, onEdit, onDeleted }: Prod
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <DetailItem label="SKU" value={product.sku} mono />
               <DetailItem label="Barcode / EAN" value={product.barcode || "-"} mono />
-              <DetailItem label="Brand" value={product.brand} />
+              <DetailItem label="Brand" value={product.brand || "No Brand"} />
               <DetailItem label="Category" value={product.category} />
               <DetailItem label="Base UOM" value={product.uom || "-"} />
               <DetailItem

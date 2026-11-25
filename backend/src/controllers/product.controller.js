@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
+const Brand = require("../models/Brand");
 const { ensureCloudinaryConfigured } = require("../config/cloudinary");
 const { tenantFilter, findOwned } = require("../utils/tenant");
 const {
@@ -107,6 +108,46 @@ async function findOwnedProduct(id, req) {
   return findOwned(Product, id, req);
 }
 
+function normalizeBrandText(value) {
+  return value === undefined || value === null
+    ? ""
+    : String(value).trim().replace(/\s+/g, " ");
+}
+
+async function resolveProductBrand(req, brandId, legacyBrand, existing = null) {
+  // An omitted field preserves an existing relationship instead of silently
+  // clearing it. An explicit empty string means "remove the brand link".
+  if (brandId === undefined) {
+    if (existing?.brandId) {
+      return { brandId: existing.brandId, brand: existing.brand || "" };
+    }
+    return { brandId: null, brand: normalizeBrandText(legacyBrand) };
+  }
+
+  const rawBrandId = brandId === null ? "" : String(brandId).trim();
+  if (!rawBrandId) {
+    return { brandId: null, brand: normalizeBrandText(legacyBrand) };
+  }
+
+  if (!mongoose.isValidObjectId(rawBrandId)) {
+    throw new ProductValidationError("Selected brand is invalid or inactive");
+  }
+
+  const brand = await Brand.findOne(productFilter(req, { _id: rawBrandId }));
+  if (!brand) {
+    throw new ProductValidationError("Selected brand is invalid or inactive");
+  }
+
+  // Inactive brands cannot be chosen for new products, but an existing product
+  // may keep its current inactive brand so historical records remain intact.
+  const isCurrentBrand = Boolean(existing?.brandId && String(existing.brandId) === String(brand._id));
+  if (brand.isActive === false && !isCurrentBrand) {
+    throw new ProductValidationError("Selected brand is invalid or inactive");
+  }
+
+  return { brandId: brand._id, brand: brand.name };
+}
+
 async function createProduct(req, res, next) {
   try {
     const {
@@ -115,6 +156,7 @@ async function createProduct(req, res, next) {
       barcode,
       category,
       brand,
+      brandId,
       description,
       taxBracket,
       uom,
@@ -130,10 +172,11 @@ async function createProduct(req, res, next) {
       halalPsqcaCertified,
     } = req.body;
 
-    if (!title || !sku || !category || !brand) {
-      return res.status(400).json({ message: "title, sku, category, and brand are required" });
+    if (!title || !sku || !category) {
+      return res.status(400).json({ message: "title, sku, and category are required" });
     }
 
+    const brandRef = await resolveProductBrand(req, brandId, brand);
     const normalizedSku = String(sku).trim();
     const existingSkuFilter = isTenantEnforced(req)
       ? { sku: normalizedSku, businessId: req.auth.businessId }
@@ -173,7 +216,8 @@ async function createProduct(req, res, next) {
       sku: normalizedSku,
       barcode: barcode ? String(barcode).trim() : "",
       category: String(category).trim(),
-      brand: String(brand).trim(),
+      brand: brandRef.brand,
+      brandId: brandRef.brandId,
       description: description ? String(description).trim() : "",
       purchasePrice: pricing.purchasePrice,
       wholesalePrice: pricing.wholesalePrice,
@@ -275,6 +319,7 @@ async function updateProduct(req, res, next) {
       barcode,
       category,
       brand,
+      brandId,
       description,
       taxBracket,
       uom,
@@ -288,8 +333,8 @@ async function updateProduct(req, res, next) {
       removeImage,
     } = req.body;
 
-    if (!title || !sku || !category || !brand) {
-      return res.status(400).json({ message: "title, sku, category, and brand are required" });
+    if (!title || !sku || !category) {
+      return res.status(400).json({ message: "title, sku, and category are required" });
     }
 
     const normalizedSku = String(sku).trim();
@@ -300,6 +345,8 @@ async function updateProduct(req, res, next) {
     if (existing) {
       return res.status(409).json({ message: "A product with this SKU already exists" });
     }
+
+    const brandRef = await resolveProductBrand(req, brandId, brand, product);
 
     if (
       reorderThreshold === undefined ||
@@ -335,7 +382,8 @@ async function updateProduct(req, res, next) {
     product.sku = normalizedSku;
     product.barcode = barcode ? String(barcode).trim() : "";
     product.category = String(category).trim();
-    product.brand = String(brand).trim();
+    product.brand = brandRef.brand;
+    product.brandId = brandRef.brandId;
     product.description = description ? String(description).trim() : "";
     product.purchasePrice = pricing.purchasePrice;
     product.wholesalePrice = pricing.wholesalePrice;

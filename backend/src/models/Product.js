@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 require("./Business");
 require("./User");
+require("./Brand");
 
 const productSchema = new mongoose.Schema(
   {
@@ -8,7 +9,15 @@ const productSchema = new mongoose.Schema(
     sku: { type: String, required: true, trim: true },
     barcode: { type: String, trim: true, default: "" },
     category: { type: String, required: true, trim: true },
-    brand: { type: String, required: true, trim: true },
+    // Legacy display snapshot. Kept so historical products, search and pickers
+    // remain valid; create/update derive it from brandId when one is selected.
+    brand: { type: String, trim: true, default: "" },
+    brandId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Brand",
+      default: null,
+      index: true,
+    },
     description: { type: String, trim: true, default: "" },
     // Canonical prices are always stored per Piece. priceUnit records only the
     // unit the user entered prices in; it is an input/display preference.

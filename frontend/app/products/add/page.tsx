@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { AppShell } from "../../components/AppShell";
 import { apiFetch } from "../../lib/api";
 import type { StockUnit } from "../../lib/units";
+import { BrandAutocomplete, type Brand } from "../../../features/brands";
 import { PRODUCT_CATEGORIES, STOCK_UNITS, TAX_BRACKETS, WAREHOUSES } from "../product-options";
 import {
   canonicalPriceFromDisplay,
@@ -24,6 +25,7 @@ const initialForm = {
   barcode: "",
   category: "Cooking Oil & Ghee",
   brand: "",
+  brandId: "",
   description: "",
   purchasePrice: "",
   wholesalePrice: "",
@@ -58,9 +60,11 @@ function AddProductForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
 
   function resetForm() {
     setForm(blankForm());
+    setSelectedBrand(null);
     setCanonicalPrices(emptyCanonicalPrices());
     setImage(null);
     setPreview("");
@@ -102,8 +106,8 @@ function AddProductForm() {
   async function submit(createAnother = false) {
     setError(null);
     setSuccess(null);
-    if (!form.title || !form.sku || !form.category || !form.brand) {
-      setError("Please fill required fields: Product Title, SKU, Category, and Brand/Manufacturer.");
+    if (!form.title.trim() || !form.sku.trim() || !form.category.trim()) {
+      setError("Please fill required fields: Product Title, SKU, and Category.");
       return;
     }
     try {
@@ -199,10 +203,18 @@ function AddProductForm() {
                     {PRODUCT_CATEGORIES.map((o)=><option key={o}>{o}</option>)}
                   </select>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="brand">Brand / Manufacturer <span className="text-error">*</span></label>
-                  <input id="brand" value={form.brand} onChange={(e) => set("brand", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. Dalda Foods Ltd" />
-                </div>
+                <BrandAutocomplete
+                  id="brand"
+                  value={form.brandId}
+                  selectedBrand={selectedBrand}
+                  onChange={(brandId, brand) => {
+                    // Only the selected brandId is submitted. The name is a
+                    // display snapshot; typed search text is never saved.
+                    setSelectedBrand(brand);
+                    set("brandId", brandId);
+                    set("brand", brand?.name || "");
+                  }}
+                />
               </div>
             </div>
             <div className="flex flex-col gap-1.5 border-t border-outline-variant pt-2">
