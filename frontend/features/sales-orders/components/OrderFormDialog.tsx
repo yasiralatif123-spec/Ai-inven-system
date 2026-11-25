@@ -88,10 +88,12 @@ function saleUnitPrice(product: Product, unit: string): number {
   return priceForUnit(canonicalSalePrice(product), unit) ?? 0;
 }
 
+const FIELD_LABEL_CLASS =
+  "font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant";
 const NEW_ITEM_INPUT_CLASS =
-  "h-8 w-full rounded border border-outline-variant bg-surface px-2 font-mono-data-sm text-mono-data-sm text-on-surface focus:border-primary focus:outline-none";
+  "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container";
 const NEW_ITEM_TEXT_INPUT_CLASS =
-  "h-8 w-full rounded border border-outline-variant bg-surface px-2 font-body-default text-body-dense text-on-surface focus:border-primary focus:outline-none";
+  "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container";
 
 export function OrderFormDialog({
   mode,
@@ -283,18 +285,18 @@ export function OrderFormDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[130] flex items-start justify-center overflow-y-auto bg-black/30 p-4 pt-12">
+    <div className="fixed inset-0 z-[130] flex items-start justify-center overflow-y-auto bg-on-surface/30 p-3 pt-6 backdrop-blur-[2px] sm:p-6 sm:pt-10">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-2xl rounded border border-outline-variant bg-surface-container-lowest shadow-2xl"
+        className="relative w-full max-w-5xl rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel"
       >
-        <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-high/40 px-4 py-3">
-          <div>
-            <div className="font-headline-md text-headline-md text-on-surface">
+        <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/80 bg-surface-container-lowest/95 px-4 py-4 backdrop-blur sm:px-5">
+          <div className="min-w-0">
+            <div className="font-headline-lg text-headline-lg tracking-tight text-on-surface">
               {isEdit ? "Edit Sale Order" : "New Sale Order"}
             </div>
-            <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
+            <div className="mt-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
               {isEdit
                 ? `#${orderNumber} · saved values loaded`
                 : "Create a MongoDB-backed order in the live dispatch queue"}
@@ -304,30 +306,32 @@ export function OrderFormDialog({
             type="button"
             onClick={onClose}
             aria-label={isEdit ? "Close edit form" : "Close new order form"}
-            className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-outline-variant/70 bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <span className="material-symbols-outlined text-[19px]">close</span>
           </button>
         </div>
 
-        <div className="space-y-4 p-4">
-          <CustomerAutocomplete
-            customer={customer}
-            onCustomerIdChange={setCustomerId}
-            phone={phone}
-            location={location}
-            onCustomerChange={setCustomer}
-            onPhoneChange={setPhone}
-            onLocationChange={setLocation}
-          />
+        <div className="space-y-5 p-4 sm:p-5">
+          <section className="rounded-xl border border-outline-variant/70 bg-surface-container-low/60 p-4">
+            <CustomerAutocomplete
+              customer={customer}
+              onCustomerIdChange={setCustomerId}
+              phone={phone}
+              location={location}
+              onCustomerChange={setCustomer}
+              onPhoneChange={setPhone}
+              onLocationChange={setLocation}
+            />
+          </section>
 
-          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1">
-              <span className="font-label-caps text-label-caps uppercase text-secondary">Dispatch Hub</span>
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <label className="flex min-w-0 flex-col gap-1.5 sm:col-span-2">
+              <span className={FIELD_LABEL_CLASS}>Dispatch Hub</span>
               <select
                 value={hub}
                 onChange={(event) => setHub(event.target.value)}
-                className="h-9 rounded border border-outline-variant bg-surface px-2.5 font-body-default text-body-default text-on-surface focus:border-primary focus:outline-none"
+                className={NEW_ITEM_TEXT_INPUT_CLASS}
               >
                 {HUB_OPTIONS.filter((option) => option !== "All Dispatch Hubs").map((option) => (
                   <option key={option} value={option}>
@@ -336,175 +340,185 @@ export function OrderFormDialog({
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="font-label-caps text-label-caps uppercase text-secondary">Bay</span>
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className={FIELD_LABEL_CLASS}>Bay</span>
               <input
                 value={bay}
                 onChange={(event) => setBay(event.target.value)}
-                className="h-9 rounded border border-outline-variant bg-surface px-2.5 font-body-default text-body-default text-on-surface focus:border-primary focus:outline-none"
+                className={NEW_ITEM_TEXT_INPUT_CLASS}
               />
             </label>
           </section>
 
           {isEdit ? null : (
-            <section className="rounded border border-outline-variant bg-surface-container-low p-3">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <span className="font-label-caps text-label-caps uppercase text-secondary">Order Items</span>
+            <section className="flex flex-col overflow-hidden rounded-xl border border-outline-variant/70 bg-surface-container-lowest shadow-panel">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/70 bg-surface-container-low px-4 py-3 sm:px-5">
+                <span className={FIELD_LABEL_CLASS}>Order Items</span>
                 <button
                   type="button"
                   onClick={addItem}
-                  className="inline-flex h-7 items-center gap-1 rounded border border-outline-variant bg-surface px-2 font-body-default text-body-dense text-primary transition-colors hover:bg-surface-container"
+                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:border-outline hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
                 >
-                  <span className="material-symbols-outlined text-[14px]">add</span>
+                  <span className="material-symbols-outlined text-[17px]">add</span>
                   Add Item
                 </button>
               </div>
 
-              <div className="space-y-2">
-                {items.map((item, index) => {
-                  const product = productForItem(item);                  const itemTotal =
-                    Math.max(Number(item.quantity) || 0, 0) *
-                    Math.max(Number(item.unitPrice) || 0, 0);
-                  return (
-                    <div key={index} className="rounded border border-outline-variant bg-surface p-3">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className="font-mono-data-sm text-mono-data-sm text-secondary">
-                          Item {index + 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeItem(index)}
-                          aria-label={`Remove item ${index + 1}`}
-                          disabled={items.length === 1}
-                          className="inline-flex h-7 items-center gap-1 rounded border border-outline-variant bg-surface px-2 font-body-default text-body-dense text-error transition-colors hover:bg-error-container/30 disabled:opacity-40"
-                        >
-                          <span className="material-symbols-outlined text-[15px]">delete_outline</span>
-                          Remove
-                        </button>
-                      </div>
+              <div className="px-4 py-3 sm:px-5">
+                <div className="hidden grid-cols-12 gap-3 border-b border-outline-variant/70 pb-2 font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant lg:grid">
+                  <span className="col-span-4">Product</span>
+                  <span className="col-span-2">SKU</span>
+                  <span className="col-span-1">Qty</span>
+                  <span className="col-span-1">Unit</span>
+                  <span className="col-span-2">Unit Price</span>
+                  <span className="col-span-2 text-center">Remove</span>
+                </div>
 
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-12">
-                        <div className="col-span-2 min-w-0 sm:col-span-4">
-                          <span className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
-                            Product
-                          </span>
-                          <ProductAutocomplete
-                            value={item.name}
-                            onChange={(value) => updateItem(index, { name: value })}
-                            onProductSelect={(selected) => selectProduct(index, selected)}
-                            onCommit={(value) => applyExactProductMatch(index, value)}
-                            products={products}
-                            loading={productsLoading}
-                            error={productsError}
-                            ariaLabel={`Item ${index + 1} name`}
-                          />
+                <div className="divide-y divide-outline-variant/70">
+                  {items.map((item, index) => {
+                    const product = productForItem(item);
+                    const itemTotal =
+                      Math.max(Number(item.quantity) || 0, 0) *
+                      Math.max(Number(item.unitPrice) || 0, 0);
+                    return (
+                      <div key={index} className="py-4 first:pt-1 last:pb-1">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-12">
+                          <div className="col-span-2 min-w-0 sm:col-span-2 lg:col-span-4">
+                            <span className={`${FIELD_LABEL_CLASS} mb-1.5 block lg:hidden`}>
+                              Product
+                            </span>
+                            <ProductAutocomplete
+                              value={item.name}
+                              onChange={(value) => updateItem(index, { name: value })}
+                              onProductSelect={(selected) => selectProduct(index, selected)}
+                              onCommit={(value) => applyExactProductMatch(index, value)}
+                              products={products}
+                              loading={productsLoading}
+                              error={productsError}
+                              ariaLabel={`Item ${index + 1} name`}
+                            />
+                          </div>
+
+                          <label className="col-span-2 min-w-0 sm:col-span-2 lg:col-span-2">
+                            <span className={`${FIELD_LABEL_CLASS} mb-1.5 block lg:hidden`}>SKU</span>
+                            <input
+                              value={item.sku}
+                              onChange={(event) => updateItem(index, { sku: event.target.value })}
+                              placeholder="SKU (optional)"
+                              aria-label={`Item ${index + 1} SKU`}
+                              className={`${NEW_ITEM_INPUT_CLASS} placeholder:text-on-surface-variant/70`}
+                            />
+                          </label>
+
+                          <label className="col-span-1 min-w-0 lg:col-span-1">
+                            <span className={`${FIELD_LABEL_CLASS} mb-1.5 block lg:hidden`}>Qty</span>
+                            <input
+                              value={item.quantity}
+                              onChange={(event) => updateItem(index, { quantity: event.target.value })}
+                              type="number"
+                              min="1"
+                              step="1"
+                              aria-label={`Item ${index + 1} quantity`}
+                              className={NEW_ITEM_INPUT_CLASS}
+                            />
+                          </label>
+
+                          <label className="col-span-1 min-w-0 lg:col-span-1">
+                            <span className={`${FIELD_LABEL_CLASS} mb-1.5 block lg:hidden`}>Unit</span>
+                            <select
+                              value={normalizeUnit(item.unitLabel) || "Piece"}
+                              onChange={(event) => {
+                                const unitLabel = normalizeUnit(event.target.value) || "Piece";
+                                updateItem(index, {
+                                  unitLabel,
+                                  ...(product && item.priceBasis !== "manual"
+                                    ? { unitPrice: String(saleUnitPrice(product, unitLabel)) }
+                                    : {}),
+                                });
+                              }}
+                              aria-label={`Item ${index + 1} unit`}
+                              className={NEW_ITEM_TEXT_INPUT_CLASS}
+                            >
+                              {STOCK_UNITS.map((u) => (
+                                <option key={u} value={u}>
+                                  {u}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <label className="col-span-1 min-w-0 lg:col-span-2">
+                            <span className={`${FIELD_LABEL_CLASS} mb-1.5 block lg:hidden`}>
+                              Unit Price / {item.unitLabel}
+                            </span>
+                            <input
+                              value={item.unitPrice}
+                              onChange={(event) => updateItem(index, { unitPrice: event.target.value })}
+                              type="number"
+                              min="0"
+                              step="1"
+                              placeholder="Unit price"
+                              aria-label={`Item ${index + 1} unit price`}
+                              className={`${NEW_ITEM_INPUT_CLASS} placeholder:text-on-surface-variant/70`}
+                            />
+                          </label>
+
+                          <div className="col-span-1 flex min-w-0 items-end justify-end lg:col-span-2">
+                            <button
+                              type="button"
+                              onClick={() => removeItem(index)}
+                              aria-label={`Remove item ${index + 1}`}
+                              disabled={items.length === 1}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-error/20 bg-surface-container-lowest px-3 font-body-medium text-body-medium text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">delete_outline</span>
+                              Remove
+                            </button>
+                          </div>
                         </div>
 
-                        <label className="col-span-2 min-w-0 sm:col-span-3">
-                          <span className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
-                            SKU
-                          </span>
-                          <input
-                            value={item.sku}
-                            onChange={(event) => updateItem(index, { sku: event.target.value })}
-                            placeholder="SKU (optional)"
-                            aria-label={`Item ${index + 1} SKU`}
-                            className={`${NEW_ITEM_INPUT_CLASS} placeholder:text-outline`}
-                          />
-                        </label>
-
-                        <label className="col-span-1 min-w-0 sm:col-span-2">
-                          <span className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
-                            Qty
-                          </span>
-                          <input
-                            value={item.quantity}
-                            onChange={(event) => updateItem(index, { quantity: event.target.value })}
-                            type="number"
-                            min="1"
-                            step="1"
-                            aria-label={`Item ${index + 1} quantity`}
-                            className={NEW_ITEM_INPUT_CLASS}
-                          />
-                        </label>
-
-                        <label className="col-span-1 min-w-0 sm:col-span-1">
-                          <span className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
-                            Unit
-                          </span>
-                          <select
-                            value={normalizeUnit(item.unitLabel) || "Piece"}
-                            onChange={(event) => {
-                              const unitLabel = normalizeUnit(event.target.value) || "Piece";
-                              updateItem(index, {
-                                unitLabel,
-                                ...(product && item.priceBasis !== "manual"
-                                  ? { unitPrice: String(saleUnitPrice(product, unitLabel)) }
-                                  : {}),
-                              });
-                            }}
-                            aria-label={`Item ${index + 1} unit`}
-                            className={NEW_ITEM_TEXT_INPUT_CLASS}
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border border-outline-variant/60 bg-surface-container-low px-3 py-2">
+                          <div className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+                            <span className="font-medium text-on-surface">Item {index + 1}</span>
+                            {product ? (
+                              <span>
+                                {" · Available: "}
+                                {formatStockWithPieces(Number(product.openingStock) || 0)}
+                              </span>
+                            ) : null}
+                            <span>
+                              {" · 1 "}
+                              {item.unitLabel} = {toBasePieces(1, item.unitLabel)} pcs
+                              {Number(item.quantity) > 0
+                                ? ` · Equivalent: ${toBasePieces(Number(item.quantity) || 0, item.unitLabel)} pcs`
+                                : ""}
+                            </span>
+                          </div>
+                          <span
+                            aria-live="polite"
+                            className="font-mono-data-sm text-mono-data-sm text-on-surface-variant"
                           >
-                            {STOCK_UNITS.map((u) => (
-                              <option key={u} value={u}>{u}</option>
-                            ))}
-                          </select>
-                        </label>
-
-                        <label className="col-span-2 min-w-0 sm:col-span-2">
-                          <span className="mb-1 block font-label-caps text-label-caps uppercase text-secondary">
-                            Unit Price / {item.unitLabel}
-                          </span>
-                          <input
-                            value={item.unitPrice}
-                            onChange={(event) => updateItem(index, { unitPrice: event.target.value })}
-                            type="number"
-                            min="0"
-                            step="1"
-                            placeholder="Unit price"
-                            aria-label={`Item ${index + 1} unit price`}
-                            className={`${NEW_ITEM_INPUT_CLASS} placeholder:text-outline`}
-                          />
-                        </label>
-                      </div>
-
-                      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-outline-variant/70 pt-2">
-                        <div className="font-mono-data-sm text-mono-data-sm text-secondary">
-                          {product ? (
-                            <span>Available: {formatStockWithPieces(Number(product.openingStock) || 0)}</span>
-                          ) : null}
-                          <span className={product ? "ml-2" : ""}>
-                            1 {item.unitLabel} = {toBasePieces(1, item.unitLabel)} pcs
-                            {Number(item.quantity) > 0
-                              ? ` · Equivalent: ${toBasePieces(Number(item.quantity) || 0, item.unitLabel)} pcs`
-                              : ""}
+                            Item Total:{" "}
+                            <span className="font-mono-data text-mono-data font-semibold tabular-nums text-primary">
+                              {formatRs(itemTotal)}
+                            </span>
                           </span>
                         </div>
-                        <span
-                          aria-live="polite"
-                          className="ml-auto font-mono-data-sm text-mono-data-sm text-secondary"
-                        >
-                          Item Total:{" "}
-                          <span className="font-semibold tabular-nums text-primary">
-                            {formatRs(itemTotal)}
-                          </span>
-                        </span>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </section>
           )}
 
-          <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <label className="flex flex-col gap-1">
-              <span className="font-label-caps text-label-caps uppercase text-secondary">Order Status</span>
+          <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className={FIELD_LABEL_CLASS}>Order Status</span>
               <select
                 value={status}
                 onChange={(event) => setStatus(event.target.value as OrderStatus)}
-                className="h-9 rounded border border-outline-variant bg-surface px-2.5 font-body-default text-body-dense text-on-surface focus:border-primary focus:outline-none"
+                className={NEW_ITEM_TEXT_INPUT_CLASS}
               >
                 {status === "Delivered" ? (
                   <option value="Delivered" disabled>
@@ -518,12 +532,12 @@ export function OrderFormDialog({
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="font-label-caps text-label-caps uppercase text-secondary">Payment</span>
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className={FIELD_LABEL_CLASS}>Payment</span>
               <select
                 value={paymentStatus}
                 onChange={(event) => setPaymentStatus(event.target.value as PaymentStatus)}
-                className="h-9 rounded border border-outline-variant bg-surface px-2.5 font-body-default text-body-dense text-on-surface focus:border-primary focus:outline-none"
+                className={NEW_ITEM_TEXT_INPUT_CLASS}
               >
                 {PAYMENT_STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -532,12 +546,12 @@ export function OrderFormDialog({
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="font-label-caps text-label-caps uppercase text-secondary">Method</span>
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className={FIELD_LABEL_CLASS}>Method</span>
               <select
                 value={paymentMethod}
                 onChange={(event) => setPaymentMethod(event.target.value)}
-                className="h-9 rounded border border-outline-variant bg-surface px-2.5 font-body-default text-body-dense text-on-surface focus:border-primary focus:outline-none"
+                className={NEW_ITEM_TEXT_INPUT_CLASS}
               >
                 {PAYMENT_METHODS.map((option) => (
                   <option key={option} value={option}>
@@ -546,8 +560,8 @@ export function OrderFormDialog({
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="font-label-caps text-label-caps uppercase text-secondary">Amount Received</span>
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className={FIELD_LABEL_CLASS}>Amount Received</span>
               <input
                 type="number"
                 min="0"
@@ -555,68 +569,71 @@ export function OrderFormDialog({
                 value={amountReceived}
                 onChange={(event) => setAmountReceived(event.target.value)}
                 disabled={paymentStatus !== "partial"}
-                className="h-9 rounded border border-outline-variant bg-surface px-2.5 font-mono-data-sm text-mono-data-sm text-on-surface focus:border-primary focus:outline-none disabled:opacity-50"
+                className={`${NEW_ITEM_INPUT_CLASS} disabled:cursor-not-allowed disabled:opacity-50`}
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="font-label-caps text-label-caps uppercase text-secondary">Discount</span>
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className={FIELD_LABEL_CLASS}>Discount</span>
               <input
                 type="number"
                 min="0"
                 step="1"
                 value={discount}
                 onChange={(event) => setDiscount(event.target.value)}
-                className="h-9 rounded border border-outline-variant bg-surface px-2.5 font-mono-data-sm text-mono-data-sm text-on-surface focus:border-primary focus:outline-none"
+                className={NEW_ITEM_INPUT_CLASS}
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="font-label-caps text-label-caps uppercase text-secondary">Freight</span>
+            <label className="flex min-w-0 flex-col gap-1.5">
+              <span className={FIELD_LABEL_CLASS}>Freight</span>
               <input
                 type="number"
                 min="0"
                 step="1"
                 value={freight}
                 onChange={(event) => setFreight(event.target.value)}
-                className="h-9 rounded border border-outline-variant bg-surface px-2.5 font-mono-data-sm text-mono-data-sm text-on-surface focus:border-primary focus:outline-none"
+                className={NEW_ITEM_INPUT_CLASS}
               />
             </label>
           </section>
 
-          <section className="grid grid-cols-3 divide-x divide-outline-variant rounded border border-outline-variant bg-surface-container-low py-2 text-center">
-            <div>
-              <div className="font-label-caps text-[10px] uppercase text-secondary">Subtotal</div>
-              <div className="font-mono-data-sm text-mono-data-sm tabular-nums text-on-surface">
+          <section className="grid grid-cols-1 divide-y divide-outline-variant/70 rounded-xl border border-outline-variant/70 bg-surface-container-low px-4 py-4 text-center sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <div className="py-2 sm:py-0">
+              <div className={FIELD_LABEL_CLASS}>Subtotal</div>
+              <div className="mt-1 font-mono-data text-mono-data font-semibold tabular-nums text-on-surface">
                 {formatRs(subtotal)}
               </div>
             </div>
-            <div>
-              <div className="font-label-caps text-[10px] uppercase text-secondary">Paid</div>
-              <div className="font-mono-data-sm text-mono-data-sm tabular-nums text-primary">
+            <div className="py-2 sm:py-0">
+              <div className={FIELD_LABEL_CLASS}>Paid</div>
+              <div className="mt-1 font-mono-data text-mono-data font-semibold tabular-nums text-primary">
                 {formatRs(paid)}
               </div>
             </div>
-            <div>
-              <div className="font-label-caps text-[10px] uppercase text-secondary">Outstanding</div>
-              <div className="font-mono-data-sm text-mono-data-sm tabular-nums text-error">
+            <div className="py-2 sm:py-0">
+              <div className={FIELD_LABEL_CLASS}>Outstanding</div>
+              <div className="mt-1 font-mono-data text-mono-data font-semibold tabular-nums text-error">
                 {formatRs(outstanding)}
               </div>
             </div>
           </section>
 
           {error ? (
-            <div className="rounded border border-error-container bg-error-container/40 px-3 py-2 font-mono-data-sm text-mono-data-sm text-error">
+            <div
+              role="alert"
+              className="rounded-lg border border-error/20 bg-error-container/30 px-3 py-2.5 font-mono-data-sm text-mono-data-sm text-error"
+            >
               {error}
             </div>
           ) : null}
         </div>
 
-        <div className="border-t border-outline-variant bg-surface-container-high/40 px-4 py-3">
+        <div className="sticky bottom-0 z-20 flex flex-col gap-3 border-t border-outline-variant/80 bg-surface-container-lowest/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5">
           {validationIssues.length > 0 && !submitting ? (
             <div
               role="alert"
-              className="mb-3 rounded border border-error-container bg-error-container/30 px-3 py-2"
+              className="rounded-lg border border-error/20 bg-error-container/30 px-3 py-2.5"
             >
-              <div className="font-body-medium text-body-dense text-error">
+              <div className="font-body-medium text-body-medium text-error">
                 Before {isEdit ? "saving" : "creating"} the order:
               </div>
               <ul className="ml-4 mt-1 list-disc space-y-0.5 font-body-dense text-body-dense text-error">
@@ -627,18 +644,18 @@ export function OrderFormDialog({
             </div>
           ) : null}
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:ml-auto">
             <button
               type="button"
               onClick={onClose}
-              className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+              className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="h-8 rounded bg-primary-container px-3.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary disabled:opacity-50"
+              className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting
                 ? isEdit

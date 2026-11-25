@@ -17,7 +17,7 @@ type ProductAutocompleteProps = {
 };
 
 const INPUT_CLASS =
-  "h-8 w-full rounded border border-outline-variant bg-surface px-2 font-body-default text-body-dense text-on-surface placeholder:text-outline focus:border-primary focus:outline-none";
+  "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-dense text-on-surface placeholder:text-on-surface-variant/70 outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container";
 
 type DropdownPosition = {
   top: number;
@@ -128,7 +128,7 @@ export function ProductAutocomplete({
   }
 
   return (
-    <div className="relative col-span-12 sm:col-span-4">
+    <div className="relative min-w-0">
       <div className="relative">
         <input
           ref={inputRef}
@@ -151,7 +151,7 @@ export function ProductAutocomplete({
           aria-expanded={open}
           aria-controls={listId}
           autoComplete="off"
-          className={`${INPUT_CLASS} pr-7`}
+          className={`${INPUT_CLASS} pr-9`}
         />
         <button
           type="button"
@@ -161,7 +161,7 @@ export function ProductAutocomplete({
             inputRef.current?.focus();
             setOpen(true);
           }}
-          className="absolute right-1.5 top-1 flex h-6 w-6 items-center justify-center rounded text-outline transition-colors hover:bg-surface-container hover:text-primary"
+          className="absolute right-1 top-1.5 flex h-7 w-7 items-center justify-center rounded-md text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
         >
           <span className="material-symbols-outlined text-[15px]">expand_more</span>
         </button>
@@ -179,10 +179,10 @@ export function ProductAutocomplete({
                 width: position.width,
                 maxHeight: position.maxHeight,
               }}
-              className="fixed z-[200] overflow-y-auto rounded border border-outline-variant bg-surface-container-lowest shadow-xl"
+              className="fixed z-[200] overflow-y-auto rounded-xl border border-outline-variant/80 bg-surface-container-lowest py-1 shadow-panel"
               onMouseDown={(event) => event.preventDefault()}
             >
-          <div className="border-b border-outline-variant bg-surface-container-high/50 px-2.5 py-1.5 font-label-caps text-[10px] uppercase tracking-wide text-secondary">
+          <div className="border-b border-outline-variant/70 bg-surface-container-low px-3 py-2 font-label-caps text-[10px] uppercase tracking-wider text-on-surface-variant">
             {query ? "Matching products" : "Products from catalog"}
           </div>
 
@@ -195,19 +195,21 @@ export function ProductAutocomplete({
                 aria-selected={index === activeIndex}
                 onClick={() => selectProduct(product)}
                 onMouseEnter={() => setActiveIndex(index)}
-                className={`flex w-full flex-col gap-0.5 border-b border-outline-variant/60 px-2.5 py-2 text-left transition-colors last:border-b-0 ${
-                  index === activeIndex ? "bg-primary-container/10" : "hover:bg-surface-container"
+                className={`flex w-full flex-col gap-1 border-b border-outline-variant/60 px-3 py-2.5 text-left transition duration-200 last:border-b-0 ${
+                  index === activeIndex
+                    ? "bg-primary-container/10"
+                    : "hover:bg-surface-container focus-visible:bg-surface-container focus-visible:outline-none"
                 }`}
               >
                 <span className="flex items-center justify-between gap-2">
                   <span className="truncate font-body-medium text-body-medium text-on-surface">
                     {product.title}
                   </span>
-                  <span className="shrink-0 font-mono-data-sm text-mono-data-sm text-outline">
+                  <span className="shrink-0 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                     {product.sku}
                   </span>
                 </span>
-                <span className="flex items-center justify-between gap-2 font-body-dense text-body-dense text-secondary">
+                <span className="flex items-center justify-between gap-2 font-body-dense text-body-dense text-on-surface-variant">
                   <span className="truncate">
                     {[product.brand, product.category].filter(Boolean).join(" · ")}
 
@@ -219,7 +221,7 @@ export function ProductAutocomplete({
               </button>
             ))
           ) : (
-            <div className="px-2.5 py-2 font-body-dense text-body-dense text-secondary">
+            <div className="px-3 py-2.5 font-body-dense text-body-dense text-on-surface-variant">
               {loading
                 ? "Loading products..."
                 : error
@@ -232,7 +234,7 @@ export function ProductAutocomplete({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="flex w-full items-center gap-2 border-t border-outline-variant bg-surface-container-low px-2.5 py-2 text-left font-body-dense text-body-dense text-primary transition-colors hover:bg-surface-container"
+              className="flex w-full items-center gap-2 border-t border-outline-variant/70 bg-surface-container-low px-3 py-2.5 text-left font-body-dense text-body-dense text-primary transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
               <span className="material-symbols-outlined text-[15px]">edit_note</span>
               Use “{value.trim()}” as a manual item

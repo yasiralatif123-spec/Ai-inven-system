@@ -45,19 +45,21 @@ const EMPTY_FORM: CreateCustomerInput = {
 };
 
 const INPUT_CLASS =
-  "h-[34px] w-full rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-body-default text-body-default text-on-surface placeholder:text-outline transition-all focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container disabled:opacity-60";
-const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-8`;
+  "h-[34px] w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60";
+const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-9`;
 const TEXTAREA_CLASS =
-  "w-full rounded border border-outline-variant bg-surface-container-lowest px-2.5 py-2 font-body-default text-body-default text-on-surface placeholder:text-outline transition-all focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container disabled:opacity-60";
+  "w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 py-2 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60";
 
 function Field({ label, hint, children }: { label: ReactNode; hint?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="flex items-center justify-between font-label-caps text-label-caps uppercase text-on-surface-variant">
+      <label className="flex items-center justify-between font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
         {label}
       </label>
       {children}
-      {hint ? <span className="font-body-dense text-body-dense text-secondary">{hint}</span> : null}
+      {hint ? (
+        <span className="font-body-dense text-body-dense text-on-surface-variant">{hint}</span>
+      ) : null}
     </div>
   );
 }
@@ -66,7 +68,7 @@ function SelectShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative">
       {children}
-      <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-2 text-[18px] text-outline">
+      <span className="material-symbols-outlined pointer-events-none absolute right-3 top-2 text-[18px] text-on-surface-variant">
         expand_more
       </span>
     </div>
@@ -87,13 +89,15 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-6 rounded border border-outline-variant bg-surface-container-lowest p-6">
-      <div className="flex flex-col gap-1 border-b border-outline-variant pb-3 sm:flex-row sm:items-baseline sm:justify-between">
+    <section className="flex flex-col gap-6 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-panel">
+      <div className="flex flex-col gap-2 border-b border-outline-variant/80 pb-4 sm:flex-row sm:items-baseline sm:justify-between">
         <div>
           <h2 className="font-headline-md text-headline-md text-on-surface">
             {number}. {title}
           </h2>
-          <p className="mt-0.5 font-body-dense text-body-dense text-secondary">{description}</p>
+          <p className="mt-0.5 font-body-dense text-body-dense text-on-surface-variant">
+            {description}
+          </p>
         </div>
         {badge}
       </div>
@@ -208,41 +212,41 @@ export function AddCustomerForm() {
 
   return (
     <div className="flex flex-col gap-4 pb-24">
-      <div className="flex flex-col gap-4 border-b border-outline-variant pb-6 md:flex-row md:items-end md:justify-between">
-        <div className="flex flex-col gap-1.5">
-          <nav className="flex items-center gap-2 font-mono-data-sm text-mono-data-sm text-secondary">
+      <div className="flex flex-col gap-4 border-b border-outline-variant/80 pb-6 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-2">
+          <nav className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
             <span>Wholesale Operations</span>
             <span className="text-outline-variant">/</span>
             <button
               type="button"
               onClick={() => router.push("/customers")}
-              className="transition-colors hover:text-primary"
+              className="transition duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
               Customer Accounts
             </button>
             <span className="text-outline-variant">/</span>
             <span className="font-medium text-on-surface">New Customer</span>
           </nav>
-          <div className="mt-1 flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="font-headline-xl text-headline-xl tracking-tight text-on-surface">
               Add Customer
             </h1>
-            <span className="rounded border border-outline-variant bg-surface-container px-2 py-0.5 font-label-caps text-label-caps uppercase text-primary">
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-label-caps text-label-caps uppercase tracking-wider text-primary">
               Ledger Registration
             </span>
           </div>
-          <p className="font-body-default text-body-default text-secondary">
+          <p className="max-w-2xl font-body-default text-body-default text-on-surface-variant">
             Create a new wholesale or retail account with its classification, delivery route, and
             ledger reference.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 self-start md:self-end">
+        <div className="flex flex-wrap items-center gap-2.5 self-start md:self-end">
           <button
             type="button"
             onClick={() => setError("CSV import is not connected yet.")}
-            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[17px] text-secondary">
+            <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               upload_file
             </span>
             Import CSV
@@ -250,9 +254,9 @@ export function AddCustomerForm() {
           <button
             type="button"
             onClick={() => router.push("/customers")}
-            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[17px] text-secondary">
+            <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               format_list_bulleted
             </span>
             View Customer List
@@ -261,19 +265,25 @@ export function AddCustomerForm() {
       </div>
 
       {error ? (
-        <div className="flex items-center gap-2 rounded border border-error-container bg-error-container/40 px-3 py-2 font-body-dense text-body-dense text-error">
+        <div className="flex items-center gap-2.5 rounded-lg border border-error/20 bg-error-container/50 px-3.5 py-2.5 font-body-dense text-body-dense text-error">
           <span className="material-symbols-outlined text-[17px]">error_outline</span>
           {error}
         </div>
       ) : null}
 
-      <form onSubmit={handleSubmit} autoComplete="off" id="add-customer-form" className="mx-auto flex w-full max-w-5xl flex-col gap-8" noValidate>
+      <form
+        onSubmit={handleSubmit}
+        autoComplete="off"
+        id="add-customer-form"
+        className="mx-auto mt-1 flex w-full max-w-5xl flex-col gap-8"
+        noValidate
+      >
         <SectionCard
           number="1"
           title="Basic Information"
           description="Primary legal trading entities, contact authority, and commercial delivery address."
           badge={
-            <span className="font-mono-data-sm text-mono-data-sm text-outline">
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
               * Required for invoice generation
             </span>
           }
@@ -327,7 +337,7 @@ export function AddCustomerForm() {
                   placeholder="+92 300 1234567"
                   type="tel"
                 />
-                <span className="material-symbols-outlined absolute right-2.5 top-2 text-[18px] text-outline">
+                <span className="material-symbols-outlined pointer-events-none absolute right-3 top-2 text-[18px] text-on-surface-variant">
                   call
                 </span>
               </div>
@@ -391,9 +401,11 @@ export function AddCustomerForm() {
                   rows={3}
                 />
               </Field>
-              <div className="flex items-center justify-between font-mono-data-sm text-mono-data-sm text-secondary">
+              <div className="flex flex-wrap items-center justify-between gap-2 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                 <span>Standard delivery manifest location printed on bilty & gate pass</span>
-                <span className="text-outline">Max 300 chars</span>
+                <span className="rounded-md bg-surface-container px-2 py-0.5 text-on-surface-variant">
+                  Max 300 chars
+                </span>
               </div>
             </div>
           </div>
@@ -404,7 +416,7 @@ export function AddCustomerForm() {
           title="Customer Classification & Operations"
           description="Tier grouping, active account state, logistics route attribution, and tax indexing."
           badge={
-            <span className="font-mono-data-sm text-mono-data-sm text-outline">
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
               Tier & Taxation Setup
             </span>
           }
@@ -441,16 +453,16 @@ export function AddCustomerForm() {
               }
               hint="Inactive or blocked accounts cannot generate new quotations or release orders"
             >
-              <div className="grid h-[34px] grid-cols-3 gap-2">
+              <div className="grid h-9 grid-cols-3 gap-2 rounded-lg border border-outline-variant/80 bg-surface-container p-1">
                 {STATUS_OPTIONS.map((option) => {
                   const active = form.status === option.value;
                   return (
                     <label
                       key={option.value}
-                      className={`flex cursor-pointer select-none items-center justify-center rounded border px-2 transition-all ${
+                      className={`flex cursor-pointer select-none items-center justify-center rounded-md px-2 transition duration-200 ${
                         active
-                          ? "border-primary-container bg-surface-container-high"
-                          : "border-outline-variant bg-surface-container-lowest hover:bg-surface-container"
+                          ? "border border-primary-container bg-surface-container-lowest text-primary shadow-sm"
+                          : "border border-transparent text-on-surface-variant hover:bg-surface-container-high"
                       }`}
                     >
                       <input
@@ -462,13 +474,13 @@ export function AddCustomerForm() {
                         className="sr-only"
                       />
                       <span
-                        className={`flex items-center gap-1.5 font-label-caps text-label-caps uppercase ${
-                          active ? "font-semibold text-primary" : "font-medium text-secondary"
+                        className={`flex items-center gap-1.5 font-label-caps text-label-caps uppercase tracking-wider ${
+                          active ? "font-semibold text-primary" : "font-medium text-on-surface-variant"
                         }`}
                       >
                         <span
                           className={`h-1.5 w-1.5 rounded-full ${
-                            active ? "bg-primary" : "bg-outline"
+                            active ? "bg-primary" : "bg-outline-variant"
                           }`}
                         />
                         {option.label}
@@ -511,7 +523,9 @@ export function AddCustomerForm() {
           title="Internal Ledger Notes & Guarantees"
           description="Security cheques, guarantor references, or specialized billing instructions."
           badge={
-            <span className="font-mono-data-sm text-mono-data-sm text-outline">(Optional)</span>
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+              (Optional)
+            </span>
           }
         >
           <Field label="Internal Remarks" hint="Strictly invisible to customer invoices and shipping slips">
@@ -528,15 +542,15 @@ export function AddCustomerForm() {
 
       <aside
         aria-label="Form submission bar"
-        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-between border-t border-outline-variant bg-surface-container-lowest px-6 shadow-[0_-2px_10px_rgba(0,0,0,0.04)] md:left-60"
+        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-between gap-4 border-t border-outline-variant/80 bg-surface-container-lowest/95 px-6 shadow-[0_-4px_16px_rgba(28,28,24,0.08)] backdrop-blur md:left-60"
       >
         <div className="flex items-center gap-2.5">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-primary-container" />
-          <div className="flex items-center gap-2">
-            <span className="hidden font-body-default text-body-default text-secondary sm:inline">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="hidden font-body-default text-body-default text-on-surface-variant sm:inline">
               New customer record will generate Master Ledger Account
             </span>
-            <span className="rounded border border-outline-variant bg-surface-container px-2 py-0.5 font-mono-data text-mono-data font-semibold text-primary">
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data text-mono-data font-semibold text-primary">
               #{nextCode}
             </span>
           </div>
@@ -545,7 +559,7 @@ export function AddCustomerForm() {
           <button
             type="button"
             onClick={() => router.push("/customers")}
-            className="flex h-[34px] items-center justify-center rounded border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="flex h-9 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             Cancel
           </button>
@@ -553,7 +567,7 @@ export function AddCustomerForm() {
             type="submit"
             form="add-customer-form"
             disabled={saving}
-            className="flex h-[34px] items-center gap-2 rounded bg-primary-container px-6 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary active:bg-[#13463A] disabled:opacity-60"
+            className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-6 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             <span className="material-symbols-outlined text-[18px]">
               {saving ? "progress_activity" : "how_to_reg"}

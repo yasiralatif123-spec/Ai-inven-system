@@ -24,9 +24,6 @@ type CustomerFiltersProps = {
   onSortChange: (value: CustomerSort) => void;
 };
 
-const SELECT_CLASS =
-  "h-[32px] cursor-pointer rounded border border-outline-variant bg-surface px-2 font-body-default text-body-default text-on-surface focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container";
-
 export function CustomerFilters({
   query,
   onQueryChange,
@@ -43,9 +40,9 @@ export function CustomerFilters({
   onSortChange,
 }: CustomerFiltersProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2.5 rounded border border-outline-variant bg-surface-container-lowest p-2.5">
-      <div className="relative min-w-[260px] max-w-md flex-1">
-        <span className="material-symbols-outlined pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-secondary">
+    <div className="flex flex-col gap-3 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-3 shadow-panel xl:flex-row xl:items-center xl:justify-between">
+      <div className="relative min-w-[260px] max-w-lg flex-1">
+        <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-on-surface-variant">
           search
         </span>
         <input
@@ -54,20 +51,22 @@ export function CustomerFilters({
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Search by name, business or phone…"
-          className="h-[32px] w-full rounded border border-outline-variant bg-surface pl-8 pr-12 font-body-default text-body-default text-on-surface placeholder:text-outline focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container"
+          className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-14 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
         />
-        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-outline-variant bg-surface-container px-1.5 py-0.5 font-mono-data-sm text-[10px] text-secondary">
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-outline-variant bg-surface-container px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
           ⌘K
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center rounded border border-outline-variant bg-surface px-2 text-on-surface">
-          <span className="mr-1.5 font-label-caps text-[10px] uppercase text-secondary">Route:</span>
+      <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+          <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
+            Route:
+          </span>
           <select
             value={route}
             onChange={(event) => onRouteChange(event.target.value)}
-            className="h-[30px] cursor-pointer bg-transparent pr-1 font-body-default text-body-default text-on-surface focus:outline-none"
+            className="cursor-pointer appearance-none bg-transparent font-body-medium text-body-medium focus:outline-none"
           >
             {ROUTE_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -75,14 +74,19 @@ export function CustomerFilters({
               </option>
             ))}
           </select>
+          <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
+            expand_more
+          </span>
         </label>
 
-        <label className="flex items-center rounded border border-outline-variant bg-surface px-2 text-on-surface">
-          <span className="mr-1.5 font-label-caps text-[10px] uppercase text-secondary">Type:</span>
+        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+          <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
+            Type:
+          </span>
           <select
             value={type}
             onChange={(event) => onTypeChange(event.target.value)}
-            className="h-[30px] cursor-pointer bg-transparent pr-1 font-body-default text-body-default text-on-surface focus:outline-none"
+            className="cursor-pointer appearance-none bg-transparent font-body-medium text-body-medium focus:outline-none"
           >
             {TYPE_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -90,14 +94,19 @@ export function CustomerFilters({
               </option>
             ))}
           </select>
+          <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
+            expand_more
+          </span>
         </label>
 
-        <label className="flex items-center rounded border border-outline-variant bg-surface px-2 text-on-surface">
-          <span className="mr-1.5 font-label-caps text-[10px] uppercase text-secondary">Status:</span>
+        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+          <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
+            Status:
+          </span>
           <select
             value={status}
             onChange={(event) => onStatusChange(event.target.value)}
-            className="h-[30px] cursor-pointer bg-transparent pr-1 font-body-default text-body-default text-on-surface focus:outline-none"
+            className="cursor-pointer appearance-none bg-transparent font-body-medium text-body-medium focus:outline-none"
           >
             {STATUS_FILTER_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -105,9 +114,12 @@ export function CustomerFilters({
               </option>
             ))}
           </select>
+          <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
+            expand_more
+          </span>
         </label>
 
-        <div className="inline-flex h-[32px] rounded border border-outline-variant bg-surface p-0.5">
+        <div className="flex h-9 items-center rounded-lg border border-outline-variant bg-surface-container p-1">
           {BALANCE_TABS.map((tab) => {
             const active = balance === tab.value;
             return (
@@ -115,10 +127,10 @@ export function CustomerFilters({
                 key={tab.value}
                 type="button"
                 onClick={() => onBalanceChange(tab.value)}
-                className={`rounded px-2.5 text-[12px] font-medium transition-colors ${
+                className={`h-full rounded-md px-3 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
                   active
-                    ? "bg-surface-container-highest text-on-surface"
-                    : "text-secondary hover:text-on-surface"
+                    ? "border border-outline-variant bg-surface-container-lowest text-primary shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 {tab.label}
@@ -127,12 +139,12 @@ export function CustomerFilters({
           })}
         </div>
 
-        <label className="flex items-center rounded border border-outline-variant bg-surface px-2 text-on-surface">
-          <span className="material-symbols-outlined mr-1 text-[16px] text-secondary">sort</span>
+        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+          <span className="material-symbols-outlined text-[17px] text-on-surface-variant">sort</span>
           <select
             value={sort}
             onChange={(event) => onSortChange(event.target.value as CustomerSort)}
-            className={`${SELECT_CLASS} h-[30px] cursor-pointer border-0 bg-transparent px-0`}
+            className="cursor-pointer appearance-none bg-transparent font-body-medium text-body-medium focus:outline-none"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -140,6 +152,9 @@ export function CustomerFilters({
               </option>
             ))}
           </select>
+          <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
+            expand_more
+          </span>
         </label>
       </div>
     </div>

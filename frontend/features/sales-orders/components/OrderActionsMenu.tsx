@@ -58,24 +58,26 @@ export function OrderActionsMenu({
         onClick={onToggle}
         aria-label={`Actions for sale ${order.id}`}
         aria-expanded={open}
-        className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
+        className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
           open
-            ? "border border-outline-variant bg-surface-container-high text-on-surface"
-            : "text-secondary hover:bg-surface-container hover:text-on-surface"
+            ? "border-outline-variant bg-surface-container-high text-on-surface"
+            : "border-transparent text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
         }`}
       >
-        <span className="material-symbols-outlined text-[18px]">more_vert</span>
+        <span className="material-symbols-outlined text-[18px]">more_horiz</span>
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-8 z-[9999] flex w-40 flex-col rounded border border-outline-variant bg-surface-container-lowest py-1 text-left shadow-sm">
+        <div className="absolute right-2 top-10 z-50 w-48 rounded-xl border border-outline-variant/80 bg-surface-container-lowest py-1.5 text-left shadow-panel">
           <button
             type="button"
             onClick={() => onEdit(order)}
             disabled={order.status === "Cancelled"}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
-            <span className="material-symbols-outlined text-[15px] text-secondary">edit</span>
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
+              edit
+            </span>
             Edit Sale
           </button>
           <button
@@ -83,28 +85,30 @@ export function OrderActionsMenu({
             onClick={() => onCancel(order)}
             disabled={order.status === "Cancelled"}
             title={order.status === "Cancelled" ? "Order already cancelled" : "Cancel this sale order"}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-error transition-colors hover:bg-[#fdf0ee] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
-            <span className="material-symbols-outlined text-[15px] text-error">cancel</span>
+            <span className="material-symbols-outlined text-[16px] text-error">cancel</span>
             Cancel Sale
           </button>
           <button
             type="button"
             onClick={() => onDelete(order)}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-error transition-colors hover:bg-[#fdf0ee]"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[15px] text-error">delete</span>
+            <span className="material-symbols-outlined text-[16px] text-error">delete</span>
             Delete Sale
           </button>
-          <div className="my-1 h-px bg-outline-variant" />
+          <div className="my-1 border-t border-outline-variant/70" />
           <button
             type="button"
             onClick={() => onRecordPayment(order.id)}
             disabled={!hasOutstanding || order.status === "Cancelled"}
             title={order.status === "Cancelled" ? "Cancelled orders cannot receive payments" : hasOutstanding ? undefined : "No outstanding balance"}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
-            <span className="material-symbols-outlined text-[15px] text-secondary">payments</span>
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
+              payments
+            </span>
             Record Payment
           </button>
         </div>

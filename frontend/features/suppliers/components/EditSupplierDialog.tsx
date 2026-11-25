@@ -26,10 +26,10 @@ type EditSupplierDialogProps = {
 };
 
 const INPUT_CLASS =
-  "h-9 w-full rounded border border-outline-variant bg-surface px-2.5 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary focus:outline-none";
-const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-8`;
+  "h-9 w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container";
+const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-9`;
 const TEXTAREA_CLASS =
-  "w-full resize-none rounded border border-outline-variant bg-surface px-2.5 py-2 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary focus:outline-none";
+  "w-full resize-none rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 py-2 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container";
 
 function toInput(supplier: Supplier): UpdateSupplierInput {
   const productIds = supplier.productIds || [];
@@ -51,8 +51,10 @@ function toInput(supplier: Supplier): UpdateSupplierInput {
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="font-label-caps text-label-caps uppercase text-secondary">{label}</span>
+    <label className="flex flex-col gap-1.5">
+      <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -62,7 +64,7 @@ function SelectShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative">
       {children}
-      <span className="material-symbols-outlined pointer-events-none absolute right-2.5 top-2 text-[18px] text-outline">
+      <span className="material-symbols-outlined pointer-events-none absolute right-3 top-2 text-[18px] text-on-surface-variant">
         expand_more
       </span>
     </div>
@@ -155,21 +157,21 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
   }
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/30 p-4">
+    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/40 p-4">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
       <form
         onSubmit={handleSubmit}
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-supplier-title"
-        className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded border border-outline-variant bg-surface-container-lowest shadow-2xl"
+        className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel"
       >
-        <div className="flex items-start justify-between gap-3 border-b border-outline-variant bg-surface-container-high/40 px-4 py-3">
+        <div className="flex items-start justify-between gap-3 border-b border-outline-variant/80 bg-surface-container-low px-5 py-4">
           <div>
             <h2 id="edit-supplier-title" className="font-headline-md text-headline-md text-on-surface">
               Edit Supplier
             </h2>
-            <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
+            <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
               #{supplier.code} · opening balance {formatRs(supplier.openingBalance)} and payable
               totals are preserved
             </div>
@@ -178,13 +180,13 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
             type="button"
             onClick={onClose}
             aria-label="Close edit supplier form"
-            className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
-        <div className="space-y-4 p-4">
+        <div className="space-y-4 p-5">
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Supplier / Company Name">
               <input
@@ -313,7 +315,7 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
                     error={productsError}
                   />
                   {staleProductCount > 0 ? (
-                    <span className="font-body-dense text-body-dense text-secondary">
+                    <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1.5 font-body-dense text-body-dense text-on-surface-variant">
                       {staleProductCount} product link
                       {staleProductCount === 1 ? "" : "s"} no longer in the catalog will be removed
                       when you save.
@@ -325,24 +327,25 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
           </section>
 
           {error ? (
-            <div className="rounded border border-error-container bg-error-container/40 px-3 py-2 font-body-dense text-body-dense text-error">
+            <div className="flex items-center gap-2 rounded-lg border border-error/20 bg-error-container/50 px-3 py-2 font-body-dense text-body-dense text-error">
+              <span className="material-symbols-outlined text-[16px]">error_outline</span>
               {error}
             </div>
           ) : null}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-outline-variant bg-surface-container-high/40 px-4 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-outline-variant/80 bg-surface-container-low px-5 py-3.5">
           <button
             type="button"
             onClick={onClose}
-            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="h-8 rounded bg-primary-container px-3.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary disabled:opacity-50"
+            className="h-9 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             {saving ? "Saving..." : "Save Changes"}
           </button>

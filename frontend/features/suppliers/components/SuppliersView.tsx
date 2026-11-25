@@ -204,7 +204,7 @@ export function SuppliersView() {
   }
 
   return (
-    <div className="flex flex-col gap-3 pb-4">
+    <div className="flex flex-col gap-4 pb-4">
       <SuppliersHeader
         onExport={handleExport}
         onAgingLedger={() => setNotice("Aging ledger view is not connected yet.")}
@@ -247,17 +247,19 @@ export function SuppliersView() {
       />
 
       {loading ? (
-        <div className="flex min-h-[580px] items-center justify-center rounded bg-surface-container-lowest font-body-medium text-body-medium text-secondary shadow-sm">
+        <div className="flex min-h-[580px] items-center justify-center rounded-xl border border-outline-variant/80 bg-surface-container-lowest font-body-medium text-body-medium text-on-surface-variant shadow-panel">
           Loading suppliers...
         </div>
       ) : error ? (
-        <div className="flex min-h-[580px] flex-col items-center justify-center gap-3 rounded bg-surface-container-lowest p-6 text-center shadow-sm">
-          <span className="material-symbols-outlined text-[28px] text-error">error_outline</span>
+        <div className="flex min-h-[580px] flex-col items-center justify-center gap-3 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-6 text-center shadow-panel">
+          <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-error-container/50 text-error">
+            <span className="material-symbols-outlined text-[24px]">error_outline</span>
+          </span>
           <div className="font-body-medium text-body-medium text-on-surface">{error}</div>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="h-[34px] rounded bg-primary-container px-4 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary"
+            className="h-9 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             Retry
           </button>
@@ -294,7 +296,7 @@ export function SuppliersView() {
         onPageChange={setPage}
       />
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded border-l-2 border-primary bg-surface-container p-3 text-secondary">
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-lg border border-outline-variant/80 border-l-2 border-l-primary bg-surface-container-low px-4 py-3 text-on-surface-variant">
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[18px] text-primary">
             verified_user
@@ -303,14 +305,14 @@ export function SuppliersView() {
             Karachi &amp; Lahore Clearing House automated reconciliation synced at 04:30 PM today.
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
             TAX STATUS: FBR SALES TAX REGISTERED (100%)
           </span>
           <button
             type="button"
             onClick={() => setNotice("WHT ledger download is not connected yet.")}
-            className="font-body-dense text-body-dense font-medium text-primary hover:underline"
+            className="rounded font-body-dense text-body-dense font-medium text-primary transition duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             Download Withholding Tax (WHT) Ledger →
           </button>
@@ -334,7 +336,8 @@ export function SuppliersView() {
       ) : null}
 
       {notice ? (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-dense text-body-dense text-on-surface shadow-md">
+        <div className="fixed bottom-4 right-4 z-50 flex max-w-sm items-center gap-2.5 rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3.5 py-2.5 font-body-dense text-body-dense text-on-surface shadow-panel">
+          <span className="material-symbols-outlined text-[17px] text-primary">info</span>
           {notice}
         </div>
       ) : null}

@@ -46,41 +46,43 @@ export function PurchaseSummaryCard({
   const selectedAmount = amountView === "Paid Amount" ? paidAmount : remainingAmount;
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl bg-surface-container-lowest p-4 shadow-sm">
-      <div className="flex items-center justify-between pb-2">
-        <h2 className="font-headline-md text-headline-md text-on-surface">Purchase Summary</h2>
-        <span className="rounded bg-secondary-container px-2 py-0.5 font-label-caps text-label-caps uppercase text-on-secondary-container">
+    <div className="flex flex-col gap-5 rounded-xl border border-outline-variant/70 bg-surface-container-lowest p-5 shadow-panel">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant/70 pb-3">
+        <h2 className="font-headline-lg text-headline-lg text-on-surface">Purchase Summary</h2>
+        <span className="rounded-md border border-outline-variant bg-surface-container px-2.5 py-1 font-label-caps text-label-caps uppercase text-on-surface-variant">
           Draft
         </span>
       </div>
 
-      <div className="flex flex-col gap-2.5 font-body-default text-body-default">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
+      <div className="flex flex-col gap-3 font-body-default text-body-default">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-1">
             <span className="text-on-surface">Subtotal</span>
-            <span className="font-mono-data-sm text-mono-data-sm text-secondary">{unitsLabel}</span>
+            <span className="font-body-dense text-body-dense text-on-surface-variant">{unitsLabel}</span>
           </div>
-          <span className="font-mono-data font-medium text-on-surface">
+          <span className="font-mono-data text-mono-data font-medium text-on-surface">
             {formatRs(totals.subtotal)}
           </span>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-on-surface">Total Discount</span>
-          <span className="font-mono-data font-medium text-error">- {formatRs(totals.discount)}</span>
+          <span className="font-mono-data text-mono-data font-medium text-error">
+            - {formatRs(totals.discount)}
+          </span>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-1">
             <span className="text-on-surface">Sales Tax</span>
-            <span className="font-mono-data-sm text-mono-data-sm text-secondary">FBR GST (18%)</span>
+            <span className="font-body-dense text-body-dense text-on-surface-variant">FBR GST (18%)</span>
           </div>
-          <span className="font-mono-data font-medium text-on-surface">
+          <span className="font-mono-data text-mono-data font-medium text-on-surface">
             {formatRs(totals.tax)}
           </span>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-on-surface">Shipping / Freight Inward</span>
           <input
             type="number"
@@ -88,30 +90,30 @@ export function PurchaseSummaryCard({
             value={freight}
             onChange={(event) => onFreightChange(Math.max(Number(event.target.value) || 0, 0))}
             aria-label="Shipping or freight inward"
-            className="h-8 w-28 rounded bg-surface-container-lowest px-2 text-right font-mono-data text-mono-data text-on-surface outline-none focus:ring-1 focus:ring-primary-container"
+            className="h-9 w-32 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 text-right font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
           />
         </div>
 
-        <div className="mt-2 flex flex-col gap-1 rounded bg-surface-container-low p-3">
-          <div className="flex items-baseline justify-between">
-            <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+        <div className="mt-2 flex flex-col gap-2 rounded-xl border border-outline-variant/60 bg-surface-container-low p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
               Grand Total
             </span>
-            <div className="flex items-baseline gap-1 text-on-surface">
-              <span className="font-mono-data text-mono-data text-secondary">Rs.</span>
-              <span className="font-mono-data text-[24px] font-bold leading-tight tracking-tight">
+            <div className="flex items-baseline gap-1.5 text-on-surface">
+              <span className="font-mono-data text-mono-data text-on-surface-variant">Rs.</span>
+              <span className="font-mono-data text-metric-display font-semibold leading-tight tracking-tight">
                 {totals.total.toLocaleString("en-PK")}
               </span>
             </div>
           </div>
-          <span className="text-right font-mono-data-sm text-mono-data-sm text-secondary">
+          <span className="text-right font-body-dense text-body-dense text-on-surface-variant">
             Pakistani Rupee (PKR)
           </span>
 
-          <div className="mt-2 flex items-center justify-between gap-2 border-t border-outline-variant pt-2">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant/70 pt-3">
             <label
               htmlFor="purchase-amount-view"
-              className="font-label-caps text-label-caps uppercase tracking-wider text-secondary"
+              className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant"
             >
               Amount View
             </label>
@@ -119,7 +121,7 @@ export function PurchaseSummaryCard({
               id="purchase-amount-view"
               value={amountView}
               onChange={(event) => setAmountView(event.target.value as PurchaseAmountView)}
-              className="h-7 rounded border border-outline-variant bg-surface-container-lowest px-1.5 font-body-dense text-body-dense text-on-surface focus:border-primary-container focus:outline-none"
+              className="h-8 rounded-lg border border-outline-variant bg-surface-container-lowest px-2 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
             >
               {PURCHASE_AMOUNT_VIEWS.map((option) => (
                 <option key={option} value={option}>
@@ -128,10 +130,10 @@ export function PurchaseSummaryCard({
               ))}
             </select>
           </div>
-          <div className="flex items-baseline justify-between pt-1">
-            <span className="font-body-dense text-body-dense text-secondary">{amountView}</span>
+          <div className="flex items-baseline justify-between gap-3 pt-1">
+            <span className="font-body-dense text-body-dense text-on-surface-variant">{amountView}</span>
             <span
-              className={`font-mono-data text-[18px] font-semibold ${
+              className={`font-mono-data text-headline-sm font-semibold ${
                 amountView === "Paid Amount" ? "text-primary" : "text-error"
               }`}
             >
@@ -140,21 +142,21 @@ export function PurchaseSummaryCard({
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 rounded border border-outline-variant bg-surface-container-lowest p-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+        <div className="flex flex-col gap-3 rounded-xl border border-outline-variant/70 bg-surface-container-lowest p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
               Record Payment
             </span>
             <button
               type="button"
               onClick={() => onPaymentAmountChange(remainingAmount)}
               disabled={remainingAmount <= 0}
-              className="rounded border border-outline-variant bg-surface-container px-2 py-1 font-body-dense text-body-dense text-primary transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-8 rounded-lg border border-outline-variant bg-surface-container px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-surface-container-high active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-50"
             >
               Pay Full Remaining
             </button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               type="number"
               min={0}
@@ -165,13 +167,13 @@ export function PurchaseSummaryCard({
               }
               aria-label="Payment amount"
               placeholder="0"
-              className="h-9 min-w-0 flex-1 rounded border border-outline-variant bg-surface px-2 text-right font-mono-data text-mono-data text-on-surface outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container"
+              className="h-10 min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-right font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
             />
             <select
               aria-label="Payment method"
               value={paymentMethod}
               onChange={(event) => onPaymentMethodChange(event.target.value)}
-              className="h-9 rounded border border-outline-variant bg-surface px-2 font-body-dense text-body-dense text-on-surface outline-none focus:border-primary-container"
+              className="h-10 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
             >
               {PAYMENT_METHODS.map((option) => (
                 <option key={option} value={option}>
@@ -180,15 +182,17 @@ export function PurchaseSummaryCard({
               ))}
             </select>
           </div>
-          <div className="flex items-center justify-between font-mono-data-sm text-mono-data-sm text-secondary">
+          <div className="flex flex-wrap items-center justify-between gap-2 font-body-dense text-body-dense text-on-surface-variant">
             <span>Remaining after payment</span>
-            <span>{formatRs(Math.max(remainingAmount - paymentAmount, 0))}</span>
+            <span className="font-mono-data text-mono-data">
+              {formatRs(Math.max(remainingAmount - paymentAmount, 0))}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="flex items-start gap-2 rounded bg-surface-container-high p-2.5">
-        <span className="material-symbols-outlined mt-0.5 shrink-0 text-[17px] text-primary">
+      <div className="flex items-start gap-2 rounded-lg border border-primary/15 bg-primary-fixed/20 p-3">
+        <span className="material-symbols-outlined mt-0.5 shrink-0 text-[18px] text-primary">
           info
         </span>
         <p className="font-body-dense text-body-dense text-on-surface">
@@ -196,20 +200,22 @@ export function PurchaseSummaryCard({
         </p>
       </div>
 
-      <div className="flex flex-col gap-1.5 rounded bg-surface-container p-3">
-        <div className="flex items-center justify-between">
-          <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+      <div className="flex flex-col gap-2 rounded-xl border border-outline-variant/60 bg-surface-container p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Supplier Ledger
           </span>
           {selectedSupplier ? (
             <a
               href={`/suppliers/${selectedSupplier.id}`}
-              className="font-body-dense text-body-dense font-medium text-primary hover:underline"
+              className="rounded-md font-body-medium text-body-medium text-primary transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
               Supplier Detail →
             </a>
           ) : (
-            <span className="font-body-dense text-body-dense text-outline">Select a supplier</span>
+            <span className="font-body-dense text-body-dense text-on-surface-variant">
+              Select a supplier
+            </span>
           )}
         </div>
         <p className="font-body-default text-body-default font-medium text-tertiary">
@@ -217,7 +223,7 @@ export function PurchaseSummaryCard({
             ? `Outstanding with this supplier: ${formatRs(selectedSupplier.outstanding)}`
             : "Outstanding will appear after choosing a supplier"}
         </p>
-        <div className="pt-1 font-mono-data-sm text-mono-data-sm text-secondary">
+        <div className="pt-1 font-body-dense text-body-dense text-on-surface-variant">
           {selectedSupplier
             ? `Terms: ${paymentTermsLabel(selectedSupplier.paymentTerms)} · Hub: ${
                 selectedSupplier.hub || selectedSupplier.region
@@ -226,9 +232,9 @@ export function PurchaseSummaryCard({
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-outline-variant pt-3">
-        <label className="flex flex-col gap-1">
-          <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+      <div className="flex flex-col gap-2 border-t border-outline-variant/70 pt-4">
+        <label className="flex flex-col gap-2">
+          <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Operational Notes &amp; Dispatch Instructions
           </span>
           <textarea
@@ -236,16 +242,16 @@ export function PurchaseSummaryCard({
             onChange={(event) => onNotesChange(event.target.value)}
             rows={3}
             placeholder="Deliver to warehouse…"
-            className="w-full resize-none rounded bg-surface-container-lowest p-2.5 font-body-default text-body-default text-on-surface outline-none focus:ring-1 focus:ring-primary-container"
+            className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default text-body-default text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
           />
         </label>
 
         <button
           type="button"
           onClick={onPreview}
-          className="flex h-9 w-full items-center justify-center gap-1.5 rounded bg-surface-container-lowest font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
         >
-          <span className="material-symbols-outlined text-[17px]">print</span>
+          <span className="material-symbols-outlined text-[18px]">print</span>
           <span>Preview PO Document</span>
         </button>
       </div>

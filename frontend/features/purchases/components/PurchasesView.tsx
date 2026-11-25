@@ -306,7 +306,7 @@ export function PurchasesView() {
   }
 
   return (
-    <div className="flex flex-col gap-3 pb-4">
+    <div className="flex flex-col gap-5 pb-6">
       <PurchasesHeader
         recordedCount={purchases.length}
         onExport={handleExport}
@@ -317,7 +317,7 @@ export function PurchasesView() {
       <PurchasesSummary purchases={purchases} />
 
       {loadError ? (
-        <div className="flex items-center justify-between gap-3 rounded border border-error/40 bg-error-container/20 px-4 py-2 font-body-dense text-body-dense text-error">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-error/25 bg-error-container/20 px-4 py-3 font-body-default text-body-default text-on-error-container shadow-panel">
           <span>{loadError}</span>
           <button
             type="button"
@@ -325,7 +325,7 @@ export function PurchasesView() {
               setLoading(true);
               setReloadKey((current) => current + 1);
             }}
-            className="rounded border border-error/40 px-2 py-1 font-body-medium text-body-medium hover:bg-error-container"
+            className="h-8 rounded-lg border border-error/30 bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-error-container transition duration-200 hover:bg-error-container/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             Retry
           </button>
@@ -364,7 +364,7 @@ export function PurchasesView() {
       />
 
       {loading ? (
-        <div className="rounded border border-outline-variant bg-surface-container-lowest px-4 py-8 text-center font-body-dense text-body-dense text-secondary">
+        <div className="rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-4 py-12 text-center font-body-default text-body-default text-on-surface-variant shadow-panel">
           Loading saved purchases…
         </div>
       ) : null}
@@ -417,14 +417,14 @@ export function PurchasesView() {
 
       {actionLoading ? (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/20">
-          <div className="rounded bg-surface-container-lowest px-4 py-2 font-body-medium text-body-medium text-on-surface shadow-lg">
+          <div className="rounded-xl border border-outline-variant/70 bg-surface-container-lowest px-5 py-3 font-body-medium text-body-medium text-on-surface shadow-panel">
             Updating purchase…
           </div>
         </div>
       ) : null}
 
       {notice ? (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-dense text-body-dense text-on-surface shadow-md">
+        <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-4 py-3 font-body-default text-body-default text-on-surface shadow-panel">
           {notice}
         </div>
       ) : null}

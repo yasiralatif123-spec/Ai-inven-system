@@ -23,7 +23,7 @@ type DropdownPosition = {
 };
 
 const INPUT_CLASS =
-  "h-8 w-full rounded bg-surface-container-lowest px-2 pr-7 font-body-default text-body-dense text-on-surface outline-none focus:ring-1 focus:ring-primary-container";
+  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 pr-9 font-body-default text-body-default text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container";
 
 export function ProductPicker({
   value,
@@ -143,7 +143,7 @@ export function ProductPicker({
         aria-expanded={open}
         aria-controls={listId}
         autoComplete="off"
-        className={`${INPUT_CLASS} pr-7`}
+        className={`${INPUT_CLASS} pr-9`}
       />
       <button
         type="button"
@@ -153,9 +153,9 @@ export function ProductPicker({
           inputRef.current?.focus();
           setOpen(true);
         }}
-        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded text-outline transition-colors hover:bg-surface-container hover:text-primary"
+        className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-md text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
       >
-        <span className="material-symbols-outlined text-[15px]">expand_more</span>
+        <span className="material-symbols-outlined text-[16px]">expand_more</span>
       </button>
 
       {open && position && typeof document !== "undefined"
@@ -170,15 +170,15 @@ export function ProductPicker({
                 width: position.width,
                 maxHeight: position.maxHeight,
               }}
-              className="fixed z-[200] overflow-y-auto rounded border border-outline-variant bg-surface-container-lowest shadow-xl"
+              className="fixed z-[200] overflow-y-auto rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel"
               onMouseDown={(event) => event.preventDefault()}
             >
-              <div className="border-b border-outline-variant bg-surface-container-high/50 px-2.5 py-1.5 font-label-caps text-[10px] uppercase tracking-wide text-secondary">
+              <div className="border-b border-outline-variant/70 bg-surface-container px-3 py-1.5 font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
                 {query ? "Matching products" : "Products from catalog"}
               </div>
 
               {products.length === 0 ? (
-                <div className="px-2.5 py-2 font-body-dense text-body-dense text-secondary">
+                <div className="px-3 py-2.5 font-body-dense text-body-dense text-on-surface-variant">
                   {emptyMessage}
                 </div>
               ) : matches.length > 0 ? (
@@ -190,7 +190,7 @@ export function ProductPicker({
                     aria-selected={index === activeIndex}
                     onClick={() => selectProduct(product)}
                     onMouseEnter={() => setActiveIndex(index)}
-                    className={`flex w-full flex-col gap-0.5 border-b border-outline-variant/60 px-2.5 py-2 text-left transition-colors last:border-b-0 ${
+                    className={`flex w-full flex-col gap-1 border-b border-outline-variant/60 px-3 py-2.5 text-left transition duration-200 last:border-b-0 ${
                       index === activeIndex ? "bg-primary-container/10" : "hover:bg-surface-container"
                     }`}
                   >
@@ -198,16 +198,16 @@ export function ProductPicker({
                       <span className="truncate font-body-medium text-body-medium text-on-surface">
                         {product.title}
                       </span>
-                      <span className="shrink-0 font-mono-data-sm text-mono-data-sm text-outline">
+                      <span className="shrink-0 font-mono-data text-mono-data text-on-surface-variant">
                         {product.sku}
                       </span>
                     </span>
-                    <span className="flex items-center justify-between gap-2 font-body-dense text-body-dense text-secondary">
+                    <span className="flex items-center justify-between gap-2 font-body-dense text-body-dense text-on-surface-variant">
                       <span className="truncate">
                         {[product.brand, product.category].filter(Boolean).join(" · ")}
 
                       </span>
-                      <span className="shrink-0 font-mono-data-sm text-mono-data-sm">
+                      <span className="shrink-0 font-mono-data text-mono-data">
                         {formatStockWithPieces(product.openingStock)} · Rs.{" "}
                         {(parseMoneyInput(product.purchasePrice) ?? 0).toLocaleString("en-PK")} / Piece
                       </span>
@@ -215,7 +215,7 @@ export function ProductPicker({
                   </button>
                 ))
               ) : (
-                <div className="px-2.5 py-2 font-body-dense text-body-dense text-secondary">
+                <div className="px-3 py-2.5 font-body-dense text-body-dense text-on-surface-variant">
                   {loading
                     ? "Loading products…"
                     : "No products match. You can type an item name manually."}

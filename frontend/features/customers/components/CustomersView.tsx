@@ -200,23 +200,25 @@ export function CustomersView() {
 
   if (loading) {
     return (
-      <div className="flex flex-col gap-3">
-        <div className="h-[86px] animate-pulse rounded border border-outline-variant bg-surface-container-lowest" />
-        <div className="h-[110px] animate-pulse rounded border border-outline-variant bg-surface-container-lowest" />
-        <div className="h-[560px] animate-pulse rounded border border-outline-variant bg-surface-container-lowest" />
+      <div className="flex flex-col gap-4 pb-4">
+        <div className="h-[86px] animate-pulse rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel" />
+        <div className="h-[110px] animate-pulse rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel" />
+        <div className="h-[560px] animate-pulse rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded border border-outline-variant bg-surface-container-lowest p-6 text-center">
-        <span className="material-symbols-outlined text-[28px] text-error">error_outline</span>
+      <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-6 text-center shadow-panel">
+        <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-error-container/50 text-error">
+          <span className="material-symbols-outlined text-[24px]">error_outline</span>
+        </span>
         <p className="font-body-medium text-body-medium text-on-surface">{error}</p>
         <button
           type="button"
           onClick={() => setReloadToken((token) => token + 1)}
-          className="h-[34px] rounded bg-primary-container px-4 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary"
+          className="h-9 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
         >
           Retry
         </button>
@@ -225,7 +227,7 @@ export function CustomersView() {
   }
 
   return (
-    <div className="flex flex-col gap-3 pb-4">
+    <div className="flex flex-col gap-4 pb-4">
       <CustomersHeader
         onExport={handleExport}
         onAddCustomer={() => router.push("/customers/add")}
@@ -297,15 +299,15 @@ export function CustomersView() {
       {notice ? (
         <div
           role="status"
-          className="fixed bottom-4 right-4 z-50 flex max-w-sm items-center gap-2 rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-dense text-body-dense text-on-surface shadow-lg"
+          className="fixed bottom-4 right-4 z-50 flex max-w-sm items-center gap-2.5 rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3.5 py-2.5 font-body-dense text-body-dense text-on-surface shadow-panel"
         >
-          <span className="material-symbols-outlined text-[16px] text-primary">info</span>
+          <span className="material-symbols-outlined text-[17px] text-primary">info</span>
           <span>{notice}</span>
           <button
             type="button"
             onClick={() => setNotice(null)}
             aria-label="Dismiss notification"
-            className="ml-1 text-secondary hover:text-on-surface"
+            className="ml-1 rounded p-0.5 text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             <span className="material-symbols-outlined text-[15px]">close</span>
           </button>

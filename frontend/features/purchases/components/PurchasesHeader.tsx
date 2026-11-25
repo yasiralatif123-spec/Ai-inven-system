@@ -14,18 +14,22 @@ export function PurchasesHeader({
   onCreate,
 }: PurchasesHeaderProps) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant pb-3 text-body-dense text-secondary">
-        <div className="flex items-center gap-2">
-          <span className="font-body-default text-on-surface-variant">Wholesale Operations</span>
+    <div className="flex flex-col gap-5 pb-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-outline-variant/80 pb-4 text-body-dense text-on-surface-variant">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-body-default text-body-default text-on-surface-variant">
+            Wholesale Operations
+          </span>
           <span className="text-outline-variant">/</span>
-          <span className="font-body-default text-on-surface-variant">Purchases</span>
+          <span className="font-body-default text-body-default text-on-surface-variant">
+            Purchases
+          </span>
           <span className="text-outline-variant">/</span>
           <span className="font-mono-data-sm font-medium text-primary">
             PO Directory · Active Ledger FY 2026-27
           </span>
         </div>
-        <div className="flex items-center gap-3 font-mono-data-sm">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
           <span className="inline-block h-2 w-2 rounded-full bg-primary" />
           <span>NTN: 4120938-1</span>
           <span className="text-outline-variant">|</span>
@@ -33,45 +37,47 @@ export function PurchasesHeader({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col gap-4 pt-1 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h1 className="font-headline-xl text-headline-xl tracking-tight text-on-surface">
             Purchases
           </h1>
-          <span className="rounded border border-outline-variant bg-surface-container-highest px-2 py-0.5 font-label-caps text-label-caps uppercase text-on-surface-variant">
+          <span className="rounded-md border border-outline-variant bg-surface-container px-2.5 py-1 font-label-caps text-label-caps uppercase text-on-surface-variant">
             Procurement Ledger
           </span>
-          <span className="font-mono-data-sm text-secondary">
+          <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
             {recordedCount} Recorded Entries
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={onExport}
-            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[17px] text-secondary">file_download</span>
+            <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
+              file_download
+            </span>
             Export CSV
           </button>
           <button
             type="button"
             onClick={onUpload}
-            className="flex h-[34px] items-center gap-2 rounded border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             <span className="material-symbols-outlined text-[17px] text-primary">
               document_scanner
             </span>
             Upload Supplier Invoice
-            <span className="rounded bg-secondary-container px-1.5 py-0.5 font-mono-data-sm text-[10px] uppercase text-on-secondary-container">
+            <span className="rounded-md bg-secondary-container px-2 py-0.5 font-label-caps text-label-caps uppercase text-on-secondary-container">
               OCR AI
             </span>
           </button>
           <button
             type="button"
             onClick={onCreate}
-            className="flex h-[34px] items-center gap-1.5 rounded border border-transparent bg-primary-container px-3.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary"
+            className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             Create Purchase

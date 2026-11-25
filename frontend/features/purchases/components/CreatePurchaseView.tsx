@@ -616,7 +616,7 @@ export function CreatePurchaseView() {
   }
 
   return (
-    <div className="flex flex-col gap-3 pb-10">
+    <div className="flex flex-col gap-5 pb-10">
       <CreatePurchaseHeader
         purchaseCode={purchaseCode}
         saving={saving}
@@ -628,7 +628,7 @@ export function CreatePurchaseView() {
         onSavePurchase={() => save(status)}
       />
 
-      <div className="mt-1 flex flex-col gap-5">
+      <div className="flex flex-col gap-5 pt-1">
         <PurchaseContextCard
           supplierQuery={supplierQuery}
           onSupplierQueryChange={handleSupplierQueryChange}
@@ -689,20 +689,20 @@ export function CreatePurchaseView() {
 
       {loadingPurchase ? (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/20">
-          <div className="rounded bg-surface-container-lowest px-4 py-2 font-body-medium text-body-medium text-on-surface shadow-lg">
+          <div className="rounded-xl border border-outline-variant/70 bg-surface-container-lowest px-5 py-3 font-body-medium text-body-medium text-on-surface shadow-panel">
             Loading purchase…
           </div>
         </div>
       ) : null}
 
       {notice ? (
-        <div className="fixed bottom-4 right-4 z-[400] max-w-sm rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-dense text-body-dense text-on-surface shadow-md">
+        <div className="fixed bottom-4 right-4 z-[400] max-w-sm rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-4 py-3 font-body-default text-body-default text-on-surface shadow-panel">
           {notice}
         </div>
       ) : null}
 
       {error ? (
-        <div className="fixed bottom-4 left-4 z-[400] max-w-sm rounded border border-error bg-error-container px-3 py-2 font-body-dense text-body-dense text-on-error-container shadow-md">
+        <div className="fixed bottom-4 left-4 z-[400] max-w-sm rounded-xl border border-error/30 bg-error-container/80 px-4 py-3 font-body-default text-body-default text-on-error-container shadow-panel">
           {error}
         </div>
       ) : null}

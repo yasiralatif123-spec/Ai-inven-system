@@ -40,10 +40,10 @@ const EMPTY_FORM: CreateSupplierInput = {
 };
 
 const INPUT_CLASS =
-  "h-[34px] w-full rounded border border-outline-variant bg-surface-container-lowest px-2.5 font-body-default text-body-default text-on-surface placeholder:text-outline transition-all focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container disabled:opacity-60";
-const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-8`;
+  "h-[34px] w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60";
+const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-9`;
 const TEXTAREA_CLASS =
-  "w-full rounded border border-outline-variant bg-surface-container-lowest px-2.5 py-2 font-body-default text-body-default text-on-surface placeholder:text-outline transition-all focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container disabled:opacity-60";
+  "w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 py-2 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60";
 
 type FieldProps = {
   label: ReactNode;
@@ -54,11 +54,13 @@ type FieldProps = {
 function Field({ label, hint, children }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="flex items-center justify-between font-body-medium text-body-medium text-on-surface">
+      <label className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 font-body-medium text-body-medium text-on-surface">
         {label}
       </label>
       {children}
-      {hint ? <span className="font-body-dense text-body-dense text-secondary">{hint}</span> : null}
+      {hint ? (
+        <span className="font-body-dense text-body-dense text-on-surface-variant">{hint}</span>
+      ) : null}
     </div>
   );
 }
@@ -77,20 +79,20 @@ function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-sm">
-      <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-4">
+    <section className="flex flex-col rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant/80 bg-surface-container-low px-6 py-4">
         <div>
-          <h2 className="flex items-center gap-2 font-headline-md text-headline-md text-on-surface">
-            <span>
-              {number}. {title}
-            </span>
+          <h2 className="font-headline-md text-headline-md text-on-surface">
+            {number}. {title}
           </h2>
-          <p className="mt-0.5 font-body-dense text-body-dense text-secondary">{description}</p>
+          <p className="mt-0.5 font-body-dense text-body-dense text-on-surface-variant">
+            {description}
+          </p>
         </div>
         {badge}
       </div>
       <div className="flex flex-col gap-5 p-6">{children}</div>
-    </div>
+    </section>
   );
 }
 
@@ -197,49 +199,49 @@ export function AddSupplierForm() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-y-3">
+    <div className="flex flex-col gap-4 pb-24">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <nav className="flex items-center gap-2 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+        <nav className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
           <span>Wholesale Operations</span>
           <span className="text-outline-variant">/</span>
           <button
             type="button"
             onClick={() => router.push("/suppliers")}
-            className="transition-colors hover:text-primary"
+            className="transition duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             Supplier Directory
           </button>
           <span className="text-outline-variant">/</span>
-          <span className="font-body-medium text-body-medium text-on-surface">New Supplier</span>
+          <span className="font-medium text-on-surface">New Supplier</span>
         </nav>
-        <div className="flex items-center gap-2 rounded border border-outline-variant bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+        <div className="flex items-center gap-2 rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
           Auto-Allocated Code:{" "}
-          <strong className="font-mono-data text-primary">{nextCode}</strong>
+          <strong className="font-mono-data font-semibold text-primary">{nextCode}</strong>
         </div>
       </div>
 
-      <div className="mb-2 flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant pb-4">
-        <div className="flex max-w-2xl flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-outline-variant/80 pb-6">
+        <div className="flex max-w-2xl flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <h1 className="font-headline-xl text-headline-xl tracking-tight text-on-surface">
               Add Supplier
             </h1>
-            <span className="rounded border border-outline-variant bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm uppercase tracking-wider text-on-surface-variant">
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-label-caps text-label-caps uppercase tracking-wider text-primary">
               Payables Registration
             </span>
           </div>
-          <p className="font-body-default text-body-default text-secondary">
+          <p className="font-body-default text-body-default text-on-surface-variant">
             Register a new wholesale distributor or manufacturer, set settlement terms, and configure
             opening payables.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 pt-1">
+        <div className="flex flex-wrap items-center gap-2.5 pt-1">
           <button
             type="button"
             onClick={() => setError("CSV import is not connected yet.")}
-            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface shadow-sm transition-colors hover:border-outline hover:bg-surface-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[17px] text-secondary">
+            <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               upload_file
             </span>
             Import CSV
@@ -247,9 +249,9 @@ export function AddSupplierForm() {
           <button
             type="button"
             onClick={() => router.push("/suppliers")}
-            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface shadow-sm transition-colors hover:border-outline hover:bg-surface-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[17px] text-secondary">
+            <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               format_list_bulleted
             </span>
             View Supplier List
@@ -258,13 +260,13 @@ export function AddSupplierForm() {
       </div>
 
       {error ? (
-        <div className="flex items-center gap-2 rounded border border-error-container bg-error-container/40 px-3 py-2 font-body-dense text-body-dense text-error">
+        <div className="flex items-center gap-2.5 rounded-lg border border-error/20 bg-error-container/50 px-3.5 py-2.5 font-body-dense text-body-dense text-error">
           <span className="material-symbols-outlined text-[17px]">error_outline</span>
           {error}
         </div>
       ) : null}
       {success ? (
-        <div className="flex items-center gap-2 rounded border border-primary-container bg-primary-container/20 px-3 py-2 font-body-dense text-body-dense text-primary">
+        <div className="flex items-center gap-2.5 rounded-lg border border-primary-container/40 bg-primary-container/20 px-3.5 py-2.5 font-body-dense text-body-dense text-primary">
           <span className="material-symbols-outlined text-[17px]">check_circle</span>
           {success}
         </div>
@@ -281,7 +283,7 @@ export function AddSupplierForm() {
           title="Company Information"
           description="Primary corporate entity, commercial contact authority, and warehouse dispatch address."
           badge={
-            <span className="rounded border border-outline-variant bg-surface-container px-2 py-0.5 font-label-caps text-label-caps uppercase text-secondary">
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
               Entity Core
             </span>
           }
@@ -332,7 +334,7 @@ export function AddSupplierForm() {
               hint="Primary landline or mobile for delivery coordination."
             >
               <div className="relative flex items-center">
-                <span className="pointer-events-none absolute left-2.5 select-none font-mono-data-sm text-mono-data-sm text-secondary">
+                <span className="pointer-events-none absolute left-2.5 select-none font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                   +92
                 </span>
                 <input
@@ -350,7 +352,7 @@ export function AddSupplierForm() {
               label={
                 <>
                   <span>Email Address</span>
-                  <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
+                  <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
                 </>
               }
               hint="Automated dispatch for purchase orders and payment remittances."
@@ -368,7 +370,7 @@ export function AddSupplierForm() {
               label={
                 <>
                   <span>Distribution Hub / City</span>
-                  <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
+                  <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
                 </>
               }
               hint="Transit origin calculating estimated freight timeline."
@@ -385,7 +387,7 @@ export function AddSupplierForm() {
                     </option>
                   ))}
                 </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-2 text-[18px] text-outline">
+                <span className="material-symbols-outlined pointer-events-none absolute right-3 text-[18px] text-on-surface-variant">
                   expand_more
                 </span>
               </div>
@@ -395,7 +397,7 @@ export function AddSupplierForm() {
               label={
                 <>
                   <span>Tax Exemption Status</span>
-                  <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
+                  <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
                 </>
               }
               hint="Applies automated withholding deductions at voucher posting."
@@ -412,7 +414,7 @@ export function AddSupplierForm() {
                     </option>
                   ))}
                 </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-2 text-[18px] text-outline">
+                <span className="material-symbols-outlined pointer-events-none absolute right-3 text-[18px] text-on-surface-variant">
                   expand_more
                 </span>
               </div>
@@ -441,7 +443,7 @@ export function AddSupplierForm() {
             label={
               <>
                 <span>Supplied Products</span>
-                <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
+                <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
               </>
             }
             hint="Search and select products from the catalog that this supplier can fulfil."
@@ -461,7 +463,7 @@ export function AddSupplierForm() {
           title="Tax and Accounts"
           description="FBR NTN registration, opening payable obligations, and settlement credit terms."
           badge={
-            <span className="rounded border border-outline-variant bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm font-medium text-primary">
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm font-semibold text-primary">
               Ledger Code: {nextCode}
             </span>
           }
@@ -471,7 +473,7 @@ export function AddSupplierForm() {
               label={
                 <>
                   <span>Tax Information / NTN</span>
-                  <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
+                  <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
                 </>
               }
               hint="National Tax Number or Sales Tax Registration Number."
@@ -506,7 +508,7 @@ export function AddSupplierForm() {
                     </option>
                   ))}
                 </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-2 text-[18px] text-outline">
+                <span className="material-symbols-outlined pointer-events-none absolute right-3 text-[18px] text-on-surface-variant">
                   expand_more
                 </span>
               </div>
@@ -516,13 +518,13 @@ export function AddSupplierForm() {
               label={
                 <>
                   <span>Opening Balance (PKR)</span>
-                  <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
+                  <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
                 </>
               }
               hint="Amount you already owe this supplier before using StockFlow (entered as Credit/Payable)."
             >
               <div className="relative flex items-center">
-                <span className="pointer-events-none absolute left-2.5 select-none font-mono-data-sm text-mono-data-sm font-medium text-secondary">
+                <span className="pointer-events-none absolute left-2.5 select-none font-mono-data-sm text-mono-data-sm font-medium text-on-surface-variant">
                   Rs.
                 </span>
                 <input
@@ -543,7 +545,7 @@ export function AddSupplierForm() {
               label={
                 <>
                   <span>Credit Period Grace Days</span>
-                  <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
+                  <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
                 </>
               }
               hint="Buffer allowed before purchase invoice triggers payment overdue alert."
@@ -560,15 +562,15 @@ export function AddSupplierForm() {
                     </option>
                   ))}
                 </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-2 text-[18px] text-outline">
+                <span className="material-symbols-outlined pointer-events-none absolute right-3 text-[18px] text-on-surface-variant">
                   expand_more
                 </span>
               </div>
             </Field>
           </div>
 
-          <div className="mt-2 flex items-start gap-3 rounded border border-outline-variant bg-surface-container p-3.5">
-            <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-container/10">
+          <div className="mt-2 flex items-start gap-3 rounded-lg border border-outline-variant/80 bg-surface-container p-4">
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary-container/15">
               <span className="material-symbols-outlined text-[17px] text-primary">verified</span>
             </div>
             <div className="flex flex-col gap-0.5">
@@ -586,24 +588,26 @@ export function AddSupplierForm() {
           </div>
         </SectionCard>
 
-        <div className="overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-sm">
-          <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-4">
+        <section className="flex flex-col overflow-hidden rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant/80 bg-surface-container-low px-6 py-4">
             <div>
               <h2 className="font-headline-md text-headline-md text-on-surface">
                 3. Notes &amp; Trade Terms
               </h2>
-              <p className="mt-0.5 font-body-dense text-body-dense text-secondary">
+              <p className="mt-0.5 font-body-dense text-body-dense text-on-surface-variant">
                 Special procurement arrangements, distributor rebate slabs, and delivery schedules.
               </p>
             </div>
-            <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+              (Optional)
+            </span>
           </div>
           <div className="p-6">
             <Field
               label={
                 <>
                   <span>Procurement Notes &amp; Delivery Guarantees</span>
-                  <span className="font-mono-data-sm font-normal text-secondary">(Optional)</span>
+                  <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
                 </>
               }
               hint="Internal procurement remarks are strictly confidential and will not appear on vendor POs."
@@ -617,19 +621,19 @@ export function AddSupplierForm() {
                 rows={3}
               />
               <div className="mt-0.5 flex items-center justify-between">
-                <span className="font-body-dense text-body-dense text-secondary">
+                <span className="font-body-dense text-body-dense text-on-surface-variant">
                   Internal procurement remarks are strictly confidential and will not appear on
                   vendor POs.
                 </span>
-                <span className="font-mono-data-sm text-mono-data-sm text-outline">
+                <span className="rounded-md bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                   Max 500 characters
                 </span>
               </div>
             </Field>
           </div>
-        </div>
+        </section>
 
-        <div className="sticky bottom-0 z-30 -mx-6 flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant bg-surface-container-lowest px-6 py-3.5 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
+        <div className="sticky bottom-0 z-30 -mx-6 flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/80 bg-surface-container-lowest/95 px-6 py-3.5 shadow-[0_-4px_16px_rgba(28,28,24,0.08)] backdrop-blur">
           <div className="flex items-center gap-2.5">
             <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary"></div>
             <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
@@ -642,7 +646,7 @@ export function AddSupplierForm() {
               type="button"
               onClick={() => router.push("/suppliers")}
               disabled={saving}
-              className="h-[34px] rounded border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition-colors hover:border-outline hover:bg-surface-container disabled:opacity-50"
+              className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
               Cancel
             </button>
@@ -650,14 +654,14 @@ export function AddSupplierForm() {
               type="button"
               onClick={() => void save(true)}
               disabled={saving}
-              className="h-[34px] rounded border border-outline-variant bg-surface-container px-3.5 font-body-medium text-body-medium text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:opacity-50"
+              className="h-9 rounded-lg border border-outline-variant bg-surface-container px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:bg-surface-container-high active:translate-y-px disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
               Save &amp; Add Another
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex h-[34px] items-center gap-1.5 rounded bg-primary-container px-5 font-body-medium text-body-medium text-on-primary shadow-sm transition-colors hover:bg-primary active:bg-primary-container disabled:opacity-60"
+              className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-5 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
               <span className="material-symbols-outlined text-[17px]">
                 {saving ? "progress_activity" : "save"}

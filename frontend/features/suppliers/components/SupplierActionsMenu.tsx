@@ -48,32 +48,32 @@ export function SupplierActionsMenu({
         onClick={onToggle}
         aria-label={`Actions for ${supplier.name}`}
         aria-expanded={open}
-        className={`mx-auto flex h-7 w-7 items-center justify-center rounded transition-colors ${
+        className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
           highlighted
-            ? "bg-surface-container-high text-on-surface"
-            : "text-secondary hover:bg-surface-container-high hover:text-on-surface"
+            ? "border border-outline-variant bg-surface-container-high text-on-surface"
+            : "text-on-surface-variant hover:border border-outline-variant/70 hover:bg-surface-container hover:text-on-surface"
         }`}
       >
         <span className="material-symbols-outlined text-[18px]">more_vert</span>
       </button>
 
       {open ? (
-        <div className="absolute right-8 top-2 z-[9999] w-44 rounded bg-surface-container-lowest py-1 text-left shadow-md">
-          <div className="border-b border-surface-container px-3 py-1 font-label-caps text-[10px] uppercase tracking-wider text-secondary">
+        <div className="absolute right-0 top-9 z-[9999] w-48 rounded-lg border border-outline-variant/80 bg-surface-container-lowest py-1.5 text-left shadow-panel">
+          <div className="border-b border-outline-variant/80 px-3 py-1.5 font-label-caps text-[10px] uppercase tracking-wider text-on-surface-variant">
             Actions: {supplier.name.split(" ").slice(0, 2).join(" ")}
           </div>
           <button
             type="button"
             onClick={() => onOpenProfile(supplier)}
-            className="flex w-full items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container"
+            className="flex w-full items-center gap-2.5 px-3 py-2 font-body-default text-body-default text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[16px] text-secondary">person</span>
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">person</span>
             Open Profile
           </button>
           <button
             type="button"
             onClick={() => onCreatePurchase(supplier)}
-            className="flex w-full items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container"
+            className="flex w-full items-center gap-2.5 px-3 py-2 font-body-default text-body-default text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             <span className="material-symbols-outlined text-[16px] text-primary">
               add_shopping_cart
@@ -83,26 +83,26 @@ export function SupplierActionsMenu({
           <button
             type="button"
             onClick={() => onRecordPayment(supplier)}
-            className="flex w-full items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container"
+            className="flex w-full items-center gap-2.5 px-3 py-2 font-body-default text-body-default text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             <span className="material-symbols-outlined text-[16px] text-primary">
               receipt_long
             </span>
             Record Payment
           </button>
-          <div className="my-1 h-px bg-surface-container"></div>
+          <div className="my-1 h-px bg-outline-variant/80" />
           <button
             type="button"
             onClick={() => onEdit(supplier)}
-            className="flex w-full items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container"
+            className="flex w-full items-center gap-2.5 px-3 py-2 font-body-default text-body-default text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[16px] text-secondary">edit</span>
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">edit</span>
             Edit
           </button>
           <button
             type="button"
             onClick={() => onDelete(supplier)}
-            className="flex w-full items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-error transition-colors hover:bg-error-container/40"
+            className="flex w-full items-center gap-2.5 px-3 py-2 font-body-default text-body-default text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
           >
             <span className="material-symbols-outlined text-[16px] text-error">delete</span>
             Delete

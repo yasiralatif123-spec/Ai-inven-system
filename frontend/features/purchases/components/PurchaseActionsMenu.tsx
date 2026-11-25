@@ -48,43 +48,43 @@ export function PurchaseActionsMenu({
         onClick={onToggle}
         aria-label={`Open actions for ${purchase.id}`}
         aria-expanded={open}
-        className={`mx-auto flex h-7 w-7 items-center justify-center rounded border transition-colors ${
+        className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
           open
             ? "border-outline-variant bg-surface-container-high text-on-surface"
-            : "border-transparent text-secondary hover:bg-surface-container"
+            : "border-transparent text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
         }`}
       >
-        <span className="material-symbols-outlined text-[16px]">more_horiz</span>
+        <span className="material-symbols-outlined text-[17px]">more_horiz</span>
       </button>
 
       {open ? (
-        <div className="absolute right-3 top-10 z-[9999] w-44 rounded border border-outline-variant bg-surface-container-lowest py-1 text-left shadow-sm">
-          <div className="border-b border-outline-variant px-3 py-1 font-label-caps text-[10px] uppercase text-secondary">
+        <div className="absolute right-3 top-10 z-[9999] w-52 rounded-xl border border-outline-variant/80 bg-surface-container-lowest py-1.5 text-left shadow-panel">
+          <div className="border-b border-outline-variant/70 px-3 py-1.5 font-label-caps text-label-caps uppercase text-on-surface-variant">
             Actions · {purchase.id}
           </div>
           {ACTIONS.map((action, index) => (
             <div key={action.label}>
               {index >= ACTIONS.length - 2 ? (
-                <div className="my-1 border-t border-outline-variant" />
+                <div className="my-1 border-t border-outline-variant/70" />
               ) : null}
               <button
                 type="button"
                 onClick={() => onAction(action.label)}
-                className={`flex w-full items-center gap-2 px-3 py-1.5 text-body-dense transition-colors hover:bg-surface-container ${
+                className={`flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
                   action.tone === "danger"
-                    ? "text-error"
+                    ? "text-error hover:bg-error-container/40"
                     : action.tone === "primary"
-                      ? "font-medium text-primary"
-                      : "text-on-surface"
+                      ? "font-medium text-primary hover:bg-primary-container/10"
+                      : "text-on-surface hover:bg-surface-container"
                 }`}
               >
                 <span
-                  className={`material-symbols-outlined text-[15px] ${
+                  className={`material-symbols-outlined text-[16px] ${
                     action.tone === "danger"
                       ? "text-error"
                       : action.tone === "primary"
                         ? "text-primary"
-                        : "text-secondary"
+                        : "text-on-surface-variant"
                   }`}
                 >
                   {action.icon}

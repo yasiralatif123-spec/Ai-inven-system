@@ -48,15 +48,21 @@ export function OrdersTable({
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded border border-outline-variant bg-surface-container-lowest">
-      <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-3.5 py-2">
+    <div className="relative w-full overflow-visible rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/80 bg-surface-container-low px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="font-label-caps text-label-caps uppercase text-secondary">Orders Ledger</span>
+          <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
+            Orders Ledger
+          </span>
           <span className="text-outline-variant">/</span>
-          <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">Live Dispatch Queue</span>
+          <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+            Live Dispatch Queue
+          </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono-data-sm text-mono-data-sm text-secondary">Sorted by Time (Desc)</span>
+          <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+            Sorted by Time (Desc)
+          </span>
           <button
             type="button"
             title="Back to first page"
@@ -65,46 +71,50 @@ export function OrdersTable({
               setPage(1);
               setOpenMenuId(null);
             }}
-            className="flex items-center text-secondary transition-colors hover:text-on-surface"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[16px]">refresh</span>
+            <span className="material-symbols-outlined text-[17px]">refresh</span>
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto overflow-y-visible">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="h-8 border-b border-outline-variant bg-surface-container-high/60 font-label-caps text-label-caps uppercase tracking-wider text-secondary">
-              <th className="w-8 px-3 text-center">
+            <tr className="h-10 border-b border-outline-variant/80 bg-surface-container-low font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
+              <th className="w-12 px-4 text-center">
                 <input
                   type="checkbox"
                   checked={allChecked}
                   onChange={toggleAll}
                   aria-label="Select all orders"
-                  className="h-3.5 w-3.5 cursor-pointer rounded border-outline text-primary focus:ring-0"
+                  className="h-4 w-4 cursor-pointer rounded border-outline text-primary focus:ring-0"
                 />
               </th>
-              <th className="px-2.5 py-1.5 font-label-caps">ORDER #</th>
-              <th className="px-2.5 py-1.5 font-label-caps">TIME</th>
-              <th className="px-2.5 py-1.5 font-label-caps">CUSTOMER &amp; LOCATION</th>
-              <th className="px-2.5 py-1.5 text-right font-label-caps">ITEMS</th>
-              <th className="px-2.5 py-1.5 text-right font-label-caps">AMOUNT (RS.)</th>
-              <th className="px-2.5 py-1.5 text-center font-label-caps">PAYMENT</th>
-              <th className="px-2.5 py-1.5 text-center font-label-caps">STATUS</th>
-              <th className="w-28 px-2 py-1.5 text-center">ACTIONS</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">ORDER #</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">TIME</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">CUSTOMER &amp; LOCATION</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">ITEMS</th>
+              <th className="whitespace-nowrap px-4 py-3 text-right font-medium">AMOUNT (RS.)</th>
+              <th className="whitespace-nowrap px-4 py-3 text-center font-medium">PAYMENT</th>
+              <th className="whitespace-nowrap px-4 py-3 text-center font-medium">STATUS</th>
+              <th className="w-20 px-4 py-3 text-center font-medium">ACTIONS</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant font-body-default text-body-dense text-on-surface">
+          <tbody className="divide-y divide-outline-variant/70 bg-surface-container-lowest font-body-default text-body-default">
             {visibleOrders.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-3 py-10 text-center">
-                  <div className="mx-auto flex h-9 w-9 items-center justify-center rounded-full bg-surface-container text-secondary">
-                    <span className="material-symbols-outlined text-[19px]">filter_alt_off</span>
-                  </div>
-                  <div className="mt-2 font-body-medium text-body-medium text-on-surface">No orders found</div>
-                  <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
-                    Try a different search, status, payment, hub, or date.
+                <td colSpan={9} className="px-4 py-14 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="material-symbols-outlined text-[28px] text-outline">
+                      filter_alt_off
+                    </span>
+                    <div className="font-body-medium text-body-medium text-on-surface">
+                      No orders found
+                    </div>
+                    <div className="mt-0.5 font-body-dense text-body-dense text-on-surface-variant">
+                      Try a different search, status, payment, hub, or date.
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -116,61 +126,82 @@ export function OrdersTable({
                     key={order.id}
                     onClick={() => onOpenCustomer(order)}
                     title={`Open customer profile for ${order.customer}`}
-                    className={`cursor-pointer transition-colors hover:bg-surface-container ${cancelled ? "bg-surface-container-low/40 opacity-75" : ""}`}
+                    className={`cursor-pointer transition duration-200 hover:bg-surface-container/60 ${
+                      cancelled ? "bg-surface-container-low/40 opacity-75" : ""
+                    }`}
                   >
                     <td
                       onClick={(event) => event.stopPropagation()}
-                      className="px-3 py-2 text-center"
+                      className="px-4 py-4 text-center"
                     >
                       <input
                         type="checkbox"
                         checked={checkedIds.includes(order.id)}
                         onChange={() => toggleChecked(order.id)}
                         aria-label={`Select ${order.id}`}
-                        className="h-3.5 w-3.5 cursor-pointer rounded border-outline text-primary focus:ring-0"
+                        className="h-4 w-4 cursor-pointer rounded border-outline text-primary focus:ring-0"
                       />
                     </td>
-                    <td className="px-2.5 py-2">
-                      <span className={`font-mono-data text-on-surface ${cancelled ? "line-through" : ""}`}>#{order.id}</span>
-                    </td>
-                    <td className="whitespace-nowrap px-2.5 py-2 font-mono-data-sm text-secondary">{order.time}</td>
-                    <td className="px-2.5 py-2">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onOpenCustomer(order);
-                        }}
-                        title={`Open profile for ${order.customer}`}
-                        className="font-body-medium leading-tight text-on-surface transition-colors hover:text-primary hover:underline"
+                    <td className="whitespace-nowrap px-4 py-4">
+                      <span
+                        className={`font-mono-data text-mono-data font-medium text-primary ${
+                          cancelled ? "line-through decoration-secondary/50" : ""
+                        }`}
                       >
-                        {order.customer}
-                      </button>
-                      <div className="font-mono-data-sm text-[10px] text-secondary">{order.location}</div>
+                        #{order.id}
+                      </span>
                     </td>
-                    <td className="whitespace-nowrap px-2.5 py-2 text-right font-mono-data-sm tabular-nums">
-                      {order.skuCount} {itemLabel(order)} <span className="text-secondary">({order.unitCount}u)</span>
+                    <td className="whitespace-nowrap px-4 py-4 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+                      {order.time}
                     </td>
-                    <td className="whitespace-nowrap px-2.5 py-2 text-right font-mono-data font-medium tabular-nums">
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onOpenCustomer(order);
+                          }}
+                          title={`Open profile for ${order.customer}`}
+                          className={`text-left font-body-medium text-body-medium transition duration-200 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+                            cancelled ? "text-secondary line-through" : "text-on-surface"
+                          }`}
+                        >
+                          {order.customer}
+                        </button>
+                        <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+                          {order.location}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-4 text-right font-mono-data-sm text-mono-data-sm tabular-nums text-on-surface">
+                      {order.skuCount} {itemLabel(order)}{" "}
+                      <span className="text-on-surface-variant">({order.unitCount}u)</span>
+                    </td>
+                    <td
+                      className={`whitespace-nowrap px-4 py-4 text-right font-mono-data text-mono-data font-medium tabular-nums ${
+                        cancelled ? "text-secondary line-through" : "text-on-surface"
+                      }`}
+                    >
                       {formatNumber(order.amount)}
                     </td>
-                    <td className="whitespace-nowrap px-2.5 py-2 text-center">
+                    <td className="whitespace-nowrap px-4 py-4 text-center">
                       <span
-                        className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-label-caps uppercase ${getPaymentClasses(order.paymentStatus)}`}
+                        className={`inline-flex items-center whitespace-nowrap rounded-md border px-2 py-1 font-label-caps text-label-caps uppercase ${getPaymentClasses(order.paymentStatus)}`}
                       >
                         {order.paymentLabel}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-2.5 py-2 text-center">
+                    <td className="whitespace-nowrap px-4 py-4 text-center">
                       <span
-                        className={`inline-block rounded border px-2 py-0.5 text-[10px] font-label-caps uppercase ${getStatusClasses(order.status)}`}
+                        className={`inline-flex items-center whitespace-nowrap rounded-md border px-2.5 py-1 font-label-caps text-label-caps uppercase ${getStatusClasses(order.status)}`}
                       >
                         {order.status}
                       </span>
                     </td>
                     <td
                       onClick={(event) => event.stopPropagation()}
-                      className="px-2 py-2 text-center"
+                      className="px-4 py-4 text-center"
                     >
                       <OrderActionsMenu
                         order={order}
@@ -204,14 +235,17 @@ export function OrdersTable({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant bg-surface-container-low px-3.5 py-2.5 font-mono-data-sm text-mono-data-sm text-secondary">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/80 bg-surface-container-low px-4 py-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span>
-            Showing <strong className="text-on-surface">{orders.length === 0 ? 0 : start + 1}-{Math.min(start + pageSize, orders.length)}</strong> of{" "}
-            <strong className="text-on-surface">{orders.length}</strong> orders
+            Showing{" "}
+            <strong className="font-medium text-on-surface">
+              {orders.length === 0 ? 0 : start + 1}-{Math.min(start + pageSize, orders.length)}
+            </strong>{" "}
+            of <strong className="font-medium text-on-surface">{orders.length}</strong> orders
           </span>
           <span className="text-outline-variant">|</span>
-          <label className="flex items-center gap-1">
+          <label className="flex items-center gap-1.5">
             Rows per page:
             <select
               value={pageSize}
@@ -220,7 +254,7 @@ export function OrdersTable({
                 setPage(1);
                 setOpenMenuId(null);
               }}
-              className="rounded border border-outline-variant bg-surface px-1.5 py-0.5 text-on-surface focus:outline-none"
+              className="h-7 rounded-md border border-outline-variant bg-surface-container-lowest px-1.5 text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
             >
               <option value={20}>20</option>
               <option value={50}>50</option>
@@ -237,9 +271,9 @@ export function OrdersTable({
               setPage((current) => Math.max(1, current - 1));
               setOpenMenuId(null);
             }}
-            className="flex h-6 w-6 items-center justify-center rounded border border-outline-variant bg-surface transition-colors hover:bg-surface-container disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <span className="material-symbols-outlined text-[14px]">chevron_left</span>
+            <span className="material-symbols-outlined text-[16px]">chevron_left</span>
           </button>
           {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
             <button
@@ -249,10 +283,10 @@ export function OrdersTable({
                 setPage(pageNumber);
                 setOpenMenuId(null);
               }}
-              className={`h-6 w-6 rounded border font-mono-data-sm text-mono-data-sm ${
+              className={`h-7 min-w-7 rounded-lg px-1 font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
                 pageNumber === currentPage
-                  ? "border-primary bg-primary text-on-primary"
-                  : "border-outline-variant bg-surface transition-colors hover:bg-surface-container"
+                  ? "border border-primary bg-primary text-on-primary"
+                  : "border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline hover:bg-surface-container hover:text-on-surface"
               }`}
             >
               {pageNumber}
@@ -266,9 +300,9 @@ export function OrdersTable({
               setPage((current) => Math.min(totalPages, current + 1));
               setOpenMenuId(null);
             }}
-            className="flex h-6 w-6 items-center justify-center rounded border border-outline-variant bg-surface transition-colors hover:bg-surface-container disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
+            <span className="material-symbols-outlined text-[16px]">chevron_right</span>
           </button>
         </div>
       </div>

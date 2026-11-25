@@ -241,17 +241,23 @@ export function SalesOrdersView() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <SalesOrdersHeader onExport={handleExport} onNewOrder={openNewOrder} />
       <SalesKpis data={kpis} />
 
       {error ? (
-        <div className="flex items-center justify-between gap-3 rounded border border-error-container bg-error-container/40 px-3 py-2 font-mono-data-sm text-mono-data-sm text-error">
-          <span>{error}</span>
+        <div
+          role="alert"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-error/20 bg-error-container/30 px-4 py-3 font-mono-data-sm text-mono-data-sm text-error shadow-panel"
+        >
+          <span className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[17px]">error_outline</span>
+            {error}
+          </span>
           <button
             type="button"
             onClick={() => setReloadKey((key) => key + 1)}
-            className="shrink-0 font-body-medium text-body-dense underline"
+            className="h-8 shrink-0 rounded-lg border border-error/20 bg-surface-container-lowest px-3 font-body-medium text-body-medium text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
             Retry
           </button>
@@ -259,7 +265,7 @@ export function SalesOrdersView() {
       ) : null}
 
       {notice ? (
-        <div className="rounded border border-outline-variant bg-surface-container px-3 py-2 font-mono-data-sm text-mono-data-sm text-secondary">
+        <div className="rounded-xl border border-outline-variant/80 bg-surface-container px-4 py-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant shadow-sm">
           {notice}
         </div>
       ) : null}
@@ -279,8 +285,22 @@ export function SalesOrdersView() {
       />
 
       {loading ? (
-        <div className="flex min-h-64 items-center justify-center rounded border border-outline-variant bg-surface-container-lowest font-mono-data-sm text-mono-data-sm text-secondary">
-          Loading sale orders...
+        <div
+          aria-live="polite"
+          className="flex min-h-64 flex-col items-center justify-center gap-4 rounded-xl border border-outline-variant/80 bg-surface-container-lowest px-4 py-10 shadow-panel"
+        >
+          <div className="w-full max-w-3xl animate-pulse space-y-3">
+            <div className="h-3 w-40 rounded bg-surface-container" />
+            <div className="h-10 rounded-lg bg-surface-container" />
+            <div className="space-y-2 rounded-lg border border-outline-variant/60 p-4">
+              <div className="h-3 w-full rounded bg-surface-container" />
+              <div className="h-3 w-5/6 rounded bg-surface-container" />
+              <div className="h-3 w-3/4 rounded bg-surface-container" />
+            </div>
+          </div>
+          <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+            Loading sale orders...
+          </span>
         </div>
       ) : (
         <OrdersTable

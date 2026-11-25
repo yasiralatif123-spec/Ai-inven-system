@@ -27,7 +27,7 @@ type DropdownPosition = {
 };
 
 const CONTROL_CLASS =
-  "flex min-h-[34px] w-full flex-wrap items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest p-1.5 pr-8 transition-all focus-within:border-primary-container focus-within:ring-1 focus-within:ring-primary-container";
+  "flex min-h-[34px] w-full flex-wrap items-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface-container-lowest p-1.5 pr-8 transition duration-200 hover:border-outline focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container";
 
 export function ProductMultiSelect({
   selectedIds,
@@ -156,7 +156,7 @@ export function ProductMultiSelect({
         {selectedProducts.map((product) => (
           <span
             key={product._id}
-            className="inline-flex max-w-full flex-wrap items-center gap-1 rounded bg-primary-container/15 px-2 py-1 font-body-dense text-body-dense text-black"
+            className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-md bg-primary-container/15 px-2 py-1 font-body-dense text-body-dense text-on-primary-container"
           >
             <span className="truncate">{product.title}</span>
             <button
@@ -164,7 +164,7 @@ export function ProductMultiSelect({
               aria-label={`Remove ${product.title}`}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => toggleProduct(product._id)}
-              className="flex h-4 w-4 shrink-0 items-center justify-center rounded hover:bg-primary-container/30"
+              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-md transition duration-200 hover:bg-primary-container/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
             >
               <span className="material-symbols-outlined text-[13px]">close</span>
             </button>
@@ -188,7 +188,7 @@ export function ProductMultiSelect({
           aria-expanded={open}
           aria-controls={listId}
           autoComplete="off"
-          className="min-w-[170px] flex-1 bg-transparent font-body-default text-body-default text-on-surface outline-none placeholder:text-outline"
+          className="min-w-[170px] flex-1 bg-transparent font-body-default text-body-default text-on-surface outline-none placeholder:text-on-surface-variant/70"
         />
 
         <button
@@ -199,7 +199,7 @@ export function ProductMultiSelect({
             inputRef.current?.focus();
             setOpen(true);
           }}
-          className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded text-outline transition-colors hover:bg-surface-container hover:text-primary"
+          className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-md text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
         >
           <span className="material-symbols-outlined text-[16px]">expand_more</span>
         </button>
@@ -219,22 +219,22 @@ export function ProductMultiSelect({
                 width: position.width,
                 maxHeight: position.maxHeight,
               }}
-              className="fixed z-[250] flex flex-col overflow-hidden rounded border border-outline-variant bg-surface-container-lowest shadow-xl"
+              className="fixed z-[250] flex flex-col overflow-hidden rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel"
               onMouseDown={(event) => event.preventDefault()}
             >
-              <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-high/60 px-2.5 py-1.5">
-                <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+              <div className="flex items-center justify-between border-b border-outline-variant/80 bg-surface-container px-3 py-2">
+                <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
                   {query ? "Matching products" : "Products in catalog"}
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono-data-sm text-mono-data-sm text-outline">
+                  <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                     {selectedIds.length} selected
                   </span>
                   {selectedIds.length > 0 ? (
                     <button
                       type="button"
                       onClick={() => onChange([])}
-                      className="font-body-dense text-body-dense text-primary hover:underline"
+                      className="rounded font-body-dense text-body-dense text-primary transition duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
                     >
                       Clear
                     </button>
@@ -244,7 +244,7 @@ export function ProductMultiSelect({
 
               <div className="flex-1 overflow-y-auto">
                 {loading ? (
-                  <div className="px-2.5 py-3 font-body-dense text-body-dense text-secondary">
+                  <div className="px-3 py-3 font-body-dense text-body-dense text-on-surface-variant">
                     Loading products…
                   </div>
                 ) : error ? (
@@ -252,7 +252,7 @@ export function ProductMultiSelect({
                     {error}
                   </div>
                 ) : matches.length === 0 ? (
-                  <div className="px-2.5 py-3 font-body-dense text-body-dense text-secondary">
+                  <div className="px-3 py-3 font-body-dense text-body-dense text-on-surface-variant">
                     No products match “{query}”.
                   </div>
                 ) : (
@@ -266,17 +266,17 @@ export function ProductMultiSelect({
                         aria-selected={selected}
                         onClick={() => toggleProduct(product._id)}
                         onMouseEnter={() => setActiveIndex(index)}
-                        className={`flex w-full items-center gap-2.5 border-b border-outline-variant/60 px-2.5 py-2 text-left transition-colors last:border-b-0 ${
+                        className={`flex w-full items-center gap-2.5 border-b border-outline-variant/70 px-3 py-2 text-left transition duration-200 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-container ${
                           index === activeIndex
                             ? "bg-primary-container/10"
                             : "hover:bg-surface-container"
                         }`}
                       >
                         <span
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-md border ${
                             selected
                               ? "border-primary bg-primary text-on-primary"
-                              : "border-outline bg-surface-container-lowest"
+                              : "border-outline-variant bg-surface-container-lowest"
                           }`}
                         >
                           {selected ? (
@@ -287,16 +287,16 @@ export function ProductMultiSelect({
                           <span className="flex items-center justify-between gap-2">
                             <span
                               className={`truncate font-body-medium text-body-medium ${
-                                selected ? "text-black" : "text-on-surface"
+                                selected ? "font-semibold text-on-surface" : "text-on-surface"
                               }`}
                             >
                               {product.title}
                             </span>
-                            <span className="shrink-0 font-mono-data-sm text-mono-data-sm text-outline">
+                            <span className="shrink-0 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                               {product.sku}
                             </span>
                           </span>
-                          <span className="flex items-center justify-between gap-2 font-body-dense text-body-dense text-secondary">
+                          <span className="flex items-center justify-between gap-2 font-body-dense text-body-dense text-on-surface-variant">
                             <span className="truncate">
                               {[product.brand, product.category].filter(Boolean).join(" · ")}
                             </span>

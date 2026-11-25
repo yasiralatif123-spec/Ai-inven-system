@@ -28,48 +28,48 @@ export function CustomerActionsMenu({
         onClick={onToggle}
         aria-label={`Actions for ${customer.name}`}
         aria-expanded={open}
-        className={`flex h-7 w-7 items-center justify-center rounded transition-colors ${
+        className={`flex h-8 w-8 items-center justify-center rounded-lg transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
           open
             ? "border border-outline-variant bg-surface-container-high text-on-surface"
-            : "text-secondary hover:bg-surface-container hover:text-on-surface"
+            : "text-on-surface-variant hover:border border-outline-variant/70 hover:bg-surface-container hover:text-on-surface"
         }`}
       >
         <span className="material-symbols-outlined text-[18px]">more_vert</span>
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-8 z-[9999] flex w-44 flex-col rounded border border-outline-variant bg-surface-container-lowest py-1 text-left shadow-sm">
+        <div className="absolute right-0 top-9 z-[9999] flex w-48 flex-col rounded-lg border border-outline-variant/80 bg-surface-container-lowest py-1.5 text-left shadow-panel">
           <button
             type="button"
             onClick={() => onOpenProfile(customer)}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container"
+            className="flex items-center gap-2.5 px-3 py-2 font-body-default text-body-default text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[15px] text-secondary">person</span>
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">person</span>
             Open Profile
           </button>
           <button
             type="button"
             onClick={() => onEdit(customer)}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container"
+            className="flex items-center gap-2.5 px-3 py-2 font-body-default text-body-default text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[15px] text-secondary">edit</span>
+            <span className="material-symbols-outlined text-[16px] text-on-surface-variant">edit</span>
             Edit Customer Info
           </button>
           <button
             type="button"
             onClick={() => onDelete(customer)}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-error transition-colors hover:bg-[#fdf0ee]"
+            className="flex items-center gap-2.5 px-3 py-2 font-body-default text-body-default text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
           >
-            <span className="material-symbols-outlined text-[15px] text-error">delete</span>
+            <span className="material-symbols-outlined text-[16px] text-error">delete</span>
             Delete Customer
           </button>
-          <div className="my-1 h-px bg-outline-variant" />
+          <div className="my-1 h-px bg-outline-variant/80" />
           <button
             type="button"
             onClick={() => onCreateSale(customer)}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-medium text-body-medium text-primary transition-colors hover:bg-surface-container"
+            className="flex items-center gap-2.5 px-3 py-2 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-primary-container/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="material-symbols-outlined text-[15px] text-primary">
+            <span className="material-symbols-outlined text-[16px] text-primary">
               add_shopping_cart
             </span>
             + Create Sale Order
@@ -77,9 +77,9 @@ export function CustomerActionsMenu({
           <button
             type="button"
             onClick={() => onRecordPayment(customer)}
-            className="flex items-center gap-2 px-3 py-1.5 font-body-default text-body-default text-on-surface transition-colors hover:bg-surface-container"
+            className="flex items-center gap-2.5 px-3 py-2 font-body-default text-body-default text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
           >
-            <span className="font-mono-data-sm text-[12px] font-bold text-secondary">₨</span>
+            <span className="font-mono-data-sm text-[12px] font-bold text-on-surface-variant">₨</span>
             Record Payment
           </button>
         </div>
