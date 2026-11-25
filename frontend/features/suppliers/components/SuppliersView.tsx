@@ -259,7 +259,7 @@ export function SuppliersView() {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="h-9 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="h-9 rounded-lg bg-primary px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Retry
           </button>
@@ -312,7 +312,7 @@ export function SuppliersView() {
           <button
             type="button"
             onClick={() => setNotice("WHT ledger download is not connected yet.")}
-            className="rounded font-body-dense text-body-dense font-medium text-primary transition duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="rounded font-body-dense text-body-dense font-medium text-primary transition duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Download Withholding Tax (WHT) Ledger →
           </button>

@@ -104,7 +104,7 @@ export function ReceivePurchaseDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8">
+    <div className="fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-overlay/40 p-4 sm:p-8">
       <div className="w-full max-w-4xl rounded bg-surface-container-lowest shadow-2xl">
         <div className="flex items-start justify-between border-b border-outline-variant px-4 py-3">
           <div>
@@ -127,7 +127,7 @@ export function ReceivePurchaseDialog({
             type="button"
             onClick={onClose}
             aria-label="Close receive goods dialog"
-            className="flex h-8 w-8 items-center justify-center rounded text-outline transition-colors hover:bg-surface-container hover:text-on-surface"
+            className="flex h-8 w-8 items-center justify-center rounded text-outline transition-colors hover:bg-row-hover hover:text-on-surface"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -166,7 +166,7 @@ export function ReceivePurchaseDialog({
                   <th className="w-40 px-3 py-2 text-right">Received Qty (Total)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant">
+              <tbody className="divide-y divide-border">
                 {purchase.items.map((item, index) => {
                   const key = itemKey(item, index);
                   const ordered = Number(item.quantity) || 0;
@@ -243,7 +243,7 @@ export function ReceivePurchaseDialog({
               type="button"
               onClick={receiveAll}
               disabled={saving}
-              className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container disabled:opacity-50"
+              className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-row-hover disabled:opacity-50"
             >
               Receive all remaining
             </button>
@@ -262,7 +262,7 @@ export function ReceivePurchaseDialog({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container disabled:opacity-50"
+            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-row-hover disabled:opacity-50"
           >
             Cancel
           </button>

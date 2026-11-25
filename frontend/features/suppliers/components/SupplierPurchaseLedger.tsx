@@ -17,8 +17,8 @@ const FILTERS: Array<{ value: StatusFilter; label: string }> = [
 ];
 
 const STATUS_CLASSES: Record<PurchaseStatus, string> = {
-  Received: "border border-[#D1E8DC] bg-[#EBF5F0] text-[#2E7D58]",
-  "Partially Received": "border border-[#F4E3C4] bg-[#FDF6E8] text-[#B47818]",
+  Received: "border border-success-border bg-success-container text-success",
+  "Partially Received": "border border-warning-border bg-warning-container text-warning",
   Ordered: "border border-outline-variant bg-secondary-container text-on-secondary-container",
   Draft: "border border-outline-variant bg-surface-container text-secondary",
   Cancelled: "border border-error/20 bg-error-container px-2 text-on-error-container",
@@ -107,7 +107,7 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search PO #, item, or invoice…"
-              className="h-[32px] w-full rounded border border-outline-variant bg-surface pl-8 pr-3 font-body-dense text-body-dense text-on-surface placeholder:text-outline focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container"
+              className="h-[32px] w-full rounded border border-outline-variant bg-surface pl-8 pr-3 font-body-dense text-body-dense text-on-surface placeholder:text-outline focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
@@ -125,7 +125,7 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
               >
                 {option.label}
                 {option.value === "Partially Received" ? (
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-warning-container0" />
                 ) : null}
               </button>
             ))}
@@ -135,7 +135,7 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
         <button
           type="button"
           onClick={() => exportPurchases(rows)}
-          className="flex h-[32px] items-center gap-1.5 rounded border border-outline-variant bg-surface px-2.5 font-body-medium text-body-dense text-on-surface transition-colors hover:bg-surface-container"
+          className="flex h-[32px] items-center gap-1.5 rounded border border-outline-variant bg-surface px-2.5 font-body-medium text-body-dense text-on-surface transition-colors hover:bg-row-hover"
         >
           <span className="material-symbols-outlined text-[16px] text-secondary">file_download</span>
           Export CSV
@@ -158,7 +158,7 @@ export function SupplierPurchaseLedger({ purchases, totalCount }: SupplierPurcha
                 <th className="w-36 px-3 text-center">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant font-body-default text-body-dense text-on-surface">
+            <tbody className="divide-y divide-border font-body-default text-body-dense text-on-surface">
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-3 py-10 text-center">
@@ -205,7 +205,7 @@ function PurchaseRow({ purchase }: { purchase: Purchase }) {
 
   return (
     <tr
-      className={`bg-surface-container-lowest transition-colors hover:bg-[#FAF9F7] ${
+      className={`bg-surface-container-lowest transition-colors hover:bg-row-hover ${
         purchase.status === "Partially Received" ? "border-l-2 border-l-amber-600" : ""
       }`}
     >
@@ -257,7 +257,7 @@ function PurchaseRow({ purchase }: { purchase: Purchase }) {
       </td>
       <td
         className={`px-3 py-2 text-right font-mono-data ${
-          purchase.paid > 0 ? "text-[#2E7D58]" : "text-secondary"
+          purchase.paid > 0 ? "text-success" : "text-secondary"
         }`}
       >
         {formatRs(purchase.paid)}

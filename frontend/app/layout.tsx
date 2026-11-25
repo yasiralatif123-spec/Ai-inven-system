@@ -29,7 +29,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full bg-surface font-sans text-body-default text-on-surface">
+      <body className="min-h-full bg-page font-sans text-body-default text-on-surface">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

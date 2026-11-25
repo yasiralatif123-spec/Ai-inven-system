@@ -58,10 +58,10 @@ export function OrderActionsMenu({
         onClick={onToggle}
         aria-label={`Actions for sale ${order.id}`}
         aria-expanded={open}
-        className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+        className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
           open
             ? "border-outline-variant bg-surface-container-high text-on-surface"
-            : "border-transparent text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+            : "border-transparent text-on-surface-variant hover:bg-row-hover hover:text-on-surface"
         }`}
       >
         <span className="material-symbols-outlined text-[18px]">more_horiz</span>
@@ -73,7 +73,7 @@ export function OrderActionsMenu({
             type="button"
             onClick={() => onEdit(order)}
             disabled={order.status === "Cancelled"}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-on-surface transition duration-200 hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
               edit
@@ -85,7 +85,7 @@ export function OrderActionsMenu({
             onClick={() => onCancel(order)}
             disabled={order.status === "Cancelled"}
             title={order.status === "Cancelled" ? "Order already cancelled" : "Cancel this sale order"}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <span className="material-symbols-outlined text-[16px] text-error">cancel</span>
             Cancel Sale
@@ -93,7 +93,7 @@ export function OrderActionsMenu({
           <button
             type="button"
             onClick={() => onDelete(order)}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[16px] text-error">delete</span>
             Delete Sale
@@ -104,7 +104,7 @@ export function OrderActionsMenu({
             onClick={() => onRecordPayment(order.id)}
             disabled={!hasOutstanding || order.status === "Cancelled"}
             title={order.status === "Cancelled" ? "Cancelled orders cannot receive payments" : hasOutstanding ? undefined : "No outstanding balance"}
-            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-on-surface transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            className="flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense text-on-surface transition duration-200 hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           >
             <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
               payments

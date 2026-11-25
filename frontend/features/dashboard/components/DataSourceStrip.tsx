@@ -13,27 +13,27 @@ export function DataSourceStrip({ sources }: { sources: DashboardSources }) {
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-on-surface-variant">
         <Link
           href="/products"
-          className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <span className="inline-block h-2 w-2 rounded-full bg-primary-container"></span>
           <span>
             Products: <span className="font-medium text-on-surface">{formatNumber(sources.products)}</span>
           </span>
         </Link>
-        <Link href="/inventory" className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
+        <Link href="/inventory" className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           <span className="inline-block h-2 w-2 rounded-full bg-primary-container"></span>
           <span>
             Stock movements:{" "}
             <span className="font-medium text-on-surface">{formatNumber(sources.movements)}</span>
           </span>
         </Link>
-        <Link href="/sales-orders" className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
+        <Link href="/sales-orders" className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           <span className="inline-block h-2 w-2 rounded-full bg-primary"></span>
           <span>
             Sale orders: <span className="font-medium text-on-surface">{formatNumber(sources.orders)}</span>
           </span>
         </Link>
-        <Link href="/suppliers" className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
+        <Link href="/suppliers" className="flex items-center gap-2 rounded-md px-2 py-1 transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           <span className="inline-block h-2 w-2 rounded-full bg-secondary"></span>
           <span>
             Suppliers: <span className="font-medium text-on-surface">{formatNumber(sources.suppliers)}</span>

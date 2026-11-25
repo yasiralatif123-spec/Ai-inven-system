@@ -38,11 +38,11 @@ export function CustomerInvoices({ orders, onViewOrder, onPay }: CustomerInvoice
               <th className="px-3 py-2 text-right">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant font-body-default text-body-default text-on-surface">
+          <tbody className="divide-y divide-border font-body-default text-body-default text-on-surface">
             {orders.map((order) => (
-              <tr key={order.id} className="transition-colors hover:bg-[#faf9f7]">
+              <tr key={order.id} className="transition-colors hover:bg-row-hover">
                 <td className="px-3 py-2.5">
-                  <span className="rounded border border-outline-variant bg-[#f2efeb] px-1.5 py-0.5 font-mono-data text-mono-data font-medium">
+                  <span className="rounded border border-outline-variant bg-surface-container px-1.5 py-0.5 font-mono-data text-mono-data font-medium">
                     {order.id}
                   </span>
                   <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-secondary">
@@ -58,10 +58,10 @@ export function CustomerInvoices({ orders, onViewOrder, onPay }: CustomerInvoice
                 <td className="px-3 py-2.5 text-right font-mono-data text-mono-data font-semibold tabular-nums">
                   {formatRs(order.financials.total)}
                 </td>
-                <td className="px-3 py-2.5 text-right font-mono-data text-mono-data tabular-nums text-[#186a57]">
+                <td className="px-3 py-2.5 text-right font-mono-data text-mono-data tabular-nums text-primary">
                   {formatRs(order.financials.paid)}
                 </td>
-                <td className="px-3 py-2.5 text-right font-mono-data text-mono-data tabular-nums text-[#b47818]">
+                <td className="px-3 py-2.5 text-right font-mono-data text-mono-data tabular-nums text-warning">
                   {formatRs(order.financials.outstanding)}
                 </td>
                 <td className="px-3 py-2.5 text-center">

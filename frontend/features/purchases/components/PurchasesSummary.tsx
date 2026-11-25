@@ -26,7 +26,7 @@ export function PurchasesSummary({ purchases }: PurchasesSummaryProps) {
   ).length;
 
   return (
-    <section className="grid w-full grid-cols-1 divide-y divide-outline-variant/70 rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel md:grid-cols-4 md:divide-x md:divide-y-0">
+    <section className="grid w-full grid-cols-1 divide-y divide-border/70 rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel md:grid-cols-4 md:divide-x md:divide-y-0">
       <div className="flex flex-col justify-between px-5 py-4">
         <div className="flex items-center justify-between gap-3">
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
@@ -95,7 +95,7 @@ export function PurchasesSummary({ purchases }: PurchasesSummaryProps) {
             aria-label="Amount view"
             value={amountView}
             onChange={(event) => setAmountView(event.target.value as PurchaseAmountView)}
-            className="h-8 min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-2 font-label-caps text-label-caps uppercase text-on-surface-variant transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+            className="h-8 min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-2 font-label-caps text-label-caps uppercase text-on-surface-variant transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {PURCHASE_AMOUNT_VIEWS.map((option) => (
               <option key={option} value={option}>

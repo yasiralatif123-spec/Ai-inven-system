@@ -27,7 +27,7 @@ type PurchaseItemsTableProps = {
 };
 
 const CELL_INPUT_CLASS =
-  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data text-mono-data text-on-surface text-right outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container";
+  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data text-mono-data text-on-surface text-right outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary";
 
 export function PurchaseItemsTable({
   items,
@@ -67,7 +67,7 @@ export function PurchaseItemsTable({
         <button
           type="button"
           onClick={() => setScanOpen((current) => !current)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-primary-container/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-primary-container/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <span className="material-symbols-outlined text-[17px]">qr_code_scanner</span>
           <span>{scanOpen ? "Close barcode scan" : "+ Bulk scan barcode"}</span>
@@ -87,12 +87,12 @@ export function PurchaseItemsTable({
             }}
             placeholder="Scan or type SKU / barcode"
             aria-label="Barcode or SKU"
-            className="h-9 min-w-[220px] flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface outline-none transition duration-200 focus:border-primary-container focus:ring-2 focus:ring-primary-container"
+            className="h-9 min-w-[220px] flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface outline-none transition duration-200 focus:border-primary focus:ring-2 focus:ring-primary"
           />
           <button
             type="button"
             onClick={submitScan}
-            className="h-9 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="h-9 rounded-lg bg-primary px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Add item
           </button>
@@ -113,7 +113,7 @@ export function PurchaseItemsTable({
               <th className="w-9 py-3 pl-1 pr-5" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant/70 font-body-default text-body-default text-on-surface">
+          <tbody className="divide-y divide-border/70 font-body-default text-body-default text-on-surface">
             {items.map((item, index) => {
               const invalidQuantity = item.quantity < 0;
               const lineTax = calculateLineTax(item);
@@ -182,7 +182,7 @@ export function PurchaseItemsTable({
                       value={item.unit}
                       onChange={(event) => onItemChange(item.rowId, { unit: event.target.value })}
                       aria-label={`Unit for line ${index + 1}`}
-                      className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
+                      className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary"
                     >
                       {Array.from(new Set([UNIT_OPTIONS, item.unit].flat().filter(Boolean))).map(
                         (unit) => (
@@ -268,7 +268,7 @@ export function PurchaseItemsTable({
                       type="button"
                       onClick={() => onRemoveItem(item.rowId)}
                       aria-label={`Remove line ${index + 1}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-error-container/40 hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-error-container/40 hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <span className="material-symbols-outlined text-[18px]">close</span>
                     </button>
@@ -284,7 +284,7 @@ export function PurchaseItemsTable({
         <button
           type="button"
           onClick={onAddItem}
-          className="inline-flex h-9 items-center gap-2 rounded-lg px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-primary-container/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="inline-flex h-9 items-center gap-2 rounded-lg px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-primary-container/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <span className="material-symbols-outlined text-[18px]">add_circle</span>
           <span>+ Add another product</span>

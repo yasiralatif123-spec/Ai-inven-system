@@ -140,12 +140,12 @@ export function formatCompactAmount(value: number): string {
 
 export function getPaymentClasses(status: PaymentStatus): string {
   if (status === "paid") {
-    return "bg-emerald-50 text-emerald-800 border-emerald-200";
+    return "bg-success-container text-success border-success-border";
   }
   if (status === "partial") {
-    return "bg-amber-50 text-amber-800 border-amber-200";
+    return "bg-warning-container text-warning border-warning-border";
   }
-  return "bg-stone-100 text-stone-700 border-stone-300";
+  return "bg-surface-container text-secondary border-border";
 }
 
 export function getStatusClasses(status: OrderStatus): string {
@@ -154,9 +154,9 @@ export function getStatusClasses(status: OrderStatus): string {
       return "bg-surface-container-highest text-primary border-outline-variant font-medium";
     case "Packed":
     case "Pending Approval":
-      return "bg-amber-50 text-amber-900 border-amber-200";
+      return "bg-warning-container text-warning border-warning-border";
     case "Delivered":
-      return "bg-emerald-50 text-emerald-900 border-emerald-200";
+      return "bg-success-container text-success border-success-border";
     case "Dispatched":
       return "bg-surface-container text-on-surface-variant border-outline-variant";
     case "Credit Hold":

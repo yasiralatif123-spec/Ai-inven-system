@@ -48,10 +48,10 @@ export function PurchaseActionsMenu({
         onClick={onToggle}
         aria-label={`Open actions for ${purchase.id}`}
         aria-expanded={open}
-        className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+        className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
           open
             ? "border-outline-variant bg-surface-container-high text-on-surface"
-            : "border-transparent text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+            : "border-transparent text-on-surface-variant hover:bg-row-hover hover:text-on-surface"
         }`}
       >
         <span className="material-symbols-outlined text-[17px]">more_horiz</span>
@@ -70,12 +70,12 @@ export function PurchaseActionsMenu({
               <button
                 type="button"
                 onClick={() => onAction(action.label)}
-                className={`flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+                className={`flex w-full items-center gap-2 rounded-md px-3 py-2 font-body-dense text-body-dense transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   action.tone === "danger"
                     ? "text-error hover:bg-error-container/40"
                     : action.tone === "primary"
                       ? "font-medium text-primary hover:bg-primary-container/10"
-                      : "text-on-surface hover:bg-surface-container"
+                      : "text-on-surface hover:bg-row-hover"
                 }`}
               >
                 <span

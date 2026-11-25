@@ -3,28 +3,28 @@ export const DASHBOARD_PREVIEW_KPIS = [
     label: "Total Stock SKU",
     value: "1,420",
     note: "98.4% Available",
-    noteClass: "text-emerald-700",
+    noteClass: "text-success",
     highlighted: false,
   },
   {
     label: "Today's Sales",
     value: "Rs. 84,750",
     note: "18 Dispatch Orders",
-    noteClass: "text-[#68645C]",
+    noteClass: "text-secondary",
     highlighted: false,
   },
   {
     label: "Pending Dispatches",
     value: "7",
     note: "2 Loading at Hub",
-    noteClass: "text-amber-700",
+    noteClass: "text-warning",
     highlighted: false,
   },
   {
     label: "Overdue Payables",
     value: "5 Accounts",
     note: "Rs. 6,66,300 Aging",
-    noteClass: "text-[#991B1B]/80",
+    noteClass: "text-error/80",
     highlighted: true,
   },
 ] as const;
@@ -37,7 +37,7 @@ export const DASHBOARD_PREVIEW_ORDERS = [
     manifest: "14 cartons (Dalda, Mezan Oil)",
     amount: "28,500",
     status: "PROCESSING",
-    statusClass: "bg-amber-50 text-amber-800 border-amber-200",
+    statusClass: "bg-warning-container text-warning border-warning-border",
     muted: false,
   },
   {
@@ -47,7 +47,7 @@ export const DASHBOARD_PREVIEW_ORDERS = [
     manifest: "8 crates (Tapal Danedar 950g)",
     amount: "45,000",
     status: "DISPATCHED",
-    statusClass: "bg-blue-50 text-blue-800 border-blue-200",
+    statusClass: "bg-info-container text-info border-info-border",
     muted: false,
   },
   {
@@ -57,7 +57,7 @@ export const DASHBOARD_PREVIEW_ORDERS = [
     manifest: "70 cartons Pakola & Pepsi 1.5L",
     amount: "1,65,000",
     status: "DELIVERED",
-    statusClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    statusClass: "bg-success-container text-success border-success-border",
     muted: false,
   },
   {
@@ -67,7 +67,7 @@ export const DASHBOARD_PREVIEW_ORDERS = [
     manifest: "25 bags Guard Basmati Rice",
     amount: "62,000",
     status: "DELIVERED",
-    statusClass: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    statusClass: "bg-success-container text-success border-success-border",
     muted: true,
   },
 ] as const;

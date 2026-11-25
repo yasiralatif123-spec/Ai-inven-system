@@ -91,9 +91,9 @@ function saleUnitPrice(product: Product, unit: string): number {
 const FIELD_LABEL_CLASS =
   "font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant";
 const NEW_ITEM_INPUT_CLASS =
-  "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container";
+  "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary";
 const NEW_ITEM_TEXT_INPUT_CLASS =
-  "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container";
+  "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary";
 
 export function OrderFormDialog({
   mode,
@@ -306,7 +306,7 @@ export function OrderFormDialog({
             type="button"
             onClick={onClose}
             aria-label={isEdit ? "Close edit form" : "Close new order form"}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-outline-variant/70 bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-outline-variant/70 bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[19px]">close</span>
           </button>
@@ -357,7 +357,7 @@ export function OrderFormDialog({
                 <button
                   type="button"
                   onClick={addItem}
-                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:border-outline hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:border-border hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <span className="material-symbols-outlined text-[17px]">add</span>
                   Add Item
@@ -374,7 +374,7 @@ export function OrderFormDialog({
                   <span className="col-span-2 text-center">Remove</span>
                 </div>
 
-                <div className="divide-y divide-outline-variant/70">
+                <div className="divide-y divide-border/70">
                   {items.map((item, index) => {
                     const product = productForItem(item);
                     const itemTotal =
@@ -469,7 +469,7 @@ export function OrderFormDialog({
                               onClick={() => removeItem(index)}
                               aria-label={`Remove item ${index + 1}`}
                               disabled={items.length === 1}
-                              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-error/20 bg-surface-container-lowest px-3 font-body-medium text-body-medium text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40"
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-error/20 bg-surface-container-lowest px-3 font-body-medium text-body-medium text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               <span className="material-symbols-outlined text-[16px]">delete_outline</span>
                               Remove
@@ -596,7 +596,7 @@ export function OrderFormDialog({
             </label>
           </section>
 
-          <section className="grid grid-cols-1 divide-y divide-outline-variant/70 rounded-xl border border-outline-variant/70 bg-surface-container-low px-4 py-4 text-center sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <section className="grid grid-cols-1 divide-y divide-border/70 rounded-xl border border-outline-variant/70 bg-surface-container-low px-4 py-4 text-center sm:grid-cols-3 sm:divide-x sm:divide-y-0">
             <div className="py-2 sm:py-0">
               <div className={FIELD_LABEL_CLASS}>Subtotal</div>
               <div className="mt-1 font-mono-data text-mono-data font-semibold tabular-nums text-on-surface">
@@ -648,14 +648,14 @@ export function OrderFormDialog({
             <button
               type="button"
               onClick={onClose}
-              className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting
                 ? isEdit

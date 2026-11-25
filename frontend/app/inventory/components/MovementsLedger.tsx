@@ -106,10 +106,10 @@ export function MovementsLedger({
                   key={item.key}
                   type="button"
                   onClick={() => setFilter(item.key)}
-                  className={`rounded-md px-2.5 py-1 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+                  className={`rounded-md px-2.5 py-1 transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                     isActive
                       ? "border border-outline-variant bg-surface-container-lowest font-semibold text-primary shadow-panel"
-                      : "text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+                      : "text-on-surface-variant hover:bg-row-hover hover:text-on-surface"
                   }`}
                 >
                   {item.label} ({counts[item.key] || 0})
@@ -120,7 +120,7 @@ export function MovementsLedger({
         ) : null}
       </div>
 
-      <div className="divide-y divide-outline-variant">
+      <div className="divide-y divide-border">
         {visibleEntries.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center">
             <span className="material-symbols-outlined text-[26px] text-outline">history</span>
@@ -280,7 +280,7 @@ export function MovementsLedger({
                   setDeleteError(null);
                 }}
                 disabled={deleting}
-                className="h-9 rounded-lg border border-outline-variant px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:bg-surface-container disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                className="h-9 rounded-lg border border-outline-variant px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:bg-row-hover disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 Cancel
               </button>

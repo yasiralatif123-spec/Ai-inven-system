@@ -218,7 +218,7 @@ export function CustomersView() {
         <button
           type="button"
           onClick={() => setReloadToken((token) => token + 1)}
-          className="h-9 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="h-9 rounded-lg bg-primary px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Retry
         </button>
@@ -307,7 +307,7 @@ export function CustomersView() {
             type="button"
             onClick={() => setNotice(null)}
             aria-label="Dismiss notification"
-            className="ml-1 rounded p-0.5 text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="ml-1 rounded p-0.5 text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[15px]">close</span>
           </button>

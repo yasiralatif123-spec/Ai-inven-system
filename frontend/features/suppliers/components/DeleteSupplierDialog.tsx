@@ -36,7 +36,7 @@ export function DeleteSupplierDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-overlay/50 p-4">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
       <div
         role="dialog"
@@ -60,7 +60,7 @@ export function DeleteSupplierDialog({
             type="button"
             onClick={onClose}
             aria-label="Close delete confirmation"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -107,7 +107,7 @@ export function DeleteSupplierDialog({
           <button
             type="button"
             onClick={onClose}
-            className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Cancel
           </button>

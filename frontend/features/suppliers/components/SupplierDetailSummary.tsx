@@ -10,7 +10,7 @@ type SupplierDetailSummaryProps = {
 export function SupplierDetailSummary({ financials }: SupplierDetailSummaryProps) {
   return (
     <section className="w-full rounded border border-outline-variant bg-surface-container-lowest">
-      <div className="grid grid-cols-1 divide-y divide-outline-variant sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
+      <div className="grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-4">
         <div className="flex flex-col justify-between p-3.5 lg:p-4">
           <div className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
             Total Purchased
@@ -27,7 +27,7 @@ export function SupplierDetailSummary({ financials }: SupplierDetailSummaryProps
           <div className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
             Amount Paid
           </div>
-          <div className="font-metric-display text-metric-display font-semibold tracking-tight text-[#2E7D58]">
+          <div className="font-metric-display text-metric-display font-semibold tracking-tight text-success">
             {formatRs(financials.amountPaid)}
           </div>
           <div className="mt-1 flex items-center gap-1 font-mono-data-sm text-mono-data-sm text-secondary">

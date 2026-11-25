@@ -48,7 +48,7 @@ export function PurchasesFooter({
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
             aria-label="Previous page"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-40"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
           >
             <span className="material-symbols-outlined text-[17px]">chevron_left</span>
           </button>
@@ -57,10 +57,10 @@ export function PurchasesFooter({
               key={value}
               type="button"
               onClick={() => onPageChange(value)}
-              className={`h-8 w-8 rounded-lg border font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+              className={`h-8 w-8 rounded-lg border font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 value === page
-                  ? "border-transparent bg-primary-container font-medium text-on-primary shadow-sm"
-                  : "border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-surface-container"
+                  ? "border-transparent bg-primary font-medium text-on-primary shadow-sm"
+                  : "border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-row-hover"
               }`}
             >
               {value}
@@ -71,7 +71,7 @@ export function PurchasesFooter({
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
             aria-label="Next page"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-40"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
           >
             <span className="material-symbols-outlined text-[17px]">chevron_right</span>
           </button>
@@ -91,7 +91,7 @@ export function PurchasesFooter({
           <button
             type="button"
             onClick={() => onPageAction("Batch Reconciliation Log")}
-            className="rounded-md font-body-medium text-body-medium text-primary transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="rounded-md font-body-medium text-body-medium text-primary transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Batch Reconciliation Log
           </button>

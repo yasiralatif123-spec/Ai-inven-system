@@ -38,7 +38,7 @@ export function CancelOrderDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-overlay/40 p-4">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
       <div
         role="dialog"
@@ -61,7 +61,7 @@ export function CancelOrderDialog({
             onClick={onClose}
             aria-label="Close cancel confirmation"
             disabled={cancelling}
-            className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-surface-container hover:text-on-surface disabled:opacity-50"
+            className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-row-hover hover:text-on-surface disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -140,7 +140,7 @@ export function CancelOrderDialog({
             type="button"
             onClick={onClose}
             disabled={cancelling}
-            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container disabled:opacity-50"
+            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-row-hover disabled:opacity-50"
           >
             Keep Order
           </button>

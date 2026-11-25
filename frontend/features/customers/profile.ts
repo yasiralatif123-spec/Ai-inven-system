@@ -88,20 +88,20 @@ export function buildCustomerActivity(orders: SalesOrder[]): CustomerActivity[] 
 
 export function getPaymentBadgeClasses(status: PaymentStatus): string {
   if (status === "paid") {
-    return "bg-[#EBF5F0] text-[#2E7D58] border-[#D1E8DC]";
+    return "bg-success-container text-success border-success-border";
   }
   if (status === "partial") {
-    return "bg-[#FDF6E8] text-[#B47818] border-[#F4E3C4]";
+    return "bg-warning-container text-warning border-warning-border";
   }
-  return "bg-[#FDF0EE] text-[#BA3C34] border-[#F7D1CD]";
+  return "bg-error-container text-error border-error-border";
 }
 
 export function getFulfillmentBadgeClasses(status: SalesOrder["status"]): string {
   if (status === "Delivered") {
-    return "bg-[#EBF5F0] text-[#2E7D58] border-[#D1E8DC]";
+    return "bg-success-container text-success border-success-border";
   }
   if (status === "Credit Hold") {
-    return "bg-[#FDF0EE] text-[#BA3C34] border-[#F7D1CD]";
+    return "bg-error-container text-error border-error-border";
   }
   return "bg-surface-container text-on-surface-variant border-outline-variant";
 }

@@ -15,7 +15,7 @@ export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
         </span>
       </div>
 
-      <div className="divide-y divide-outline-variant font-body-default text-body-default">
+      <div className="divide-y divide-border font-body-default text-body-default">
         {rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-5 py-12 text-center">
             <span className="material-symbols-outlined text-[26px] text-primary">check_circle</span>
@@ -61,13 +61,13 @@ export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
                   <Link
                     href={`/purchases/create?${purchaseParams.toString()}`}
                     aria-label={`Create a purchase for ${row.title}`}
-                    className="h-8 rounded-lg bg-primary-container px-2.5 font-mono-data-sm text-mono-data-sm font-medium text-on-primary transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                    className="h-8 rounded-lg bg-primary px-2.5 font-mono-data-sm text-mono-data-sm font-medium text-on-primary transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     Purchase
                   </Link>
                   <Link
                     href={`/inventory?${params.toString()}`}
-                    className="h-8 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data-sm text-mono-data-sm font-medium text-primary-container transition duration-200 hover:bg-surface-container hover:underline active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                    className="h-8 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-mono-data-sm text-mono-data-sm font-medium text-primary-container transition duration-200 hover:bg-row-hover hover:underline active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     Adjust Stock
                   </Link>
@@ -84,7 +84,7 @@ export function CriticalLowStock({ rows }: { rows: LowStockRow[] }) {
         </span>
         <Link
           href="/inventory?tab=alerts"
-          className="rounded-md px-1.5 py-1 font-mono-data-sm text-mono-data-sm font-medium text-primary transition duration-200 hover:bg-surface-container hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="rounded-md px-1.5 py-1 font-mono-data-sm text-mono-data-sm font-medium text-primary transition duration-200 hover:bg-row-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Review inventory -&gt;
         </Link>

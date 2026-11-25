@@ -19,7 +19,7 @@ export function CustomerProfileSummary({ customer, orders = [] }: CustomerProfil
   return (
     <div className="flex flex-col gap-3">
       <div className="rounded border border-outline-variant bg-surface-container-lowest p-4">
-        <div className="grid grid-cols-2 divide-y divide-outline-variant md:grid-cols-4 md:divide-x md:divide-y-0">
+        <div className="grid grid-cols-2 divide-y divide-border md:grid-cols-4 md:divide-x md:divide-y-0">
           <div className="flex flex-col gap-1 pb-3 md:pb-0 md:pr-4">
             <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
               Total Purchases
@@ -36,7 +36,7 @@ export function CustomerProfileSummary({ customer, orders = [] }: CustomerProfil
             <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
               Total Paid
             </span>
-            <div className="font-metric-display text-metric-display tabular-nums text-[#186a57]">
+            <div className="font-metric-display text-metric-display tabular-nums text-primary">
               {formatRs(totalPaid)}
             </div>
             <div className="font-mono-data-sm text-mono-data-sm text-secondary">
@@ -48,7 +48,7 @@ export function CustomerProfileSummary({ customer, orders = [] }: CustomerProfil
             <span className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
               Current Outstanding
             </span>
-            <div className="font-metric-display text-metric-display tabular-nums text-[#b47818]">
+            <div className="font-metric-display text-metric-display tabular-nums text-warning">
               {formatRs(customer.outstanding)}
             </div>
             <div className="font-mono-data-sm text-mono-data-sm text-secondary">
@@ -87,7 +87,7 @@ export function CustomerProfileSummary({ customer, orders = [] }: CustomerProfil
           </div>
           <div className="h-2 w-full overflow-hidden rounded bg-surface-container-high">
             <div
-              className={`h-full rounded ${overLimit ? "bg-error" : "bg-[#d97706]"}`}
+              className={`h-full rounded ${overLimit ? "bg-error" : "bg-warning"}`}
               style={{ width: `${Math.min(exposure, 100)}%` }}
             />
           </div>
@@ -95,12 +95,12 @@ export function CustomerProfileSummary({ customer, orders = [] }: CustomerProfil
       </div>
 
       {warning ? (
-        <div className="flex flex-col gap-3 rounded border border-[#f4d5a2] bg-[#fef9f2] p-3.5 text-on-surface sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded border border-warning-border bg-warning-container p-3.5 text-on-surface sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-2.5">
-            <span className="material-symbols-outlined mt-0.5 shrink-0 text-[20px] text-[#b47818]">
+            <span className="material-symbols-outlined mt-0.5 shrink-0 text-[20px] text-warning">
               warning
             </span>
-            <p className="font-body-default text-body-dense leading-snug text-[#6a4300]">
+            <p className="font-body-default text-body-dense leading-snug text-warning">
               <strong className="font-body-medium">Credit Limit Warning:</strong> Current exposure
               of {formatRs(customer.outstanding)} is {exposure}% of the approved{" "}
               {formatRs(customer.creditLimit)} ceiling.{" "}

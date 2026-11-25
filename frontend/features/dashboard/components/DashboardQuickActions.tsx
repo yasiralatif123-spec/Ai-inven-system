@@ -2,13 +2,13 @@ import Link from "next/link";
 import type { DashboardSources } from "../types";
 
 const LINK_CLASS =
-  "inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px active:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container";
+  "inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px active:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 export function DashboardQuickActions({ sources }: { sources: DashboardSources }) {
   return (
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-3 shadow-panel">
       <div className="flex flex-wrap items-center gap-2">
-        <Link href="/sales-orders?new=1" className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary-container px-3.5 font-body-medium text-body-medium text-on-primary transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
+        <Link href="/sales-orders?new=1" className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3.5 font-body-medium text-body-medium text-on-primary transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           <span className="material-symbols-outlined text-[17px] leading-none">add</span>
           <span>Create Sale</span>
         </Link>

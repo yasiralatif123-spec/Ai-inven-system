@@ -257,7 +257,7 @@ export function SalesOrdersView() {
           <button
             type="button"
             onClick={() => setReloadKey((key) => key + 1)}
-            className="h-8 shrink-0 rounded-lg border border-error/20 bg-surface-container-lowest px-3 font-body-medium text-body-medium text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="h-8 shrink-0 rounded-lg border border-error/20 bg-surface-container-lowest px-3 font-body-medium text-body-medium text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Retry
           </button>

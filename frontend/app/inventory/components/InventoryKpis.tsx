@@ -21,7 +21,7 @@ export function InventoryKpis({
 
   return (
     <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div className="flex min-h-[120px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-panel transition duration-200 hover:border-outline">
+      <div className="flex min-h-[120px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-panel transition duration-200 hover:border-border">
         <div className="flex items-center justify-between gap-2">
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Total On-Hand Stock
@@ -42,7 +42,7 @@ export function InventoryKpis({
         </div>
       </div>
 
-      <div className="flex min-h-[120px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-panel transition duration-200 hover:border-outline">
+      <div className="flex min-h-[120px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-panel transition duration-200 hover:border-border">
         <div className="flex items-center justify-between gap-2">
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Reserved (Pending Dispatch)
@@ -65,7 +65,7 @@ export function InventoryKpis({
         </div>
       </div>
 
-      <div className="flex min-h-[120px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-panel transition duration-200 hover:border-outline">
+      <div className="flex min-h-[120px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-panel transition duration-200 hover:border-border">
         <div className="flex items-center justify-between gap-2">
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Stock Value (Landed Cost)

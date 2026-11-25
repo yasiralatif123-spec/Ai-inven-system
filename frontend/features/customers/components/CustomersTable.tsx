@@ -70,7 +70,7 @@ export function CustomersTable({
                   checked={allSelected}
                   onChange={onToggleAll}
                   aria-label="Select all customers"
-                  className="h-3.5 w-3.5 cursor-pointer rounded border-outline-variant accent-[#1f6f5c] focus:ring-0"
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-outline-variant accent-primary focus:ring-0"
                 />
               </th>
               <th className="min-w-[220px] whitespace-nowrap px-4">Customer / Business</th>
@@ -83,7 +83,7 @@ export function CustomersTable({
               <th className="w-14 px-4 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant/70 font-body-default text-body-default">
+          <tbody className="divide-y divide-border/70 font-body-default text-body-default">
             {customers.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-4 py-14 text-center">
@@ -117,7 +117,7 @@ export function CustomersTable({
                         onClick={(event) => event.stopPropagation()}
                         onChange={() => onToggleRow(customer.id)}
                         aria-label={`Select ${customer.name}`}
-                        className="h-3.5 w-3.5 cursor-pointer rounded border-outline-variant accent-[#1f6f5c] focus:ring-0"
+                        className="h-3.5 w-3.5 cursor-pointer rounded border-outline-variant accent-primary focus:ring-0"
                       />
                     </td>
                     <td className="px-4 py-3 align-top">

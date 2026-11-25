@@ -47,7 +47,7 @@ export function PurchasesTable({
                   checked={allSelected}
                   onChange={onToggleAll}
                   aria-label="Select all purchases"
-                  className="cursor-pointer rounded border-outline text-primary focus:ring-0"
+                  className="cursor-pointer rounded border-border text-primary focus:ring-0"
                 />
               </th>
               <th className="whitespace-nowrap px-4 py-3 font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
@@ -79,7 +79,7 @@ export function PurchasesTable({
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant/70 font-body-default text-body-default">
+          <tbody className="divide-y divide-border/70 font-body-default text-body-default">
             {purchases.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-4 py-14 text-center">
@@ -105,7 +105,7 @@ export function PurchasesTable({
                   <tr
                     key={purchase.id}
                     onClick={() => onOpenSupplierProfile(purchase)}
-                    className={`cursor-pointer bg-surface-container-lowest transition-colors hover:bg-surface-container/60 ${
+                    className={`cursor-pointer bg-surface-container-lowest transition-colors hover:bg-row-hover/60 ${
                       cancelled ? "bg-surface-container-low/40 opacity-75" : ""
                     }`}
                   >
@@ -115,7 +115,7 @@ export function PurchasesTable({
                         checked={selected}
                         onChange={() => onToggleRow(purchase.id)}
                         aria-label={`Select ${purchase.id}`}
-                        className="cursor-pointer rounded border-outline text-primary focus:ring-0"
+                        className="cursor-pointer rounded border-border text-primary focus:ring-0"
                       />
                     </td>
                     <td className="px-4 py-4 font-mono-data text-mono-data text-on-surface">
@@ -125,7 +125,7 @@ export function PurchasesTable({
                           event.stopPropagation();
                           onOpenSupplierProfile(purchase);
                         }}
-                        className="flex items-center gap-1 rounded-md font-medium text-primary transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                        className="flex items-center gap-1 rounded-md font-medium text-primary transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         <span className={cancelled ? "line-through" : ""}>{purchase.id}</span>
                         <span className="material-symbols-outlined text-[13px] text-on-surface-variant">

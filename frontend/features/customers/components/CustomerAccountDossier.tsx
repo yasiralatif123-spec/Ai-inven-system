@@ -15,9 +15,9 @@ type CustomerAccountDossierProps = {
 };
 
 const TONE_CLASSES: Record<CustomerActivity["tone"], string> = {
-  primary: "text-[#186a57]",
+  primary: "text-primary",
   neutral: "text-on-surface",
-  warning: "text-[#b47818]",
+  warning: "text-warning",
 };
 
 function DetailRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
@@ -82,7 +82,7 @@ export function CustomerAccountDossier({ customer, orders }: CustomerAccountDoss
           <div className="flex items-center justify-between border-t border-outline-variant pt-2">
             <DetailRow label="FBR NTN / STRN" value={customer.ntn} mono />
             {customer.ntn ? (
-              <span className="rounded border border-[#D1E8DC] bg-[#EBF5F0] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#2E7D58]">
+              <span className="rounded border border-success-border bg-success-container px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-success">
                 Active Filer
               </span>
             ) : (
@@ -114,7 +114,7 @@ export function CustomerAccountDossier({ customer, orders }: CustomerAccountDoss
             </div>
           </div>
         ) : (
-          <div className="mt-1 flex flex-col divide-y divide-outline-variant">
+          <div className="mt-1 flex flex-col divide-y divide-border">
             {activity.map((item) => (
               <div key={item.id} className="flex flex-col gap-0.5 py-2.5 first:pt-0 last:pb-0">
                 <div className="flex items-center justify-between gap-2">

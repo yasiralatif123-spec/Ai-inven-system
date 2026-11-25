@@ -45,10 +45,10 @@ const EMPTY_FORM: CreateCustomerInput = {
 };
 
 const INPUT_CLASS =
-  "h-[34px] w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60";
+  "h-[34px] w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60";
 const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-9`;
 const TEXTAREA_CLASS =
-  "w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 py-2 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60";
+  "w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 py-2 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60";
 
 function Field({ label, hint, children }: { label: ReactNode; hint?: string; children: ReactNode }) {
   return (
@@ -220,7 +220,7 @@ export function AddCustomerForm() {
             <button
               type="button"
               onClick={() => router.push("/customers")}
-              className="transition duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="transition duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Customer Accounts
             </button>
@@ -244,7 +244,7 @@ export function AddCustomerForm() {
           <button
             type="button"
             onClick={() => setError("CSV import is not connected yet.")}
-            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               upload_file
@@ -254,7 +254,7 @@ export function AddCustomerForm() {
           <button
             type="button"
             onClick={() => router.push("/customers")}
-            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               format_list_bulleted
@@ -542,7 +542,7 @@ export function AddCustomerForm() {
 
       <aside
         aria-label="Form submission bar"
-        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-between gap-4 border-t border-outline-variant/80 bg-surface-container-lowest/95 px-6 shadow-[0_-4px_16px_rgba(28,28,24,0.08)] backdrop-blur md:left-60"
+        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-between gap-4 border-t border-outline-variant/80 bg-surface-container-lowest/95 px-6 shadow-[0_-4px_16px_rgba(38,50,56,0.08)] backdrop-blur md:left-60"
       >
         <div className="flex items-center gap-2.5">
           <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
@@ -559,7 +559,7 @@ export function AddCustomerForm() {
           <button
             type="button"
             onClick={() => router.push("/customers")}
-            className="flex h-9 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-9 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Cancel
           </button>
@@ -567,7 +567,7 @@ export function AddCustomerForm() {
             type="submit"
             form="add-customer-form"
             disabled={saving}
-            className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-6 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-9 items-center gap-2 rounded-lg bg-primary px-6 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[18px]">
               {saving ? "progress_activity" : "how_to_reg"}

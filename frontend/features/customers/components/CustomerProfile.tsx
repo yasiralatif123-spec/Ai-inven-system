@@ -71,7 +71,7 @@ export function CustomerProfile({ customerId }: CustomerProfileProps) {
         <button
           type="button"
           onClick={reload}
-          className="h-[34px] rounded bg-primary-container px-4 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary"
+          className="h-[34px] rounded bg-primary px-4 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary-hover"
         >
           Retry
         </button>
@@ -180,7 +180,7 @@ export function CustomerProfile({ customerId }: CustomerProfileProps) {
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-row-hover"
           >
             <span className="material-symbols-outlined text-[16px]">edit</span>
             Edit
@@ -196,7 +196,7 @@ export function CustomerProfile({ customerId }: CustomerProfileProps) {
           <button
             type="button"
             onClick={() => setCreatingSale(true)}
-            className="flex h-[34px] items-center gap-1.5 rounded bg-primary-container px-4 font-body-medium text-body-medium text-white shadow-sm transition-colors hover:bg-[#185849] active:bg-[#13463A]"
+            className="flex h-[34px] items-center gap-1.5 rounded bg-primary px-4 font-body-medium text-body-medium text-on-primary shadow-sm transition-colors hover:bg-primary-hover active:bg-primary-hover"
           >
             <span className="material-symbols-outlined text-[17px]">add_shopping_cart</span>
             Create Sale
@@ -328,7 +328,7 @@ export function CustomerProfile({ customerId }: CustomerProfileProps) {
 
 function getStatusBadgeClasses(status: string): string {
   if (status === "Active") {
-    return "border border-[#D1E8DC] bg-[#EBF5F0] text-[#2E7D58]";
+    return "border border-success-border bg-success-container text-success";
   }
   if (status === "Blocked") {
     return "border border-error/20 bg-error-container/50 text-error";

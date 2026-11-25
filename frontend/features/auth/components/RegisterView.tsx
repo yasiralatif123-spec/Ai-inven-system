@@ -7,9 +7,9 @@ import { acceptInvite, validateInvite } from "../services/auth.service";
 import type { InviteDetails } from "../types";
 import { doPasswordsMatch, isPasswordValid, passwordStrength } from "../utils";
 
-const labelClass = "mb-1.5 block text-[13px] font-medium text-[#1A1917]";
+const labelClass = "mb-1.5 block text-[13px] font-medium text-on-surface";
 const inputClass =
-  "h-[40px] w-full rounded-[6px] border border-[#E6E3DC] bg-white px-3 text-[14px] text-[#1A1917] transition-colors focus:border-[#1F6F5C] focus:outline-none focus:ring-2 focus:ring-[#1F6F5C]";
+  "h-[40px] w-full rounded-[6px] border border-border bg-card px-3 text-[14px] text-on-surface transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 
 function InviteRegisterForm() {
   const router = useRouter();
@@ -85,40 +85,40 @@ function InviteRegisterForm() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F7F6F3] text-[#1A1917] antialiased selection:bg-[#1F6F5C] selection:text-white">
+    <main className="min-h-screen bg-page text-on-surface antialiased selection:bg-primary selection:text-on-primary">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
         <section className="flex w-full max-w-[620px] flex-col justify-between px-8 py-10 sm:px-12 sm:py-14 lg:px-16 xl:px-20">
           <div>
             <Link href="/" className="mb-10 inline-flex items-center gap-2">
-              <span className="text-[20px] font-bold tracking-tight text-[#1A1917]">StockFlow</span>
-              <span className="rounded-[4px] bg-[#E6E3DC] px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-[#737067]">
+              <span className="text-[20px] font-bold tracking-tight text-on-surface">StockFlow</span>
+              <span className="rounded-[4px] bg-surface-container px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-secondary">
                 B2B
               </span>
             </Link>
 
             <div className="mb-7">
-              <h1 className="text-[24px] font-medium leading-snug tracking-tight text-[#1A1917]">
+              <h1 className="text-[24px] font-medium leading-snug tracking-tight text-on-surface">
                 Accept your invitation
               </h1>
-              <p className="mt-1.5 text-[14px] font-normal text-[#737067]">
+              <p className="mt-1.5 text-[14px] font-normal text-secondary">
                 Create your account to join your workspace.
               </p>
             </div>
 
             {loading ? (
-              <div className="rounded-[6px] border border-[#E6E3DC] bg-white p-4 text-[14px] text-[#737067]">
+              <div className="rounded-[6px] border border-border bg-card p-4 text-[14px] text-secondary">
                 Validating invitation...
               </div>
             ) : null}
 
             {!loading && inviteError ? (
               <div className="space-y-4">
-                <div className="rounded-[6px] border border-[#F0C9C9] bg-[#FFF5F5] p-4 text-[14px] text-[#991B1B]">
+                <div className="rounded-[6px] border border-error-border bg-error-container p-4 text-[14px] text-error">
                   {inviteError}
                 </div>
-                <p className="text-[13px] text-[#737067]">
+                <p className="text-[13px] text-secondary">
                   Need help? Contact your workspace owner or{" "}
-                  <Link href="/login" className="font-medium text-[#1F6F5C] hover:underline">
+                  <Link href="/login" className="font-medium text-primary hover:underline">
                     sign in
                   </Link>
                   .
@@ -128,9 +128,9 @@ function InviteRegisterForm() {
 
             {!loading && invite ? (
               <form onSubmit={handleSubmit} className="w-full space-y-4">
-                <div className="rounded-[6px] border border-[#1F6F5C]/20 bg-[#E8F1EE] p-3">
-                  <div className="text-[12px] font-medium text-[#1F6F5C]">Workspace invitation</div>
-                  <div className="mt-0.5 text-[13px] text-[#175647]">
+                <div className="rounded-[6px] border border-primary/20 bg-primary-container p-3">
+                  <div className="text-[12px] font-medium text-primary">Workspace invitation</div>
+                  <div className="mt-0.5 text-[13px] text-primary">
                     {invite.businessName || "Your workspace"} · {invite.role}
                   </div>
                 </div>
@@ -156,21 +156,21 @@ function InviteRegisterForm() {
                     type="email"
                     value={invite.email}
                     readOnly
-                    className={`${inputClass} bg-[#F7F6F3] text-[#737067]`}
+                    className={`${inputClass} bg-page text-secondary`}
                     autoComplete="email"
                   />
-                  <p className="mt-1 text-[11px] text-[#737067]">Email is set by your invitation.</p>
+                  <p className="mt-1 text-[11px] text-secondary">Email is set by your invitation.</p>
                 </div>
 
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
-                    <label htmlFor="invite_password" className="mb-0 block text-[13px] font-medium text-[#1A1917]">
+                    <label htmlFor="invite_password" className="mb-0 block text-[13px] font-medium text-on-surface">
                       Password
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowPassword((c) => !c)}
-                      className="text-[12px] font-medium text-[#737067] hover:text-[#1A1917]"
+                      className="text-[12px] font-medium text-secondary hover:text-on-surface"
                     >
                       {showPassword ? "Hide" : "Show"}
                     </button>
@@ -189,12 +189,12 @@ function InviteRegisterForm() {
                     {[0, 1, 2, 3].map((segment) => (
                       <div
                         key={segment}
-                        className={`h-1 flex-1 rounded-full ${segment < strength.filledSegments ? "bg-[#1F6F5C]" : "bg-[#E6E3DC]"}`}
+                        className={`h-1 flex-1 rounded-full ${segment < strength.filledSegments ? "bg-primary" : "bg-surface-container"}`}
                       />
                     ))}
-                    {strength.label ? <span className="ml-1 font-mono text-[11px] text-[#1F6F5C]">{strength.label}</span> : null}
+                    {strength.label ? <span className="ml-1 font-mono text-[11px] text-primary">{strength.label}</span> : null}
                   </div>
-                  <p className="mt-1 text-[11px] text-[#737067]">At least 8 characters, with a letter and number.</p>
+                  <p className="mt-1 text-[11px] text-secondary">At least 8 characters, with a letter and number.</p>
                 </div>
 
                 <div>
@@ -204,19 +204,19 @@ function InviteRegisterForm() {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={confirmPassword && !passwordsMatch ? `${inputClass} border-[#DC2626]` : inputClass}
+                    className={confirmPassword && !passwordsMatch ? `${inputClass} border-error` : inputClass}
                     placeholder="Repeat password"
                     autoComplete="new-password"
                     required
                     aria-invalid={Boolean(confirmPassword && !passwordsMatch)}
                   />
                   {confirmPassword && !passwordsMatch ? (
-                    <p className="mt-1.5 text-[12px] text-[#DC2626]" role="alert">Passwords don&apos;t match</p>
+                    <p className="mt-1.5 text-[12px] text-error" role="alert">Passwords don&apos;t match</p>
                   ) : null}
                 </div>
 
                 {submitError ? (
-                  <div className="rounded-[6px] border border-[#F0C9C9] bg-[#FFF5F5] px-3 py-2 text-[13px] text-[#991B1B]" role="alert">
+                  <div className="rounded-[6px] border border-error-border bg-error-container px-3 py-2 text-[13px] text-error" role="alert">
                     {submitError}
                   </div>
                 ) : null}
@@ -227,8 +227,8 @@ function InviteRegisterForm() {
                     disabled={!canSubmit}
                     className={`flex h-[40px] w-full items-center justify-center rounded-[6px] text-[14px] font-medium transition-all ${
                       canSubmit
-                        ? "cursor-pointer bg-[#1F6F5C] text-white shadow-sm hover:bg-[#175647]"
-                        : "cursor-not-allowed bg-[#E6E3DC] text-[#9E9B91]"
+                        ? "cursor-pointer bg-primary text-on-primary shadow-sm hover:bg-primary-hover"
+                        : "cursor-not-allowed bg-surface-container text-secondary"
                     }`}
                   >
                     {submitting ? "Creating account..." : "Create account"}
@@ -236,9 +236,9 @@ function InviteRegisterForm() {
                 </div>
 
                 <div className="pt-2 text-center">
-                  <p className="text-[13px] text-[#737067]">
+                  <p className="text-[13px] text-secondary">
                     Already have an account?{" "}
-                    <Link href="/login" className="font-medium text-[#1F6F5C] hover:underline">
+                    <Link href="/login" className="font-medium text-primary hover:underline">
                       Sign in
                     </Link>
                   </p>
@@ -247,8 +247,8 @@ function InviteRegisterForm() {
             ) : null}
           </div>
 
-          <footer className="mt-10 border-t border-[#E6E3DC]/60 pt-10">
-            <div className="flex items-center justify-between text-[11px] text-[#9E9B91]">
+          <footer className="mt-10 border-t border-border/60 pt-10">
+            <div className="flex items-center justify-between text-[11px] text-secondary">
               <span>© 2026 StockFlow · Pakistan Supply Chain Network</span>
               <div className="flex gap-3">
                 <Link href="#" className="hover:underline">Help</Link>
@@ -259,15 +259,15 @@ function InviteRegisterForm() {
           </footer>
         </section>
 
-        <aside className="hidden min-h-screen flex-col justify-center border-l border-[#E6E3DC] bg-[#EFEDE7] px-12 lg:flex xl:px-20">
+        <aside className="hidden min-h-screen flex-col justify-center border-l border-border bg-sidebar px-12 lg:flex xl:px-20">
           <div className="max-w-[460px]">
-            <div className="mb-2 font-mono text-[12px] font-medium uppercase tracking-wider text-[#737067]">
+            <div className="mb-2 font-mono text-[12px] font-medium uppercase tracking-wider text-secondary">
               INVITE-ONLY ACCESS
             </div>
-            <h2 className="mb-6 text-[20px] font-medium leading-snug text-[#1A1917]">
+            <h2 className="mb-6 text-[20px] font-medium leading-snug text-on-surface">
               Join your business workspace securely.
             </h2>
-            <div className="rounded-[6px] border border-[#E6E3DC] bg-white/60 p-4 text-[14px] text-[#737067]">
+            <div className="rounded-[6px] border border-border bg-card/60 p-4 text-[14px] text-secondary">
               Your role and business are assigned by the invitation. StockFlow does not allow public registration.
             </div>
           </div>
@@ -279,7 +279,7 @@ function InviteRegisterForm() {
 
 export function RegisterView() {
   return (
-    <Suspense fallback={<main className="min-h-screen bg-[#F7F6F3] p-8 text-[14px] text-[#737067]">Loading...</main>}>
+    <Suspense fallback={<main className="min-h-screen bg-page p-8 text-[14px] text-secondary">Loading...</main>}>
       <InviteRegisterForm />
     </Suspense>
   );

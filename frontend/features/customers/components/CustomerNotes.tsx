@@ -10,9 +10,9 @@ type CustomerNotesProps = {
 };
 
 const TONE_CLASSES: Record<"primary" | "neutral" | "warning", string> = {
-  primary: "text-[#186a57]",
+  primary: "text-primary",
   neutral: "text-on-surface",
-  warning: "text-[#b47818]",
+  warning: "text-warning",
 };
 
 export function CustomerNotes({ customer, orders }: CustomerNotesProps) {
@@ -44,7 +44,7 @@ export function CustomerNotes({ customer, orders }: CustomerNotesProps) {
             Order and payment activity will appear here.
           </div>
         ) : (
-          <div className="mt-1 flex flex-col divide-y divide-outline-variant">
+          <div className="mt-1 flex flex-col divide-y divide-border">
             {activity.map((item) => (
               <div key={item.id} className="flex flex-col gap-0.5 py-2.5 first:pt-0 last:pb-0">
                 <div className="flex items-center justify-between gap-2">

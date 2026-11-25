@@ -19,7 +19,7 @@ function Trend({ changePct }: { changePct: number }) {
 export function DashboardKpis({ kpis }: { kpis: DashboardKpis }) {
   return (
     <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <div className="flex min-h-[136px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-panel transition duration-200 hover:border-outline">
+      <div className="flex min-h-[136px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-panel transition duration-200 hover:border-border">
         <div className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
           Total Products
         </div>
@@ -32,7 +32,7 @@ export function DashboardKpis({ kpis }: { kpis: DashboardKpis }) {
         </div>
       </div>
 
-      <div className="flex min-h-[136px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-panel transition duration-200 hover:border-outline">
+      <div className="flex min-h-[136px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-panel transition duration-200 hover:border-border">
         <div className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
           Today&apos;s Sales
         </div>
@@ -44,7 +44,7 @@ export function DashboardKpis({ kpis }: { kpis: DashboardKpis }) {
         </div>
       </div>
 
-      <div className="flex min-h-[136px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-panel transition duration-200 hover:border-outline">
+      <div className="flex min-h-[136px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-5 shadow-panel transition duration-200 hover:border-border">
         <div className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
           Stock Value
         </div>

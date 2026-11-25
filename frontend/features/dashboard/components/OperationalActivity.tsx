@@ -44,7 +44,7 @@ export function OperationalActivity({ items }: { items: ActivityItem[] }) {
               <div className="flex flex-1 flex-wrap items-center justify-between gap-1 text-on-surface">
                 <Link
                   href={item.href}
-                  className="rounded-md px-1.5 py-0.5 transition duration-200 hover:bg-surface-container hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                  className="rounded-md px-1.5 py-0.5 transition duration-200 hover:bg-row-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <span className="font-medium text-on-surface">{item.title}</span>
                   <span className="ml-1.5 text-on-surface-variant">{item.detail}</span>

@@ -54,7 +54,7 @@ export function SalesFilters({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Search by Order #, Customer, or Phone..."
-            className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-14 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+            className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-14 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-outline-variant bg-surface-container px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
             ⌘K
@@ -62,7 +62,7 @@ export function SalesFilters({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+          <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-border hover:bg-row-hover focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
             <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               calendar_today
             </span>
@@ -82,7 +82,7 @@ export function SalesFilters({
             </span>
           </label>
 
-          <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+          <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-border hover:bg-row-hover focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
             <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
               Payment:
             </span>
@@ -102,7 +102,7 @@ export function SalesFilters({
             </span>
           </label>
 
-          <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+          <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-border hover:bg-row-hover focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
             <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               warehouse
             </span>
@@ -128,7 +128,7 @@ export function SalesFilters({
             aria-label="More Filters"
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen((current) => !current)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:border-border hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[18px]">tune</span>
           </button>
@@ -142,7 +142,7 @@ export function SalesFilters({
               type="checkbox"
               checked={statusFilter === "Credit Hold"}
               onChange={(event) => onStatusFilterChange(event.target.checked ? "Credit Hold" : "All Orders")}
-              className="h-4 w-4 cursor-pointer rounded border-outline text-primary focus:ring-0"
+              className="h-4 w-4 cursor-pointer rounded border-border text-primary focus:ring-0"
             />
             Credit hold only
           </label>
@@ -151,7 +151,7 @@ export function SalesFilters({
               type="checkbox"
               checked={paymentFilter === "unpaid"}
               onChange={(event) => onPaymentFilterChange(event.target.checked ? "unpaid" : "all")}
-              className="h-4 w-4 cursor-pointer rounded border-outline text-primary focus:ring-0"
+              className="h-4 w-4 cursor-pointer rounded border-border text-primary focus:ring-0"
             />
             Unpaid only
           </label>
@@ -161,7 +161,7 @@ export function SalesFilters({
               onStatusFilterChange("All Orders");
               onPaymentFilterChange("all");
             }}
-            className="font-body-medium text-body-medium text-primary underline underline-offset-2 transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="font-body-medium text-body-medium text-primary underline underline-offset-2 transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Clear advanced filters
           </button>
@@ -180,7 +180,7 @@ export function SalesFilters({
             ? "border border-error/20 bg-error-container/40 font-body-medium text-body-medium text-error"
             : isActive
               ? "border border-outline-variant bg-surface-container-highest font-body-medium text-body-medium text-primary shadow-sm"
-              : "border border-outline-variant/70 bg-surface-container-lowest font-body-default text-body-medium text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container hover:text-on-surface";
+              : "border border-outline-variant/70 bg-surface-container-lowest font-body-default text-body-medium text-on-surface-variant transition duration-200 hover:border-border hover:bg-row-hover hover:text-on-surface";
 
           return (
             <button
@@ -189,7 +189,7 @@ export function SalesFilters({
               role="tab"
               aria-selected={isActive}
               onClick={() => onStatusFilterChange(status)}
-              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${className}`}
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${className}`}
             >
               <span>{status}</span>
               <span

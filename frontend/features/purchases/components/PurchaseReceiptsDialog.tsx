@@ -20,7 +20,7 @@ export function PurchaseReceiptsDialog({ purchase, onClose }: PurchaseReceiptsDi
   );
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8">
+    <div className="fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-overlay/40 p-4 sm:p-8">
       <div className="w-full max-w-2xl rounded bg-surface-container-lowest shadow-2xl">
         <div className="flex items-center justify-between border-b border-outline-variant px-4 py-3">
           <div>
@@ -35,7 +35,7 @@ export function PurchaseReceiptsDialog({ purchase, onClose }: PurchaseReceiptsDi
             type="button"
             onClick={onClose}
             aria-label="Close receipt history"
-            className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+            className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-row-hover hover:text-on-surface"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -85,7 +85,7 @@ export function PurchaseReceiptsDialog({ purchase, onClose }: PurchaseReceiptsDi
           <button
             type="button"
             onClick={onClose}
-            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-row-hover"
           >
             Close
           </button>

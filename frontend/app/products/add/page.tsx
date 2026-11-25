@@ -139,7 +139,7 @@ function AddProductForm() {
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-2 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
-              <Link href="/products" className="rounded-md px-1 py-0.5 transition duration-200 hover:bg-surface-container hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">Products</Link>
+              <Link href="/products" className="rounded-md px-1 py-0.5 transition duration-200 hover:bg-row-hover hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Products</Link>
               <span className="text-outline-variant">/</span>
               <span>Catalog Management</span>
               <span className="text-outline-variant">/</span>
@@ -166,7 +166,7 @@ function AddProductForm() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
               <div className="flex flex-col gap-1.5 lg:col-span-4">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface">Product Master Image</label>
-                <div className="relative flex min-h-[240px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-low p-8 text-center transition duration-200 hover:border-primary-container hover:bg-surface-container">
+                <div className="relative flex min-h-[240px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-low p-8 text-center transition duration-200 hover:border-primary-container hover:bg-row-hover">
                   <input accept="image/png,image/jpeg" className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" type="file" onChange={onImageChange} />
                   {preview ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -183,31 +183,31 @@ function AddProductForm() {
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:col-span-8">
                 <div className="flex flex-col gap-1.5 md:col-span-2">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="title">Product Title <span className="text-error">*</span></label>
-                  <input id="title" value={form.title} onChange={(e) => set("title", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. Dalda Cooking Oil 5L Tin (Case of 4)" />
+                  <input id="title" value={form.title} onChange={(e) => set("title", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. Dalda Cooking Oil 5L Tin (Case of 4)" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="sku">SKU / Item Code <span className="text-error">*</span></label>
-                  <input id="sku" value={form.sku} onChange={(e) => set("sku", e.target.value.toUpperCase())} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data uppercase transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. DAL-CO-5L" />
+                  <input id="sku" value={form.sku} onChange={(e) => set("sku", e.target.value.toUpperCase())} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data uppercase transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. DAL-CO-5L" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="barcode">Barcode / EAN-13</label>
-                  <input id="barcode" value={form.barcode} onChange={(e) => set("barcode", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. 8964000124891" />
+                  <input id="barcode" value={form.barcode} onChange={(e) => set("barcode", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. 8964000124891" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="category">Category <span className="text-error">*</span></label>
-                  <select id="category" value={form.category} onChange={(e) => set("category", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container">
+                  <select id="category" value={form.category} onChange={(e) => set("category", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
                     {PRODUCT_CATEGORIES.map((o)=><option key={o}>{o}</option>)}
                   </select>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="brand">Brand / Manufacturer <span className="text-error">*</span></label>
-                  <input id="brand" value={form.brand} onChange={(e) => set("brand", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. Dalda Foods Ltd" />
+                  <input id="brand" value={form.brand} onChange={(e) => set("brand", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. Dalda Foods Ltd" />
                 </div>
               </div>
             </div>
             <div className="flex flex-col gap-1.5 border-t border-outline-variant pt-2">
               <label className="font-label-caps text-label-caps uppercase tracking-wider" htmlFor="description">Commercial Specs &amp; Invoice Note</label>
-              <textarea id="description" value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default leading-relaxed transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="Packaging, storage, composition, etc." />
+              <textarea id="description" value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default leading-relaxed transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Packaging, storage, composition, etc." />
             </div>
           </div>
 
@@ -228,7 +228,7 @@ function AddProductForm() {
                 id="priceUnit"
                 value={form.priceUnit}
                 onChange={(event) => setPriceUnit(event.target.value as StockUnit)}
-                className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+                className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {STOCK_UNITS.map((unit) => (
                   <option key={unit} value={unit}>{unit}</option>
@@ -248,7 +248,7 @@ function AddProductForm() {
                   <label className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
                     {f.label} / {form.priceUnit}
                   </label>
-                  <input value={form[f.key]} onChange={(e) => setPrice(f.key, e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-right font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="0.00" />
+                  <input value={form[f.key]} onChange={(e) => setPrice(f.key, e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-right font-mono-data text-mono-data transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" placeholder="0.00" />
                 </div>
               ))}
             </div>
@@ -259,7 +259,7 @@ function AddProductForm() {
               </div>
               <div className="md:col-span-5 flex flex-col gap-1">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">FBR Sales Tax Regime</label>
-                <select value={form.taxBracket} onChange={(e) => set("taxBracket", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container">
+                <select value={form.taxBracket} onChange={(e) => set("taxBracket", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
                   {TAX_BRACKETS.map((o)=><option key={o}>{o}</option>)}
                 </select>
               </div>
@@ -278,13 +278,13 @@ function AddProductForm() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">Base Stock Unit (UOM)</label>
-                <select value={form.uom} onChange={(e) => set("uom", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container">
+                <select value={form.uom} onChange={(e) => set("uom", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
                   {STOCK_UNITS.map((o)=><option key={o}>{o}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">Opening Stock (Base Pieces)</label>
-                <input type="number" min={0} value={form.openingStock} onChange={(e) => set("openingStock", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" />
+                <input type="number" min={0} value={form.openingStock} onChange={(e) => set("openingStock", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" />
                 <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">Stored internally as pieces. 1 Carton = 24 pcs, 1 Box = 12 pcs.</span>
               </div>
               <div className="flex flex-col gap-1.5">
@@ -297,7 +297,7 @@ function AddProductForm() {
                   required
                   value={form.reorderThreshold || 0}
                   onChange={(e) => set("reorderThreshold", e.target.value)}
-                  className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+                  className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">Alert when available stock falls below this number of pieces.</span>
               </div>
@@ -305,13 +305,13 @@ function AddProductForm() {
             <div className="grid grid-cols-1 gap-4 border-t border-outline-variant pt-2 md:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">Primary Depot Allocation</label>
-                <select value={form.warehouse} onChange={(e) => set("warehouse", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container">
+                <select value={form.warehouse} onChange={(e) => set("warehouse", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
                   {WAREHOUSES.map((o)=><option key={o}>{o}</option>)}
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider">Storage Bay / Pallet Rack ID</label>
-                <input value={form.rackBay} onChange={(e) => set("rackBay", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="e.g. Aisle 4, Bay C-12, Level 2" />
+                <input value={form.rackBay} onChange={(e) => set("rackBay", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g. Aisle 4, Bay C-12, Level 2" />
               </div>
             </div>
           </div>
@@ -330,7 +330,7 @@ function AddProductForm() {
                 ["draft", "Draft", "Hidden from sales terminals"],
                 ["discontinued", "Discontinued", "Prevent future reorders"],
               ] as const).map(([val, label, desc]) => (
-                <label key={val} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition duration-200 hover:border-outline ${form.catalogStatus===val ? "border-primary-container bg-primary-fixed/20" : "border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low"}`}>
+                <label key={val} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition duration-200 hover:border-border ${form.catalogStatus===val ? "border-primary-container bg-primary-fixed/20" : "border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low"}`}>
                   <input type="radio" name="catalog_status" checked={form.catalogStatus===val} onChange={() => set("catalogStatus", val)} className="h-4 w-4 accent-primary" />
                   <div><div className="font-body-medium text-body-medium text-on-surface">{label}</div><div className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">{desc}</div></div>
                 </label>
@@ -340,7 +340,7 @@ function AddProductForm() {
               <label className="flex items-start gap-3 rounded-lg border border-outline-variant bg-surface-container-low p-3"><input type="checkbox" checked={form.batchTracking} onChange={(e)=>set("batchTracking", e.target.checked)} className="mt-0.5 h-4 w-4 rounded accent-primary" /><div><div className="font-body-medium text-body-medium text-on-surface">Enable Strict Batch / Lot Tracking</div><div className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">For FEFO stock rotation</div></div></label>
               <div className="flex flex-col gap-2 pl-7">
                 <label className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">Initial Batch Expiry Date</label>
-                <input type="date" value={form.expiryDate} onChange={(e)=>set("expiryDate", e.target.value)} className="h-9 w-full max-w-xs rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container" />
+                <input type="date" value={form.expiryDate} onChange={(e)=>set("expiryDate", e.target.value)} className="h-9 w-full max-w-xs rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
             </div>
           </div>
@@ -352,11 +352,11 @@ function AddProductForm() {
               <span>Image will be uploaded to Cloudinary on save</span>
             </div>
             <div className="flex items-center gap-2.5">
-              <Link href="/products" className="flex h-9 items-center rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">Cancel</Link>
-              <button type="button" disabled={submitting} onClick={() => submit(true)} className="hidden h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-primary transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container sm:flex disabled:opacity-50">
+              <Link href="/products" className="flex h-9 items-center rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Cancel</Link>
+              <button type="button" disabled={submitting} onClick={() => submit(true)} className="hidden h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-primary transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:flex disabled:opacity-50">
                 <span className="material-symbols-outlined text-[17px]">library_add</span><span>Save &amp; Create Another</span>
               </button>
-              <button type="submit" disabled={submitting} className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-5 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50">
+              <button type="submit" disabled={submitting} className="flex h-9 items-center gap-2 rounded-lg bg-primary px-5 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50">
                 <span className="material-symbols-outlined text-[18px]">check_circle</span><span>{submitting ? "Saving..." : "Save Product"}</span>
               </button>
             </div>

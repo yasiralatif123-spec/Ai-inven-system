@@ -42,9 +42,9 @@ function refreshedStockRow(product: Product, _previous: StockRow | null) {
 const ACTIVE_TAB_CLASS =
   "flex flex-1 min-w-fit items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-primary-container bg-primary-fixed/20 px-3.5 py-2 font-body-medium text-body-medium text-primary shadow-panel transition duration-200";
 const INACTIVE_TAB_CLASS =
-  "flex flex-1 min-w-fit items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container";
+  "flex flex-1 min-w-fit items-center justify-center gap-2 whitespace-nowrap rounded-lg px-3.5 py-2 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 const EMPTY_ACTION_CLASS =
-  "inline-flex h-9 items-center justify-center rounded-lg bg-primary-container px-4 font-body-medium text-body-medium font-semibold text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container";
+  "inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 font-body-medium text-body-medium font-semibold text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -204,7 +204,7 @@ export default function InventoryPage() {
       label: "Stock Overview",
       badge: formatNumber(depotRows.length),
       badgeClass:
-        "rounded-md bg-primary-container px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-primary",
+        "rounded-md bg-primary px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-primary",
     },
     {
       key: "movements",
@@ -353,7 +353,7 @@ export default function InventoryPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <span className="material-symbols-outlined text-[17px] text-on-surface-variant">picture_as_pdf</span>
               <span>Stock Audit Report (PDF)</span>
@@ -361,7 +361,7 @@ export default function InventoryPage() {
             <button
               type="button"
               onClick={() => setActiveTab("transfers")}
-              className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <span className="material-symbols-outlined text-[17px] text-on-surface-variant">sync_alt</span>
               <span>Transfer Stock</span>
@@ -370,7 +370,7 @@ export default function InventoryPage() {
               type="button"
               onClick={handleAdjustAction}
               disabled={!activeRow}
-              className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
+              className="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
             >
               <span className="material-symbols-outlined text-[18px]">tune</span>
               <span>+ Adjust Stock</span>
@@ -396,7 +396,7 @@ export default function InventoryPage() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-14 font-body-default text-body-default text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+                className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-14 font-body-default text-body-default text-on-surface placeholder:text-outline transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={
                   activeTab === "alerts"
                     ? "Filter alerts by SKU, product, bay..."
@@ -413,7 +413,7 @@ export default function InventoryPage() {
               <select
                 value={depotFilter}
                 onChange={(event) => handleDepotChange(event.target.value)}
-                className="h-9 cursor-pointer appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-8 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+                className="h-9 cursor-pointer appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-8 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="all">All Depots</option>
                 {depots.map((depot) => (
@@ -431,7 +431,7 @@ export default function InventoryPage() {
               type="button"
               onClick={exportCsv}
               disabled={exportRows.length === 0}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               title={
                 activeTab === "alerts"
                   ? "Export active alerts as CSV"

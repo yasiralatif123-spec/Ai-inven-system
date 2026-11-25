@@ -7,7 +7,7 @@ type CustomerKpisProps = {
 
 export function CustomerKpis({ summary }: CustomerKpisProps) {
   return (
-    <div className="grid w-full grid-cols-1 divide-y divide-outline-variant/70 rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel md:grid-cols-4 md:divide-x md:divide-y-0">
+    <div className="grid w-full grid-cols-1 divide-y divide-border/70 rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel md:grid-cols-4 md:divide-x md:divide-y-0">
       <div className="flex flex-col justify-between px-5 py-4">
         <div className="flex items-center justify-between gap-3">
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">

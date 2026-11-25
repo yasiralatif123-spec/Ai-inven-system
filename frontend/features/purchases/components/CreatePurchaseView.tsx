@@ -688,7 +688,7 @@ export function CreatePurchaseView() {
       />
 
       {loadingPurchase ? (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/20">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-overlay/20">
           <div className="rounded-xl border border-outline-variant/70 bg-surface-container-lowest px-5 py-3 font-body-medium text-body-medium text-on-surface shadow-panel">
             Loading purchase…
           </div>

@@ -51,10 +51,10 @@ type EditProductModalProps = {
 };
 
 const inputClass =
-  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container";
+  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-outline transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 
 const monoInputClass =
-  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container";
+  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface placeholder:text-outline transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 
 function toDateInput(value?: string | null) {
   if (!value) return "";
@@ -275,7 +275,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
             onClick={onClose}
             disabled={saving}
             aria-label="Close"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -295,7 +295,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                   <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
                     Product Master Image
                   </span>
-                  <div className="relative flex min-h-[200px] flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-low p-4 text-center transition duration-200 hover:border-primary-container hover:bg-surface-container">
+                  <div className="relative flex min-h-[200px] flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-low p-4 text-center transition duration-200 hover:border-primary-container hover:bg-row-hover">
                     <input
                       accept="image/png,image/jpeg"
                       className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
@@ -321,7 +321,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     <button
                       type="button"
                       onClick={undoRemoveImage}
-                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-primary transition duration-200 hover:border-outline hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-primary transition duration-200 hover:border-border hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <span className="material-symbols-outlined text-[14px]">undo</span>
                       Undo remove image
@@ -334,7 +334,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                         setImage(null);
                         setPreview("");
                       }}
-                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:border-border hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <span className="material-symbols-outlined text-[14px]">close</span>
                       Clear selected image
@@ -347,7 +347,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                         setPreview("");
                         setRemoveImage(true);
                       }}
-                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-error/30 bg-error-container/20 px-3 font-body-default text-body-default text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-error/30 bg-error-container/20 px-3 font-body-default text-body-default text-error transition duration-200 hover:bg-error-container/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <span className="material-symbols-outlined text-[14px]">delete</span>
                       Remove image
@@ -417,7 +417,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                   value={form.description}
                   onChange={(event) => set("description", event.target.value)}
                   rows={2}
-                  className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default text-body-default leading-relaxed text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+                  className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default text-body-default leading-relaxed text-on-surface placeholder:text-outline transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="Packaging, storage, composition, etc."
                 />
               </Field>
@@ -556,7 +556,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                 {CATALOG_STATUSES.map((option) => (
                   <label
                     key={option.value}
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3.5 transition duration-200 hover:border-outline ${
+                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3.5 transition duration-200 hover:border-border ${
                       form.catalogStatus === option.value
                         ? "border-primary-container bg-primary-fixed/20"
                         : "border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low"
@@ -613,14 +613,14 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                 type="button"
                 onClick={onClose}
                 disabled={saving}
-                className="flex h-9 items-center rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
+                className="flex h-9 items-center rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-5 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
+                className="flex h-9 items-center gap-2 rounded-lg bg-primary px-5 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[17px]">save</span>
                 <span>{saving ? "Saving..." : "Save Changes"}</span>

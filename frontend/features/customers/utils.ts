@@ -119,7 +119,7 @@ export function getCustomerSummary(customers: Customer[]): CustomerSummary {
 
 export function getStatusClasses(status: CustomerStatus): string {
   if (status === "Active") {
-    return "bg-[#EBF5F0] text-[#2E7D58] border border-[#D1E8DC]";
+    return "bg-success-container text-success border border-success-border";
   }
   if (status === "Blocked") {
     return "bg-error-container/50 text-error border border-error/20";
@@ -128,10 +128,10 @@ export function getStatusClasses(status: CustomerStatus): string {
 }
 
 export function getRowClasses(customer: Customer, selected: boolean): string {
-  if (selected) return "bg-surface-container-high/60 hover:bg-surface-container";
-  if (customer.status === "Inactive") return "bg-surface-variant/30 hover:bg-surface-container";
-  if (customer.status === "Blocked") return "bg-error-container/10 hover:bg-surface-container";
-  return "hover:bg-surface-container";
+  if (selected) return "bg-surface-container-high/60 hover:bg-row-hover";
+  if (customer.status === "Inactive") return "bg-surface-variant/30 hover:bg-row-hover";
+  if (customer.status === "Blocked") return "bg-error-container/10 hover:bg-row-hover";
+  return "hover:bg-row-hover";
 }
 
 export function filterCustomers(customers: Customer[], filters: CustomerFilters): Customer[] {

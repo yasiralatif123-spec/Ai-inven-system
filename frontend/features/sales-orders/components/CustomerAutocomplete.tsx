@@ -15,7 +15,7 @@ type CustomerAutocompleteProps = {
 };
 
 const INPUT_CLASS =
-  "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container";
+  "h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary";
 
 export function CustomerAutocomplete({
   customer,
@@ -136,7 +136,7 @@ export function CustomerAutocomplete({
                   className={`flex w-full flex-col gap-1 border-b border-outline-variant/60 px-3 py-2.5 text-left transition duration-200 last:border-b-0 ${
                     index === activeIndex
                       ? "bg-primary-container/10"
-                      : "hover:bg-surface-container focus-visible:bg-surface-container focus-visible:outline-none"
+                      : "hover:bg-row-hover focus-visible:bg-row-hover focus-visible:outline-none"
                   }`}
                 >
                   <span className="flex items-center justify-between gap-2">
@@ -167,7 +167,7 @@ export function CustomerAutocomplete({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex w-full items-center gap-2 border-t border-outline-variant/70 bg-surface-container-low px-3 py-2.5 text-left font-body-dense text-body-dense text-primary transition duration-200 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                className="flex w-full items-center gap-2 border-t border-outline-variant/70 bg-surface-container-low px-3 py-2.5 text-left font-body-dense text-body-dense text-primary transition duration-200 hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <span className="material-symbols-outlined text-[16px]">person_add</span>
                 Use “{customer.trim()}” as a manual customer

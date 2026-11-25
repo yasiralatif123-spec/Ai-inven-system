@@ -58,7 +58,7 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
                 key={item.key}
                 type="button"
                 onClick={() => setPeriod(item.key)}
-                className={`rounded-md px-3 py-1.5 font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+                className={`rounded-md px-3 py-1.5 font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   active
                     ? "border border-outline-variant bg-surface-container-lowest font-medium text-primary shadow-sm"
                     : "text-on-surface-variant hover:bg-surface-container-lowest/70 hover:text-on-surface"
@@ -75,7 +75,7 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
         {hasData ? (
           <>
             <div
-              className="pointer-events-none absolute top-[10%] z-10 -translate-x-1/2 rounded-lg border border-outline bg-inverse-surface px-3 py-2 text-left text-inverse-on-surface shadow-lg"
+              className="pointer-events-none absolute top-[10%] z-10 -translate-x-1/2 rounded-lg border border-border bg-inverse-surface px-3 py-2 text-left text-inverse-on-surface shadow-lg"
               style={{ left: `${Math.min(88, Math.max(12, (geometry.points[currentIndex].x / 800) * 100))}%` }}
             >
               <div className="flex items-center justify-between gap-3 font-label-caps text-label-caps uppercase text-surface-variant">
@@ -92,7 +92,7 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
             </div>
 
             <svg className="h-full w-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 800 200">
-              <g stroke="#E5E2DB" strokeDasharray="2 2" strokeWidth="1">
+              <g stroke="var(--color-border)" strokeDasharray="2 2" strokeWidth="1">
                 {geometry.gridValues.map((value, index) => (
                   <line
                     key={value}
@@ -104,7 +104,7 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
                   />
                 ))}
               </g>
-              <g className="text-[10px]" fill="#6F7975" textAnchor="end" dominantBaseline="middle">
+              <g className="text-[10px]" fill="var(--color-secondary)" textAnchor="end" dominantBaseline="middle">
                 {geometry.gridValues.map((value) => (
                   <text key={value} x="40" y={180 - (value / geometry.niceMax) * 160}>
                     {formatCompactRs(value).replace("Rs. ", "")}
@@ -115,28 +115,28 @@ export function SalesOverview({ charts, summaries }: SalesOverviewProps) {
               <path
                 d={`M ${priorPoints.map((point) => `${point.x} ${point.y}`).join(" L ")}`}
                 fill="none"
-                stroke="#BEC9C4"
+                stroke="var(--color-input-border)"
                 strokeDasharray="4 3"
                 strokeWidth="1.5"
               />
-              <path d={geometry.currentPath} fill="none" stroke="#1F6F5C" strokeWidth="1.75" />
+              <path d={geometry.currentPath} fill="none" stroke="var(--color-primary)" strokeWidth="1.75" />
 
               {geometry.points.map((point, index) => (
                 <circle
                   key={buckets[index].key}
                   cx={point.x}
                   cy={point.y}
-                  fill="#1F6F5C"
+                  fill="var(--color-primary)"
                   opacity={buckets[index].isCurrent ? 1 : 0.6}
                   r={buckets[index].isCurrent ? 5 : 3}
-                  stroke={buckets[index].isCurrent ? "#FFFFFF" : "none"}
+                  stroke={buckets[index].isCurrent ? "var(--color-card)" : "none"}
                   strokeWidth={buckets[index].isCurrent ? 2 : 0}
                 />
               ))}
               {buckets[currentIndex] ? (
                 <line
                   opacity="0.4"
-                  stroke="#1F6F5C"
+                  stroke="var(--color-primary)"
                   strokeDasharray="2 2"
                   strokeWidth="1"
                   x1={geometry.points[currentIndex].x}

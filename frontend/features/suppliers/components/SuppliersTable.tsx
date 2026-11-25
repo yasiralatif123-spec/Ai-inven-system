@@ -99,7 +99,7 @@ export function SuppliersTable({
               <th className="w-14 px-4 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant/70 font-body-default text-body-default">
+          <tbody className="divide-y divide-border/70 font-body-default text-body-default">
             {suppliers.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-4 py-14 text-center">

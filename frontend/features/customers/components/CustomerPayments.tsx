@@ -28,15 +28,15 @@ export function CustomerPayments({ orders, onViewOrder }: CustomerPaymentsProps)
 
   return (
     <div className="overflow-hidden rounded border border-outline-variant bg-surface-container-lowest">
-      <div className="divide-y divide-outline-variant">
+      <div className="divide-y divide-border">
         {payments.map((order) => (
           <div
             key={order.id}
-            className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-[#faf9f7]"
+            className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-row-hover"
           >
             <div className="flex min-w-0 flex-col gap-0.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded border border-outline-variant bg-[#f2efeb] px-1.5 py-0.5 font-mono-data text-mono-data font-medium">
+                <span className="rounded border border-outline-variant bg-surface-container px-1.5 py-0.5 font-mono-data text-mono-data font-medium">
                   {order.id}
                 </span>
                 <span className="font-body-medium text-body-medium text-on-surface">
@@ -48,7 +48,7 @@ export function CustomerPayments({ orders, onViewOrder }: CustomerPaymentsProps)
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="font-mono-data text-mono-data font-semibold tabular-nums text-[#186a57]">
+              <span className="font-mono-data text-mono-data font-semibold tabular-nums text-primary">
                 {formatRs(order.financials.paid)}
               </span>
               <button

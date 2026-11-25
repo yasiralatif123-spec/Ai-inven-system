@@ -57,7 +57,7 @@ function NavGroup({
               key={item.path}
               type="button"
               onClick={onLogout}
-              className="flex items-center rounded px-3 py-2 text-left font-body-default text-body-default text-error transition duration-200 hover:bg-error-container hover:text-on-error-container active:translate-y-px active:bg-error-container/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="flex items-center rounded px-3 py-2 text-left font-body-default text-body-default text-error transition duration-200 hover:bg-error-container hover:text-on-error-container active:translate-y-px active:bg-error-container/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <span className="material-symbols-outlined mr-2.5 text-[18px] text-error">{item.icon}</span>
               {item.label}
@@ -70,7 +70,7 @@ function NavGroup({
               key={item.path}
               href={item.href}
               aria-current="page"
-              className="flex items-center justify-between rounded border-l-2 border-primary bg-primary-container/15 px-3 py-2 pl-[10px] font-body-medium text-body-medium text-primary transition duration-200 hover:bg-primary-container/25 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="flex items-center justify-between rounded border-l-2 border-primary bg-primary-container px-3 py-2 pl-[10px] font-body-medium text-body-medium text-primary transition duration-200 hover:bg-primary-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <div className="flex items-center">
                 <span className="material-symbols-outlined mr-2.5 text-[18px] text-primary">{item.icon}</span>
@@ -88,7 +88,7 @@ function NavGroup({
           <Link
             key={item.path}
             href={item.href}
-            className="flex items-center justify-between rounded px-3 py-2 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface active:translate-y-px active:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex items-center justify-between rounded px-3 py-2 font-body-default text-body-default text-on-surface-variant transition duration-200 hover:bg-nav-hover hover:text-on-surface active:translate-y-px active:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <div className="flex items-center">
               <span className="material-symbols-outlined mr-2.5 text-[18px] text-secondary">{item.icon}</span>
@@ -118,10 +118,10 @@ export function AppShell({ activePath, children }: { activePath: string; childre
   const displayId = user?.id ? `ID #${user.id.slice(-4).toUpperCase()}` : "";
 
   return (
-    <div className="min-h-dvh bg-surface-container-low">
-      <aside className="fixed left-0 top-0 z-50 flex h-dvh w-60 flex-col justify-between overflow-y-auto border-r border-outline-variant bg-surface-container shadow-panel">
+    <div className="min-h-dvh bg-page">
+      <aside className="fixed left-0 top-0 z-50 flex h-dvh w-60 flex-col justify-between overflow-y-auto border-r border-border bg-sidebar shadow-panel">
         <div className="flex flex-col">
-          <div className="border-b border-outline-variant bg-surface-container px-5 py-5">
+          <div className="border-b border-border bg-sidebar px-5 py-5">
             <div className="font-headline-lg text-headline-lg tracking-tight text-on-surface">StockFlow</div>
             <div className="mt-0.5 font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
               Admin Panel
@@ -135,7 +135,7 @@ export function AppShell({ activePath, children }: { activePath: string; childre
               <button
                 type="button"
                 onClick={() => void logout()}
-                className="flex items-center rounded px-3 py-2 text-left font-body-default text-body-default text-error transition duration-200 hover:bg-error-container hover:text-on-error-container active:translate-y-px active:bg-error-container/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                className="flex items-center rounded px-3 py-2 text-left font-body-default text-body-default text-error transition duration-200 hover:bg-error-container hover:text-on-error-container active:translate-y-px active:bg-error-container/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <span className="material-symbols-outlined mr-2.5 text-[18px] text-error">logout</span>
                 Logout
@@ -146,52 +146,52 @@ export function AppShell({ activePath, children }: { activePath: string; childre
       </aside>
 
       <div className="pl-60">
-        <header className="fixed left-60 right-0 top-0 z-40 flex h-14 items-center justify-between border-b border-outline-variant bg-surface-container-lowest px-8 shadow-panel">
-          <div className="flex items-center gap-3">
-            <div className="font-body-medium text-body-medium text-on-surface">Wholesale Operations</div>
-            <span className="text-outline-variant">/</span>
-            <div className="flex items-center rounded border border-outline-variant bg-surface-container px-2 py-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+        <header className="fixed left-60 right-0 top-0 z-40 flex h-[68px] items-center justify-between gap-4 border-b border-border bg-navbar px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="truncate font-body-medium text-body-medium tracking-[-0.01em] text-on-surface">Wholesale Operations</div>
+            <span className="text-outline-variant/80">/</span>
+            <div className="flex shrink-0 items-center rounded-md border border-border bg-surface-container-low px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
               Today · 16 Nov 2026
             </div>
           </div>
-          <div className="mx-8 flex max-w-md flex-1 items-center gap-4">
+          <div className="mx-2 flex min-w-0 max-w-[420px] flex-1 items-center lg:mx-8">
             <div className="relative flex w-full items-center">
-              <span className="material-symbols-outlined pointer-events-none absolute left-2.5 text-[18px] text-outline">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-secondary">
                 search
               </span>
               <input
-                className="h-9 w-full rounded-lg border border-outline-variant bg-surface pl-8 pr-12 font-body-default text-body-default text-on-surface transition duration-200 placeholder:text-outline hover:border-outline active:bg-surface-container-low focus:border-primary-container focus:outline-none focus:ring-1 focus:ring-primary-container"
+                className="h-10 w-full rounded-lg border border-input-border bg-input pl-9 pr-14 font-body-default text-body-default text-on-surface transition duration-200 placeholder:text-secondary/90 hover:border-primary/50 hover:bg-page/40 focus:border-primary focus:bg-input focus:outline-none focus:ring-2 focus:ring-primary/15"
                 placeholder="Search products, customers, invoices..."
                 type="text"
               />
-              <span className="pointer-events-none absolute right-2 rounded border border-outline-variant bg-surface-container-high px-1.5 py-0.5 font-mono-data-sm text-mono-data-sm text-outline">
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-border bg-surface-container px-1.5 py-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
                 ⌘K
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface active:translate-y-px active:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
+          <div className="flex shrink-0 items-center gap-3">
+            <button className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-input text-on-surface-variant transition duration-200 hover:border-primary/30 hover:bg-nav-hover hover:text-primary active:translate-y-px active:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
               <span className="material-symbols-outlined text-[18px]">notifications</span>
             </button>
-            <div className="mx-1 h-4 w-px bg-outline-variant"></div>
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary">
+            <div className="h-6 w-px bg-border"></div>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary">
                 <span className="material-symbols-outlined text-[18px] text-on-primary">person</span>
               </div>
-              <div className="flex flex-col text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-body-medium text-body-medium leading-tight text-on-surface">{displayName}</span>
-                  <span className="rounded border border-outline-variant bg-secondary-container px-1.5 py-0.5 font-label-caps text-label-caps uppercase text-on-secondary-container">
+              <div className="flex min-w-0 flex-col leading-tight text-left">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate font-body-medium text-body-medium text-on-surface">{displayName}</span>
+                  <span className="shrink-0 rounded border border-primary/15 bg-primary-container px-1.5 py-px font-label-caps text-label-caps uppercase tracking-wide text-on-primary-container">
                     {displayRole}
                   </span>
                 </div>
-                {displayId ? <span className="font-mono-data-sm text-mono-data-sm leading-tight text-secondary">{displayId}</span> : null}
+                {displayId ? <span className="truncate font-mono-data-sm text-mono-data-sm text-secondary">{displayId}</span> : null}
               </div>
             </div>
           </div>
         </header>
 
-        <main className="relative min-h-dvh mx-auto w-full max-w-[1440px] bg-surface-container-low px-6 pb-10 pt-20 lg:px-8">{children}</main>
+        <main className="relative min-h-dvh mx-auto w-full max-w-[1440px] bg-page px-6 pb-10 pt-20 lg:px-8">{children}</main>
       </div>
     </div>
   );

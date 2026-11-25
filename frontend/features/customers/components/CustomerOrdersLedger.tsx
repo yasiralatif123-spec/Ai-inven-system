@@ -98,7 +98,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
               setPage(1);
             }}
             placeholder="Search order ID, SKU or date…"
-            className="h-8 w-full max-w-sm rounded border border-outline-variant bg-surface pl-8 pr-3 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary-container focus:outline-none"
+            className="h-8 w-full max-w-sm rounded border border-outline-variant bg-surface pl-8 pr-3 font-body-default text-body-default text-on-surface placeholder:text-outline focus:border-primary focus:outline-none"
           />
         </div>
 
@@ -115,7 +115,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
               className={`rounded border px-2.5 py-1 font-body-medium ${
                 paymentFilter === filter.value
                   ? "border-outline-variant bg-surface-container-highest text-primary"
-                  : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container"
+                  : "border-outline-variant bg-surface text-on-surface-variant hover:bg-row-hover"
               }`}
             >
               {filter.label}
@@ -127,7 +127,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
             onClick={() => exportOrders(filtered)}
             title="Export Ledger"
             aria-label="Export order ledger"
-            className="flex h-[30px] items-center rounded border border-outline-variant bg-surface px-2 text-secondary hover:bg-surface-container hover:text-on-surface"
+            className="flex h-[30px] items-center rounded border border-outline-variant bg-surface px-2 text-secondary hover:bg-row-hover hover:text-on-surface"
           >
             <span className="material-symbols-outlined text-[16px]">download</span>
           </button>
@@ -147,7 +147,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
                 <th className="px-3 py-2 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant font-body-default text-body-default text-on-surface">
+            <tbody className="divide-y divide-border font-body-default text-body-default text-on-surface">
               {paged.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-10 text-center">
@@ -161,9 +161,9 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
                 </tr>
               ) : (
                 paged.map((order) => (
-                  <tr key={order.id} className="transition-colors hover:bg-[#faf9f7]">
+                  <tr key={order.id} className="transition-colors hover:bg-row-hover">
                     <td className="px-3.5 py-2.5">
-                      <span className="rounded border border-outline-variant bg-[#f2efeb] px-1.5 py-0.5 font-mono-data text-mono-data font-medium">
+                      <span className="rounded border border-outline-variant bg-surface-container px-1.5 py-0.5 font-mono-data text-mono-data font-medium">
                         {order.id}
                       </span>
                     </td>
@@ -247,7 +247,7 @@ export function CustomerOrdersLedger({ orders, onViewOrder }: CustomerOrdersLedg
             >
               Prev
             </button>
-            <span className="rounded bg-primary-container px-2.5 py-1 font-medium text-white">
+            <span className="rounded bg-primary px-2.5 py-1 font-medium text-on-primary">
               {currentPage}
             </span>
             <span className="px-1 text-secondary">of {totalPages}</span>

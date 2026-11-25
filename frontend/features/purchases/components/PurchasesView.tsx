@@ -325,7 +325,7 @@ export function PurchasesView() {
               setLoading(true);
               setReloadKey((current) => current + 1);
             }}
-            className="h-8 rounded-lg border border-error/30 bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-error-container transition duration-200 hover:bg-error-container/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="h-8 rounded-lg border border-error/30 bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-error-container transition duration-200 hover:bg-error-container/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Retry
           </button>
@@ -416,7 +416,7 @@ export function PurchasesView() {
       />
 
       {actionLoading ? (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/20">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-overlay/20">
           <div className="rounded-xl border border-outline-variant/70 bg-surface-container-lowest px-5 py-3 font-body-medium text-body-medium text-on-surface shadow-panel">
             Updating purchase…
           </div>

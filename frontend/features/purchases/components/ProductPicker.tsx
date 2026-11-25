@@ -23,7 +23,7 @@ type DropdownPosition = {
 };
 
 const INPUT_CLASS =
-  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 pr-9 font-body-default text-body-default text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container";
+  "h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 pr-9 font-body-default text-body-default text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary";
 
 export function ProductPicker({
   value,
@@ -153,7 +153,7 @@ export function ProductPicker({
           inputRef.current?.focus();
           setOpen(true);
         }}
-        className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-md text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+        className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-md text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <span className="material-symbols-outlined text-[16px]">expand_more</span>
       </button>
@@ -191,7 +191,7 @@ export function ProductPicker({
                     onClick={() => selectProduct(product)}
                     onMouseEnter={() => setActiveIndex(index)}
                     className={`flex w-full flex-col gap-1 border-b border-outline-variant/60 px-3 py-2.5 text-left transition duration-200 last:border-b-0 ${
-                      index === activeIndex ? "bg-primary-container/10" : "hover:bg-surface-container"
+                      index === activeIndex ? "bg-primary-container/10" : "hover:bg-row-hover"
                     }`}
                   >
                     <span className="flex items-center justify-between gap-2">

@@ -69,28 +69,28 @@ export const STOCK_STATUS_META: Record<
 > = {
   critical: {
     label: "Critical Low",
-    badgeClass: "bg-[#FDF0EE] text-[#BA3C34] border-[#F7D1CD]",
-    rowClass: "bg-[#FDF0EE]/20",
+    badgeClass: "bg-error-container text-error border-error-border",
+    rowClass: "bg-error-container/20",
     barClass: "bg-error",
     valueClass: "text-error",
   },
   low: {
     label: "Low Stock",
-    badgeClass: "bg-[#FDF6E8] text-[#B47818] border-[#F4E3C4]",
-    rowClass: "bg-[#FDF6E8]/20",
-    barClass: "bg-[#B47818]",
-    valueClass: "text-[#B47818]",
+    badgeClass: "bg-warning-container text-warning border-warning-border",
+    rowClass: "bg-warning-container/20",
+    barClass: "bg-warning",
+    valueClass: "text-warning",
   },
   "in-stock": {
     label: "In Stock",
-    badgeClass: "bg-[#EBF5F0] text-[#2E7D58] border-[#D1E8DC]",
+    badgeClass: "bg-success-container text-success border-success-border",
     rowClass: "",
     barClass: "bg-primary",
     valueClass: "text-on-surface",
   },
   optimal: {
     label: "Optimal",
-    badgeClass: "bg-[#EBF5F0] text-[#2E7D58] border-[#D1E8DC]",
+    badgeClass: "bg-success-container text-success border-success-border",
     rowClass: "",
     barClass: "bg-primary",
     valueClass: "text-on-surface",
@@ -102,7 +102,7 @@ export const MOVEMENT_META: Record<
   { badgeClass: string; icon: string; titleClass?: string; rowClass?: string }
 > = {
   purchase: {
-    badgeClass: "bg-[#EBF5F0] text-[#2E7D58] border-[#D1E8DC]",
+    badgeClass: "bg-success-container text-success border-success-border",
     icon: "add",
   },
   sale: {
@@ -110,14 +110,14 @@ export const MOVEMENT_META: Record<
     icon: "remove",
   },
   return: {
-    badgeClass: "bg-[#FDF6E8] text-[#B47818] border-[#F4E3C4]",
+    badgeClass: "bg-warning-container text-warning border-warning-border",
     icon: "replay",
   },
   writeoff: {
-    badgeClass: "bg-[#FDF0EE] text-[#BA3C34] border-[#F7D1CD]",
+    badgeClass: "bg-error-container text-error border-error-border",
     icon: "delete_forever",
     titleClass: "text-error",
-    rowClass: "bg-[#FDF0EE]/10",
+    rowClass: "bg-error-container/10",
   },
   adjustment: {
     badgeClass: "bg-surface-container text-on-surface-variant border-outline-variant",

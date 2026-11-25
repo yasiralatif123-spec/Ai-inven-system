@@ -65,7 +65,7 @@ export function CreatePurchaseHeader({
             value={status}
             onChange={(event) => onStatusChange(event.target.value as CreatePurchaseStatus)}
             disabled={saving}
-            className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container disabled:opacity-50"
+            className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary disabled:opacity-50"
           >
             {statuses.map((option) => (
               <option key={option} value={option} disabled={option === legacyStatus}>
@@ -77,7 +77,7 @@ export function CreatePurchaseHeader({
             type="button"
             onClick={onCancel}
             disabled={saving}
-            className="h-9 rounded-lg px-3 font-body-medium text-body-medium text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
+            className="h-9 rounded-lg px-3 font-body-medium text-body-medium text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             Cancel
           </button>
@@ -85,7 +85,7 @@ export function CreatePurchaseHeader({
             type="button"
             onClick={onSaveDraft}
             disabled={saving}
-            className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
+            className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save as Draft"}
           </button>
@@ -93,7 +93,7 @@ export function CreatePurchaseHeader({
             type="button"
             onClick={onSavePurchase}
             disabled={saving}
-            className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:opacity-50"
+            className="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[17px]">check</span>
             <span>{saving ? "Saving…" : "Save Purchase"}</span>

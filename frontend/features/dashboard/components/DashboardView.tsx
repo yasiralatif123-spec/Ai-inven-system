@@ -36,7 +36,7 @@ export function DashboardView() {
         <button
           type="button"
           onClick={reload}
-          className="h-9 rounded-lg bg-primary-container px-5 font-body-medium text-body-medium text-on-primary transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="h-9 rounded-lg bg-primary px-5 font-body-medium text-body-medium text-on-primary transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Retry
         </button>

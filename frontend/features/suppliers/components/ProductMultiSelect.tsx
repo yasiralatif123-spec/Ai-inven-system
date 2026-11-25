@@ -27,7 +27,7 @@ type DropdownPosition = {
 };
 
 const CONTROL_CLASS =
-  "flex min-h-[34px] w-full flex-wrap items-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface-container-lowest p-1.5 pr-8 transition duration-200 hover:border-outline focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container";
+  "flex min-h-[34px] w-full flex-wrap items-center gap-1.5 rounded-lg border border-outline-variant/80 bg-surface-container-lowest p-1.5 pr-8 transition duration-200 hover:border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary";
 
 export function ProductMultiSelect({
   selectedIds,
@@ -164,7 +164,7 @@ export function ProductMultiSelect({
               aria-label={`Remove ${product.title}`}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => toggleProduct(product._id)}
-              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-md transition duration-200 hover:bg-primary-container/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-md transition duration-200 hover:bg-primary-container/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <span className="material-symbols-outlined text-[13px]">close</span>
             </button>
@@ -199,7 +199,7 @@ export function ProductMultiSelect({
             inputRef.current?.focus();
             setOpen(true);
           }}
-          className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-md text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-md text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <span className="material-symbols-outlined text-[16px]">expand_more</span>
         </button>
@@ -234,7 +234,7 @@ export function ProductMultiSelect({
                     <button
                       type="button"
                       onClick={() => onChange([])}
-                      className="rounded font-body-dense text-body-dense text-primary transition duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                      className="rounded font-body-dense text-body-dense text-primary transition duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       Clear
                     </button>
@@ -266,10 +266,10 @@ export function ProductMultiSelect({
                         aria-selected={selected}
                         onClick={() => toggleProduct(product._id)}
                         onMouseEnter={() => setActiveIndex(index)}
-                        className={`flex w-full items-center gap-2.5 border-b border-outline-variant/70 px-3 py-2 text-left transition duration-200 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-container ${
+                        className={`flex w-full items-center gap-2.5 border-b border-outline-variant/70 px-3 py-2 text-left transition duration-200 last:border-b-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
                           index === activeIndex
                             ? "bg-primary-container/10"
-                            : "hover:bg-surface-container"
+                            : "hover:bg-row-hover"
                         }`}
                       >
                         <span

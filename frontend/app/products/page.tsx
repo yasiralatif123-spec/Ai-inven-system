@@ -65,15 +65,15 @@ export default function ProductsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
+            <button className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="material-symbols-outlined text-[18px] text-tertiary">auto_fix_high</span>
               <span>Upload Invoice with AI</span>
             </button>
-            <button className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
+            <button className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="material-symbols-outlined text-[18px] text-on-surface-variant">file_download</span>
               <span>Export CSV</span>
             </button>
-            <a href="/products/add" className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">
+            <a href="/products/add" className="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <span className="material-symbols-outlined text-[19px]">add</span>
               <span>Add Product</span>
             </a>
@@ -87,7 +87,7 @@ export default function ProductsPage() {
             { label: "Low Stock", value: stats.low, icon: "warning", iconColor: "text-error", sub: "Needs reorder", subColor: "text-error", wrap: "border-error-container bg-error-container/20", valueColor: "text-error", labelColor: "text-error" },
             { label: "Out of Stock", value: stats.out, icon: "block", iconColor: "text-outline", sub: "Zero warehouse count", subColor: "text-on-surface-variant", valueColor: "text-on-surface-variant" },
           ].map((c) => (
-            <div key={c.label} className={`flex min-h-[120px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-panel transition duration-200 hover:border-outline ${c.wrap || ""}`}>
+            <div key={c.label} className={`flex min-h-[120px] flex-col justify-between rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-4 shadow-panel transition duration-200 hover:border-border ${c.wrap || ""}`}>
               <div className="flex items-center justify-between gap-2">
                 <span className={`font-label-caps text-label-caps uppercase ${c.labelColor || "text-on-surface-variant"}`}>{c.label}</span>
                 <span className={`material-symbols-outlined text-[19px] ${c.iconColor}`}>{c.icon}</span>
@@ -120,11 +120,11 @@ export default function ProductsPage() {
                   <th className="px-4 py-2 text-center font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant font-body-default text-body-default">
+              <tbody className="divide-y divide-border font-body-default text-body-default">
                 {loading ? (
                   <tr className="animate-pulse"><td colSpan={7} className="px-4 py-16 text-center font-body-default text-on-surface-variant">Loading products from database...</td></tr>
                 ) : products.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-16 text-center font-body-default text-on-surface-variant">No products found in database. <a href="/products/add" className="rounded-md px-1.5 py-1 font-medium text-primary transition duration-200 hover:bg-surface-container hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">Add your first product</a>.</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-16 text-center font-body-default text-on-surface-variant">No products found in database. <a href="/products/add" className="rounded-md px-1.5 py-1 font-medium text-primary transition duration-200 hover:bg-row-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Add your first product</a>.</td></tr>
                 ) : (
                   products.map((p) => {
                     const status = getStatus(p);
@@ -143,7 +143,7 @@ export default function ProductsPage() {
                             setSelectedProduct(p);
                           }
                         }}
-                        className={`h-12 cursor-pointer transition duration-200 focus:outline-none focus-visible:bg-surface-container focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-container ${
+                        className={`h-12 cursor-pointer transition duration-200 focus:outline-none focus-visible:bg-row-hover focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
                           stock.faded
                             ? "bg-surface-container-low/50 hover:bg-surface-container-low"
                             : "hover:bg-surface-container-low"
@@ -197,7 +197,7 @@ export default function ProductsPage() {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-outline-variant bg-surface-container-low px-4 py-3 font-body-default text-body-default text-on-surface-variant">
             <span>Showing <strong className="font-mono-data text-mono-data text-on-surface">{products.length}</strong> products from database</span>
-            <a href="/products/add" className="rounded-md px-2 py-1 font-medium text-primary transition duration-200 hover:bg-surface-container hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container">+ Add Product</a>
+            <a href="/products/add" className="rounded-md px-2 py-1 font-medium text-primary transition duration-200 hover:bg-row-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">+ Add Product</a>
           </div>
         </div>
       </div>

@@ -90,7 +90,7 @@ export function PurchaseSummaryCard({
             value={freight}
             onChange={(event) => onFreightChange(Math.max(Number(event.target.value) || 0, 0))}
             aria-label="Shipping or freight inward"
-            className="h-9 w-32 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 text-right font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
+            className="h-9 w-32 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 text-right font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary"
           />
         </div>
 
@@ -121,7 +121,7 @@ export function PurchaseSummaryCard({
               id="purchase-amount-view"
               value={amountView}
               onChange={(event) => setAmountView(event.target.value as PurchaseAmountView)}
-              className="h-8 rounded-lg border border-outline-variant bg-surface-container-lowest px-2 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+              className="h-8 rounded-lg border border-outline-variant bg-surface-container-lowest px-2 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {PURCHASE_AMOUNT_VIEWS.map((option) => (
                 <option key={option} value={option}>
@@ -151,7 +151,7 @@ export function PurchaseSummaryCard({
               type="button"
               onClick={() => onPaymentAmountChange(remainingAmount)}
               disabled={remainingAmount <= 0}
-              className="h-8 rounded-lg border border-outline-variant bg-surface-container px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-surface-container-high active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-8 rounded-lg border border-outline-variant bg-surface-container px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-surface-container-high active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
               Pay Full Remaining
             </button>
@@ -167,13 +167,13 @@ export function PurchaseSummaryCard({
               }
               aria-label="Payment amount"
               placeholder="0"
-              className="h-10 min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-right font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
+              className="h-10 min-w-0 flex-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-right font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary"
             />
             <select
               aria-label="Payment method"
               value={paymentMethod}
               onChange={(event) => onPaymentMethodChange(event.target.value)}
-              className="h-10 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
+              className="h-10 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary"
             >
               {PAYMENT_METHODS.map((option) => (
                 <option key={option} value={option}>
@@ -208,7 +208,7 @@ export function PurchaseSummaryCard({
           {selectedSupplier ? (
             <a
               href={`/suppliers/${selectedSupplier.id}`}
-              className="rounded-md font-body-medium text-body-medium text-primary transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="rounded-md font-body-medium text-body-medium text-primary transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Supplier Detail →
             </a>
@@ -242,14 +242,14 @@ export function PurchaseSummaryCard({
             onChange={(event) => onNotesChange(event.target.value)}
             rows={3}
             placeholder="Deliver to warehouse…"
-            className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default text-body-default text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
+            className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default text-body-default text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary"
           />
         </label>
 
         <button
           type="button"
           onClick={onPreview}
-          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <span className="material-symbols-outlined text-[18px]">print</span>
           <span>Preview PO Document</span>

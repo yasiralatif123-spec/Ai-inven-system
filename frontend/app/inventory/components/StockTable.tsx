@@ -85,7 +85,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
           <select
             value={sortBy}
             onChange={(event) => setSortBy(event.target.value as SortKey)}
-            className="h-7 cursor-pointer rounded-md border border-outline-variant bg-surface-container-lowest px-2 font-mono-data-sm text-mono-data-sm text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+            className="h-7 cursor-pointer rounded-md border border-outline-variant bg-surface-container-lowest px-2 font-mono-data-sm text-mono-data-sm text-on-surface transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="severity">Status Severity (Critical First)</option>
             <option value="available">Highest Available Units</option>
@@ -101,7 +101,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
             <tr className="h-10 border-b border-outline-variant bg-surface-container-low/80 font-label-caps text-label-caps uppercase tracking-wide text-on-surface-variant">
               <th className="w-8 py-2.5 pl-4 pr-2">
                 <input
-                  className="h-3.5 w-3.5 cursor-pointer rounded border-outline-variant text-primary focus:ring-2 focus:ring-primary-container"
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-outline-variant text-primary focus:ring-2 focus:ring-primary"
                   type="checkbox"
                   aria-label="Select all products"
                 />
@@ -116,7 +116,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
               <th className="whitespace-nowrap py-2.5 pl-2 pr-4 text-right">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant font-body-default text-body-default">
+          <tbody className="divide-y divide-border font-body-default text-body-default">
             {sortedRows.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-4 py-12 text-center text-on-surface-variant">
@@ -139,7 +139,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
                   >
                     <td className="py-3 pl-4 pr-2">
                       <input
-                        className="h-3.5 w-3.5 rounded border-outline-variant text-primary focus:ring-2 focus:ring-primary-container"
+                        className="h-3.5 w-3.5 rounded border-outline-variant text-primary focus:ring-2 focus:ring-primary"
                         type="checkbox"
                         aria-label={`Select ${row.name}`}
                       />
@@ -205,7 +205,7 @@ export function StockTable({ rows, onAdjust, scope = "all" }: StockTableProps) {
                       <button
                         type="button"
                         onClick={() => onAdjust(row)}
-                        className="inline-flex h-8 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:border-outline hover:bg-surface-container active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+                        className="inline-flex h-8 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-medium text-body-medium text-primary transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         Adjust
                       </button>

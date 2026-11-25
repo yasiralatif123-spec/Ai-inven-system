@@ -3,7 +3,7 @@
 import type { TimelineEntry, TimelineTone } from "../supplierDetailData";
 
 const DOT_CLASSES: Record<TimelineTone, string> = {
-  amber: "bg-amber-500",
+  amber: "bg-warning-container0",
   primary: "bg-primary",
   secondary: "bg-secondary",
 };

@@ -5,10 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { useAuth } from "../hooks/useAuth";
 
-const labelClass = "mb-1.5 block text-[13px] font-medium text-[#1C1917]";
+const labelClass = "mb-1.5 block text-[13px] font-medium text-on-surface";
 
 const inputClass =
-  "h-[40px] w-full rounded-[6px] border border-[#E6E3DC] bg-white px-3 text-[14px] text-[#1C1917] transition duration-150 placeholder:text-[#8C877D] focus:border-[#1F6F5C] focus:outline-none focus:ring-2 focus:ring-[#1F6F5C]";
+  "h-[40px] w-full rounded-[6px] border border-border bg-card px-3 text-[14px] text-on-surface transition duration-150 placeholder:text-secondary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 
 export function LoginForm() {
   const router = useRouter();
@@ -42,26 +42,26 @@ export function LoginForm() {
   return (
     <div className="my-auto w-full max-w-[380px] pb-10 pt-8">
       <div className="mb-7">
-        <h1 className="text-[24px] font-medium leading-tight tracking-tight text-[#1C1917]">
+        <h1 className="text-[24px] font-medium leading-tight tracking-tight text-on-surface">
           Sign in to StockFlow
         </h1>
-        <p className="mt-1.5 text-[13.5px] font-normal leading-relaxed text-[#68645C]">
+        <p className="mt-1.5 text-[13.5px] font-normal leading-relaxed text-secondary">
           Manage your stock, sales and payments in one place.
         </p>
       </div>
 
       {sessionExpired ? (
-        <div className="mb-4 rounded-[6px] border border-[#E6C9A8] bg-[#FFF7ED] px-3 py-2 text-[13px] text-[#9A3412]">
+        <div className="mb-4 rounded-[6px] border border-warning-border bg-warning-container px-3 py-2 text-[13px] text-warning">
           Your session expired. Please sign in again.
         </div>
       ) : null}
       {registered ? (
-        <div className="mb-4 rounded-[6px] border border-[#B7D8CF] bg-[#E8F1EE] px-3 py-2 text-[13px] text-[#175647]">
+        <div className="mb-4 rounded-[6px] border border-primary/20 bg-primary-container px-3 py-2 text-[13px] text-primary">
           Account created. You can sign in now.
         </div>
       ) : null}
       {reset ? (
-        <div className="mb-4 rounded-[6px] border border-[#B7D8CF] bg-[#E8F1EE] px-3 py-2 text-[13px] text-[#175647]">
+        <div className="mb-4 rounded-[6px] border border-primary/20 bg-primary-container px-3 py-2 text-[13px] text-primary">
           Password reset. Please sign in with your new password.
         </div>
       ) : null}
@@ -85,13 +85,13 @@ export function LoginForm() {
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label htmlFor="login_password" className="mb-0 block text-[13px] font-medium text-[#1C1917]">
+            <label htmlFor="login_password" className="mb-0 block text-[13px] font-medium text-on-surface">
               Password
             </label>
             <button
               type="button"
               onClick={() => setShowPassword((current) => !current)}
-              className="cursor-pointer text-[12px] font-medium text-[#68645C] transition hover:text-[#1C1917] focus:outline-none focus:underline"
+              className="cursor-pointer text-[12px] font-medium text-secondary transition hover:text-on-surface focus:outline-none focus:underline"
             >
               {showPassword ? "Hide" : "Show"}
             </button>
@@ -101,14 +101,14 @@ export function LoginForm() {
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className={error ? `${inputClass} border-[#C53030]` : inputClass}
+            className={error ? `${inputClass} border-error` : inputClass}
             placeholder="••••••••"
             autoComplete="current-password"
             required
             aria-invalid={Boolean(error)}
           />
           {error ? (
-            <p className="mt-1.5 flex items-center gap-1 text-[12px] font-normal text-[#C53030]" role="alert">
+            <p className="mt-1.5 flex items-center gap-1 text-[12px] font-normal text-error" role="alert">
               {error}
             </p>
           ) : null}
@@ -117,7 +117,7 @@ export function LoginForm() {
         <div className="flex items-center justify-end pt-1">
           <Link
             href="/forgot-password"
-            className="text-[13px] font-medium text-[#1F6F5C] hover:text-[#185949] focus:outline-none focus:underline"
+            className="text-[13px] font-medium text-primary hover:text-primary-hover focus:outline-none focus:underline"
           >
             Forgot password?
           </Link>
@@ -127,25 +127,25 @@ export function LoginForm() {
           <button
             type="submit"
             disabled={submitting}
-            className="h-[40px] w-full rounded-[6px] bg-[#1F6F5C] text-[13.5px] font-medium text-white shadow-sm transition-colors hover:bg-[#185949] active:bg-[#13473a] focus:outline-none focus:ring-2 focus:ring-[#1F6F5C] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="h-[40px] w-full rounded-[6px] bg-primary text-[13.5px] font-medium text-on-primary shadow-sm transition-colors hover:bg-primary-hover active:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting ? "Signing in..." : "Sign in"}
           </button>
         </div>
 
         <div className="pt-2 text-left">
-          <p className="text-[13px] text-[#68645C]">
+          <p className="text-[13px] text-secondary">
             Have an invite?{" "}
-            <Link href="/register" className="ml-0.5 font-medium text-[#1F6F5C] hover:underline">
+            <Link href="/register" className="ml-0.5 font-medium text-primary hover:underline">
               Accept invitation
             </Link>
           </p>
         </div>
       </form>
 
-      <div className="mt-8 border-t border-[#E6E3DC]/70 pt-5">
-        <div className="flex items-center gap-2 text-[11.5px] text-[#8C877D]">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-600" />
+      <div className="mt-8 border-t border-border/70 pt-5">
+        <div className="flex items-center gap-2 text-[11.5px] text-secondary">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
           <span>256-bit encrypted ledger · FBR Sales Tax Integrated</span>
         </div>
       </div>

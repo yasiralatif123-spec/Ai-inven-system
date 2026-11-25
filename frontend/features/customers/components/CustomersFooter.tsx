@@ -33,7 +33,7 @@ export function CustomersFooter({
           <span className="font-medium text-on-surface">{total}</span> customer
           {total === 1 ? "" : "s"}
         </span>
-        <label className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container px-2.5 text-on-surface transition duration-200 hover:border-outline focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+        <label className="flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container px-2.5 text-on-surface transition duration-200 hover:border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Rows:
           </span>
@@ -59,7 +59,7 @@ export function CustomersFooter({
           type="button"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="flex h-8 items-center gap-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface-variant transition duration-200 enabled:hover:border-outline enabled:hover:bg-surface enabled:hover:text-on-surface disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="flex h-8 items-center gap-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface-variant transition duration-200 enabled:hover:border-border enabled:hover:bg-row-hover enabled:hover:text-on-surface disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <span className="material-symbols-outlined text-[15px]">chevron_left</span>
           Prev
@@ -70,10 +70,10 @@ export function CustomersFooter({
               key={pageNumber}
               type="button"
               onClick={() => onPageChange(pageNumber)}
-              className={`flex h-8 w-8 items-center justify-center rounded-lg font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+              className={`flex h-8 w-8 items-center justify-center rounded-lg font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 pageNumber === page
-                  ? "border border-primary-container bg-primary-container text-on-primary shadow-sm"
-                  : "border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline hover:bg-surface hover:text-on-surface"
+                  ? "border border-primary bg-primary text-on-primary shadow-sm"
+                  : "border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-border hover:bg-row-hover hover:text-on-surface"
               }`}
             >
               {pageNumber}
@@ -84,7 +84,7 @@ export function CustomersFooter({
           type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="flex h-8 items-center gap-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface transition duration-200 enabled:hover:border-outline enabled:hover:bg-surface disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="flex h-8 items-center gap-1 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface transition duration-200 enabled:hover:border-border enabled:hover:bg-row-hover disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Next
           <span className="material-symbols-outlined text-[15px]">chevron_right</span>

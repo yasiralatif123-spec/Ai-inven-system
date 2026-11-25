@@ -23,7 +23,7 @@ export function PurchaseDetailDialog({ purchase, onClose }: PurchaseDetailDialog
   const remaining = purchase.remaining;
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:p-8">
+    <div className="fixed inset-0 z-[300] flex items-start justify-center overflow-y-auto bg-overlay/40 p-4 sm:p-8">
       <div className="w-full max-w-3xl rounded-xl bg-surface-container-lowest p-5 shadow-2xl">
         <div className="flex items-start justify-between border-b border-outline-variant pb-3">
           <div>
@@ -41,7 +41,7 @@ export function PurchaseDetailDialog({ purchase, onClose }: PurchaseDetailDialog
             type="button"
             onClick={onClose}
             aria-label="Close purchase detail"
-            className="flex h-8 w-8 items-center justify-center rounded text-outline hover:bg-surface-container hover:text-on-surface"
+            className="flex h-8 w-8 items-center justify-center rounded text-outline hover:bg-row-hover hover:text-on-surface"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -96,7 +96,7 @@ export function PurchaseDetailDialog({ purchase, onClose }: PurchaseDetailDialog
                 <th className="px-3 py-2 text-right">Line Total</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant">
+            <tbody className="divide-y divide-border">
               {dto.items.map((item, index) => (
                 <tr key={`${item.sku || item.name}-${index}`}>
                   <td className="px-3 py-2">
@@ -185,7 +185,7 @@ export function PurchaseDetailDialog({ purchase, onClose }: PurchaseDetailDialog
           <button
             type="button"
             onClick={onClose}
-            className="h-9 rounded bg-primary-container px-4 font-body-medium text-body-medium text-on-primary hover:bg-primary"
+            className="h-9 rounded bg-primary px-4 font-body-medium text-body-medium text-on-primary hover:bg-primary-hover"
           >
             Close
           </button>

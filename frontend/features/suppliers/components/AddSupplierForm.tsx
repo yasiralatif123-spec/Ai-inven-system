@@ -40,10 +40,10 @@ const EMPTY_FORM: CreateSupplierInput = {
 };
 
 const INPUT_CLASS =
-  "h-[34px] w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60";
+  "h-[34px] w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60";
 const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-9`;
 const TEXTAREA_CLASS =
-  "w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 py-2 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60";
+  "w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 py-2 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60";
 
 type FieldProps = {
   label: ReactNode;
@@ -207,7 +207,7 @@ export function AddSupplierForm() {
           <button
             type="button"
             onClick={() => router.push("/suppliers")}
-            className="transition duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="transition duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Supplier Directory
           </button>
@@ -239,7 +239,7 @@ export function AddSupplierForm() {
           <button
             type="button"
             onClick={() => setError("CSV import is not connected yet.")}
-            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               upload_file
@@ -249,7 +249,7 @@ export function AddSupplierForm() {
           <button
             type="button"
             onClick={() => router.push("/suppliers")}
-            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[17px] text-on-surface-variant">
               format_list_bulleted
@@ -633,7 +633,7 @@ export function AddSupplierForm() {
           </div>
         </section>
 
-        <div className="sticky bottom-0 z-30 -mx-6 flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/80 bg-surface-container-lowest/95 px-6 py-3.5 shadow-[0_-4px_16px_rgba(28,28,24,0.08)] backdrop-blur">
+        <div className="sticky bottom-0 z-30 -mx-6 flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/80 bg-surface-container-lowest/95 px-6 py-3.5 shadow-[0_-4px_16px_rgba(38,50,56,0.08)] backdrop-blur">
           <div className="flex items-center gap-2.5">
             <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary"></div>
             <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
@@ -646,7 +646,7 @@ export function AddSupplierForm() {
               type="button"
               onClick={() => router.push("/suppliers")}
               disabled={saving}
-              className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface active:translate-y-px disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover active:translate-y-px disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Cancel
             </button>
@@ -654,14 +654,14 @@ export function AddSupplierForm() {
               type="button"
               onClick={() => void save(true)}
               disabled={saving}
-              className="h-9 rounded-lg border border-outline-variant bg-surface-container px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:bg-surface-container-high active:translate-y-px disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="h-9 rounded-lg border border-outline-variant bg-surface-container px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:bg-surface-container-high active:translate-y-px disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               Save &amp; Add Another
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex h-9 items-center gap-2 rounded-lg bg-primary-container px-5 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+              className="flex h-9 items-center gap-2 rounded-lg bg-primary px-5 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <span className="material-symbols-outlined text-[17px]">
                 {saving ? "progress_activity" : "save"}

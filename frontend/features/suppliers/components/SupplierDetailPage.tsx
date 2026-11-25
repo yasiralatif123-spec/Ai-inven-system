@@ -100,7 +100,7 @@ export function SupplierDetailPage({ supplierId }: SupplierDetailPageProps) {
           <button
             type="button"
             onClick={() => setReloadKey((key) => key + 1)}
-            className="rounded bg-primary-container px-3.5 py-1.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-[#185849]"
+            className="rounded bg-primary px-3.5 py-1.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary-hover"
           >
             Retry
           </button>
@@ -154,8 +154,8 @@ export function SupplierDetailPage({ supplierId }: SupplierDetailPageProps) {
             <span
               className={`rounded px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
                 header.status === "Active"
-                  ? "border border-[#D1E8DC] bg-[#EBF5F0] text-[#2E7D58]"
-                  : "border border-[#F4E3C4] bg-[#FDF6E8] text-[#B47818]"
+                  ? "border border-success-border bg-success-container text-success"
+                  : "border border-warning-border bg-warning-container text-warning"
               }`}
             >
               {header.status}
@@ -201,7 +201,7 @@ export function SupplierDetailPage({ supplierId }: SupplierDetailPageProps) {
           <button
             type="button"
             onClick={() => router.push(`/purchases?supplierId=${supplierId}`)}
-            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="flex h-[34px] items-center gap-1.5 rounded border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-row-hover"
           >
             <span className="material-symbols-outlined text-[17px] text-secondary">receipt_long</span>
             Record Payment
@@ -209,7 +209,7 @@ export function SupplierDetailPage({ supplierId }: SupplierDetailPageProps) {
           <button
             type="button"
             onClick={() => router.push(`/purchases/create?supplierId=${supplierId}`)}
-            className="flex h-[34px] items-center gap-1.5 rounded bg-primary-container px-4 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-[#185849]"
+            className="flex h-[34px] items-center gap-1.5 rounded bg-primary px-4 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary-hover"
           >
             <span className="material-symbols-outlined text-[18px]">add_shopping_cart</span>
             Create Purchase
@@ -239,7 +239,7 @@ export function SupplierDetailPage({ supplierId }: SupplierDetailPageProps) {
                     <span
                       className={`rounded px-1.5 py-0.5 font-mono-data-sm text-[10px] leading-tight ${
                         activeTab === tab.value
-                          ? "bg-primary-container text-on-primary"
+                          ? "bg-primary text-on-primary"
                           : "border border-outline-variant bg-surface-container-high text-on-surface-variant"
                       }`}
                     >

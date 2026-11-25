@@ -89,7 +89,7 @@ export function PurchaseContextCard({
             value={invoiceNumber}
             onChange={(event) => onInvoiceNumberChange(event.target.value)}
             placeholder="e.g. INV-KBD-904"
-            className="h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-outline focus:border-primary-container focus:ring-2 focus:ring-primary-container"
+            className="h-10 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface outline-none transition duration-200 hover:border-border focus:border-primary focus:ring-2 focus:ring-primary"
           />
         </label>
       </div>

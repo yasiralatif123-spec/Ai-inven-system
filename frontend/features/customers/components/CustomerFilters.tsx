@@ -51,7 +51,7 @@ export function CustomerFilters({
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
           placeholder="Search by name, business or phone…"
-          className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-14 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+          className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-14 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
         />
         <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-outline-variant bg-surface-container px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
           ⌘K
@@ -59,7 +59,7 @@ export function CustomerFilters({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-border hover:bg-row-hover focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Route:
           </span>
@@ -79,7 +79,7 @@ export function CustomerFilters({
           </span>
         </label>
 
-        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-border hover:bg-row-hover focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Type:
           </span>
@@ -99,7 +99,7 @@ export function CustomerFilters({
           </span>
         </label>
 
-        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-border hover:bg-row-hover focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Status:
           </span>
@@ -127,7 +127,7 @@ export function CustomerFilters({
                 key={tab.value}
                 type="button"
                 onClick={() => onBalanceChange(tab.value)}
-                className={`h-full rounded-md px-3 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+                className={`h-full rounded-md px-3 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   active
                     ? "border border-outline-variant bg-surface-container-lowest text-primary shadow-sm"
                     : "text-on-surface-variant hover:text-on-surface"
@@ -139,7 +139,7 @@ export function CustomerFilters({
           })}
         </div>
 
-        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+        <label className="flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-on-surface transition duration-200 hover:border-border hover:bg-row-hover focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
           <span className="material-symbols-outlined text-[17px] text-on-surface-variant">sort</span>
           <select
             value={sort}

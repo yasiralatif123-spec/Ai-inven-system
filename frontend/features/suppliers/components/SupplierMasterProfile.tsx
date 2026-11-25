@@ -20,7 +20,7 @@ export function SupplierMasterProfile({ vendorCode, rows }: SupplierMasterProfil
         </span>
       </div>
 
-      <div className="flex flex-col gap-3 divide-y divide-outline-variant/60 p-3.5 font-body-default text-body-dense">
+      <div className="flex flex-col gap-3 divide-y divide-border/60 p-3.5 font-body-default text-body-dense">
         {rows.length === 0 ? (
           <div className="py-3 text-center text-secondary">No saved profile details.</div>
         ) : (
@@ -51,7 +51,7 @@ export function SupplierMasterProfile({ vendorCode, rows }: SupplierMasterProfil
                 <div className="text-right">
                   <span className="font-mono-data font-medium text-on-surface">{row.value}</span>
                   {row.sub ? (
-                    <div className="font-mono-data-sm text-[10px] font-medium text-[#2E7D58]">
+                    <div className="font-mono-data-sm text-[10px] font-medium text-success">
                       {row.sub}
                     </div>
                   ) : null}

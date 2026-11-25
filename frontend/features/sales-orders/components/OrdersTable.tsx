@@ -71,7 +71,7 @@ export function OrdersTable({
               setPage(1);
               setOpenMenuId(null);
             }}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[17px]">refresh</span>
           </button>
@@ -88,7 +88,7 @@ export function OrdersTable({
                   checked={allChecked}
                   onChange={toggleAll}
                   aria-label="Select all orders"
-                  className="h-4 w-4 cursor-pointer rounded border-outline text-primary focus:ring-0"
+                  className="h-4 w-4 cursor-pointer rounded border-border text-primary focus:ring-0"
                 />
               </th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">ORDER #</th>
@@ -101,7 +101,7 @@ export function OrdersTable({
               <th className="w-20 px-4 py-3 text-center font-medium">ACTIONS</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant/70 bg-surface-container-lowest font-body-default text-body-default">
+          <tbody className="divide-y divide-border/70 bg-surface-container-lowest font-body-default text-body-default">
             {visibleOrders.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-4 py-14 text-center">
@@ -126,7 +126,7 @@ export function OrdersTable({
                     key={order.id}
                     onClick={() => onOpenCustomer(order)}
                     title={`Open customer profile for ${order.customer}`}
-                    className={`cursor-pointer transition duration-200 hover:bg-surface-container/60 ${
+                    className={`cursor-pointer transition duration-200 hover:bg-row-hover/60 ${
                       cancelled ? "bg-surface-container-low/40 opacity-75" : ""
                     }`}
                   >
@@ -139,7 +139,7 @@ export function OrdersTable({
                         checked={checkedIds.includes(order.id)}
                         onChange={() => toggleChecked(order.id)}
                         aria-label={`Select ${order.id}`}
-                        className="h-4 w-4 cursor-pointer rounded border-outline text-primary focus:ring-0"
+                        className="h-4 w-4 cursor-pointer rounded border-border text-primary focus:ring-0"
                       />
                     </td>
                     <td className="whitespace-nowrap px-4 py-4">
@@ -163,7 +163,7 @@ export function OrdersTable({
                             onOpenCustomer(order);
                           }}
                           title={`Open profile for ${order.customer}`}
-                          className={`text-left font-body-medium text-body-medium transition duration-200 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+                          className={`text-left font-body-medium text-body-medium transition duration-200 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                             cancelled ? "text-secondary line-through" : "text-on-surface"
                           }`}
                         >
@@ -254,7 +254,7 @@ export function OrdersTable({
                 setPage(1);
                 setOpenMenuId(null);
               }}
-              className="h-7 rounded-md border border-outline-variant bg-surface-container-lowest px-1.5 text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+              className="h-7 rounded-md border border-outline-variant bg-surface-container-lowest px-1.5 text-on-surface transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value={20}>20</option>
               <option value={50}>50</option>
@@ -271,7 +271,7 @@ export function OrdersTable({
               setPage((current) => Math.max(1, current - 1));
               setOpenMenuId(null);
             }}
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:border-border hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
           >
             <span className="material-symbols-outlined text-[16px]">chevron_left</span>
           </button>
@@ -283,10 +283,10 @@ export function OrdersTable({
                 setPage(pageNumber);
                 setOpenMenuId(null);
               }}
-              className={`h-7 min-w-7 rounded-lg px-1 font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+              className={`h-7 min-w-7 rounded-lg px-1 font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 pageNumber === currentPage
                   ? "border border-primary bg-primary text-on-primary"
-                  : "border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline hover:bg-surface-container hover:text-on-surface"
+                  : "border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-border hover:bg-row-hover hover:text-on-surface"
               }`}
             >
               {pageNumber}
@@ -300,7 +300,7 @@ export function OrdersTable({
               setPage((current) => Math.min(totalPages, current + 1));
               setOpenMenuId(null);
             }}
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:border-outline hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-7 w-7 items-center justify-center rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant transition duration-200 hover:border-border hover:bg-row-hover hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
           >
             <span className="material-symbols-outlined text-[16px]">chevron_right</span>
           </button>

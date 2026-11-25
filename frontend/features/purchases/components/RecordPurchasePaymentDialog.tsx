@@ -42,7 +42,7 @@ export function RecordPurchasePaymentDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-overlay/40 p-4">
       <div className="w-full max-w-md rounded-xl bg-surface-container-lowest p-5 shadow-2xl">
         <div className="flex items-start justify-between border-b border-outline-variant pb-3">
           <div>
@@ -55,7 +55,7 @@ export function RecordPurchasePaymentDialog({
             type="button"
             onClick={onClose}
             aria-label="Close payment dialog"
-            className="flex h-8 w-8 items-center justify-center rounded text-outline hover:bg-surface-container hover:text-on-surface"
+            className="flex h-8 w-8 items-center justify-center rounded text-outline hover:bg-row-hover hover:text-on-surface"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -134,7 +134,7 @@ export function RecordPurchasePaymentDialog({
             type="button"
             onClick={submit}
             disabled={saving}
-            className="h-9 rounded bg-primary-container px-4 font-body-medium text-body-medium text-on-primary hover:bg-primary disabled:opacity-50"
+            className="h-9 rounded bg-primary px-4 font-body-medium text-body-medium text-on-primary hover:bg-primary-hover disabled:opacity-50"
           >
             {saving ? "Saving…" : "Record Payment"}
           </button>

@@ -41,7 +41,7 @@ export function SuppliersFooter({
           <span className="font-label-caps text-label-caps uppercase tracking-wider text-on-surface-variant">
             Rows:
           </span>
-          <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container px-2 text-on-surface transition duration-200 hover:border-outline focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+          <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant bg-surface-container px-2 text-on-surface transition duration-200 hover:border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
             <select
               value={rowsPerPage}
               onChange={(event) => onRowsPerPageChange(Number(event.target.value))}
@@ -79,7 +79,7 @@ export function SuppliersFooter({
             type="button"
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1}
-            className="flex h-8 items-center gap-0.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface-variant transition duration-200 enabled:hover:border-outline enabled:hover:bg-surface enabled:hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-8 items-center gap-0.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface-variant transition duration-200 enabled:hover:border-border enabled:hover:bg-row-hover enabled:hover:text-on-surface disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[15px]">chevron_left</span>
             Prev
@@ -89,10 +89,10 @@ export function SuppliersFooter({
               key={pageNumber}
               type="button"
               onClick={() => onPageChange(pageNumber)}
-              className={`flex h-8 w-8 items-center justify-center rounded-lg font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+              className={`flex h-8 w-8 items-center justify-center rounded-lg font-mono-data-sm text-mono-data-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 pageNumber === page
-                  ? "border border-primary-container bg-primary-container font-semibold text-on-primary shadow-sm"
-                  : "border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline hover:bg-surface hover:text-on-surface"
+                  ? "border border-primary bg-primary font-semibold text-on-primary shadow-sm"
+                  : "border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-border hover:bg-row-hover hover:text-on-surface"
               }`}
             >
               {pageNumber}
@@ -102,7 +102,7 @@ export function SuppliersFooter({
             type="button"
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
-            className="flex h-8 items-center gap-0.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface transition duration-200 enabled:hover:border-outline enabled:hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-8 items-center gap-0.5 rounded-lg border border-outline-variant bg-surface-container-lowest px-2.5 font-body-dense text-body-dense text-on-surface transition duration-200 enabled:hover:border-border enabled:hover:bg-row-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Next
             <span className="material-symbols-outlined text-[15px]">chevron_right</span>

@@ -25,7 +25,7 @@ export function RecentOrders({ orders, totals }: RecentOrdersProps) {
         </div>
         <Link
           href="/sales-orders"
-          className="flex items-center gap-1 rounded-md px-2 py-1 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-surface-container hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="flex items-center gap-1 rounded-md px-2 py-1 font-body-medium text-body-medium text-primary transition duration-200 hover:bg-row-hover hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <span>View all sales</span>
           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -53,7 +53,7 @@ export function RecentOrders({ orders, totals }: RecentOrdersProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-outline-variant">
+          <tbody className="divide-y divide-border">
             {orders.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-12 text-center">

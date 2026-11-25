@@ -148,7 +148,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
     <div className="overflow-hidden rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel xl:sticky xl:top-20">
       <div className="flex items-center justify-between gap-2 border-b border-outline-variant bg-surface-container px-4 py-3.5">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-container text-on-primary">
+          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-on-primary">
             <span className="material-symbols-outlined text-[16px]">edit_note</span>
           </span>
           <div>
@@ -163,7 +163,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
           onClick={onClose}
           disabled={saving}
           aria-label="Close adjust stock panel"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container-high disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container-high disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <span className="material-symbols-outlined text-[19px]">close</span>
         </button>
@@ -240,7 +240,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
             <button
               type="button"
               onClick={() => changeDirection("deduct")}
-              className={`flex items-center justify-center gap-1.5 rounded-md py-1.5 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+              className={`flex items-center justify-center gap-1.5 rounded-md py-1.5 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 direction === "deduct"
                   ? "border border-outline-variant bg-surface-container-lowest font-semibold text-error shadow-panel"
                   : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
@@ -252,7 +252,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
             <button
               type="button"
               onClick={() => changeDirection("add")}
-              className={`flex items-center justify-center gap-1.5 rounded-md py-1.5 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+              className={`flex items-center justify-center gap-1.5 rounded-md py-1.5 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 direction === "add"
                   ? "border border-outline-variant bg-surface-container-lowest font-semibold text-primary shadow-panel"
                   : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
@@ -269,7 +269,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
             Quantity to {direction === "deduct" ? "Deduct" : "Add"} <span className="text-error">*</span>
           </label>
           <div className="grid grid-cols-[1fr_120px] gap-3">
-            <div className="flex h-9 w-full overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest transition duration-200 focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container">
+            <div className="flex h-9 w-full overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest transition duration-200 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary">
               <input
                 className="h-full min-w-0 flex-1 bg-transparent px-3 font-mono-data text-base font-bold tabular-nums text-on-surface focus:outline-none disabled:opacity-60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 max={maxQuantity ?? undefined}
@@ -287,7 +287,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
                   onClick={() => stepQuantity(1)}
                   disabled={saving || (maxQuantity !== null && quantity >= maxQuantity)}
                   aria-label="Increase quantity by one"
-                  className="flex h-1/2 items-center justify-center text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-1/2 items-center justify-center text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <span className="material-symbols-outlined text-[17px]">keyboard_arrow_up</span>
                 </button>
@@ -296,7 +296,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
                   onClick={() => stepQuantity(-1)}
                   disabled={saving || quantity <= 1}
                   aria-label="Decrease quantity by one"
-                  className="flex h-1/2 items-center justify-center border-t border-outline-variant text-on-surface-variant transition duration-200 hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                  className="flex h-1/2 items-center justify-center border-t border-outline-variant text-on-surface-variant transition duration-200 hover:bg-row-hover hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   <span className="material-symbols-outlined text-[17px]">keyboard_arrow_down</span>
                 </button>
@@ -306,7 +306,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               value={unit}
               onChange={(event) => changeUnit(event.target.value as StockUnit)}
               disabled={saving}
-              className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60"
+              className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
             >
               {STOCK_UNITS.map((option) => (
                 <option key={option} value={option}>
@@ -333,7 +333,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
                 setSuccess(null);
               }}
               disabled={saving}
-              className="h-9 w-full cursor-pointer appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-9 font-body-default text-body-default text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60"
+              className="h-9 w-full cursor-pointer appearance-none rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-9 font-body-default text-body-default text-on-surface transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
             >
               {ADJUSTMENT_REASONS.map((option) => (
                 <option key={option}>{option}</option>
@@ -357,7 +357,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               setSuccess(null);
             }}
             disabled={saving}
-            className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60"
+            className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-mono-data text-mono-data text-on-surface transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
             placeholder="e.g. INC-2026-092 or AUD-Q4"
             type="text"
           />
@@ -375,7 +375,7 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
               setSuccess(null);
             }}
             disabled={saving}
-            className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default text-body-default text-on-surface placeholder:text-outline transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container disabled:opacity-60"
+            className="w-full resize-none rounded-lg border border-outline-variant bg-surface-container-lowest p-3 font-body-default text-body-default text-on-surface placeholder:text-outline transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
             placeholder="Specify cause, bay coordinates, affected batch number..."
             rows={2}
           />
@@ -413,14 +413,14 @@ export function AdjustStockPanel({ row, onClose, onAdjusted }: AdjustStockPanelP
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="h-9 w-1/3 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface-container disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="h-9 w-1/3 rounded-lg border border-outline-variant bg-surface-container-lowest font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving || quantity < 1}
-            className="flex h-9 w-2/3 items-center justify-center gap-1.5 rounded-lg bg-primary-container font-body-medium text-body-medium font-semibold text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px active:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-9 w-2/3 items-center justify-center gap-1.5 rounded-lg bg-primary font-body-medium text-body-medium font-semibold text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px active:bg-primary-hover/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[17px]">
               {saving ? "hourglass_top" : "verified"}

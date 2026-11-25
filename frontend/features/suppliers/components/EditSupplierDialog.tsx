@@ -26,10 +26,10 @@ type EditSupplierDialogProps = {
 };
 
 const INPUT_CLASS =
-  "h-9 w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container";
+  "h-9 w-full rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer appearance-none pr-9`;
 const TEXTAREA_CLASS =
-  "w-full resize-none rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 py-2 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container";
+  "w-full resize-none rounded-lg border border-outline-variant/80 bg-surface-container-lowest px-3 py-2 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary";
 
 function toInput(supplier: Supplier): UpdateSupplierInput {
   const productIds = supplier.productIds || [];
@@ -157,7 +157,7 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
   }
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/40 p-4">
+    <div className="fixed inset-0 z-[140] flex items-center justify-center bg-overlay/40 p-4">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
       <form
         onSubmit={handleSubmit}
@@ -180,7 +180,7 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
             type="button"
             onClick={onClose}
             aria-label="Close edit supplier form"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-on-surface-variant transition duration-200 hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -338,14 +338,14 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
           <button
             type="button"
             onClick={onClose}
-            className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="h-9 rounded-lg border border-outline-variant bg-surface-container-lowest px-3.5 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border hover:bg-row-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="h-9 rounded-lg bg-primary-container px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary active:translate-y-px disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container"
+            className="h-9 rounded-lg bg-primary px-4 font-body-medium text-body-medium text-on-primary shadow-panel transition duration-200 hover:bg-primary-hover active:translate-y-px disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             {saving ? "Saving..." : "Save Changes"}
           </button>

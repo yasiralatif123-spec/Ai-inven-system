@@ -38,7 +38,7 @@ export function RecordPaymentDialog({ order, onClose, onSubmit }: RecordPaymentD
   }
 
   return (
-    <div className="fixed inset-0 z-[140] flex items-start justify-center overflow-y-auto bg-black/30 p-4 pt-20">
+    <div className="fixed inset-0 z-[140] flex items-start justify-center overflow-y-auto bg-overlay/30 p-4 pt-20">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
       <form
         onSubmit={handleSubmit}
@@ -55,7 +55,7 @@ export function RecordPaymentDialog({ order, onClose, onSubmit }: RecordPaymentD
             type="button"
             onClick={onClose}
             aria-label="Close payment form"
-            className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-surface-container hover:text-on-surface"
+            className="flex h-7 w-7 items-center justify-center rounded text-secondary transition-colors hover:bg-row-hover hover:text-on-surface"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
@@ -114,14 +114,14 @@ export function RecordPaymentDialog({ order, onClose, onSubmit }: RecordPaymentD
           <button
             type="button"
             onClick={onClose}
-            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-surface-container"
+            className="h-8 rounded border border-outline-variant bg-surface px-3 font-body-medium text-body-medium text-on-surface transition-colors hover:bg-row-hover"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={!canSubmit || submitting}
-            className="h-8 rounded bg-primary-container px-3.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary disabled:opacity-50"
+            className="h-8 rounded bg-primary px-3.5 font-body-medium text-body-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50"
           >
             {submitting ? "Saving..." : "Confirm Payment"}
           </button>

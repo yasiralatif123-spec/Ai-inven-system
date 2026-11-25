@@ -50,7 +50,7 @@ export function PurchasesToolbar({
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Search by purchase ID, supplier, NTN or invoice…"
-            className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-12 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+            className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest pl-9 pr-12 font-body-default text-body-default text-on-surface placeholder:text-on-surface-variant/70 transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <span className="pointer-events-none absolute right-2 top-1.5 rounded-md border border-outline-variant bg-surface-container px-2 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
             K
@@ -71,7 +71,7 @@ export function PurchasesToolbar({
           <select
             value={dateRange}
             onChange={(event) => onDateRangeChange(event.target.value)}
-            className="h-9 appearance-none cursor-pointer rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-9 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+            className="h-9 appearance-none cursor-pointer rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-9 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {DATE_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -90,7 +90,7 @@ export function PurchasesToolbar({
               key={option}
               type="button"
               onClick={() => onPaymentChange(option)}
-              className={`h-full rounded-md px-3 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container ${
+              className={`h-full rounded-md px-3 font-body-medium text-body-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 payment === option
                   ? "border border-outline-variant bg-surface-container-lowest text-primary shadow-sm"
                   : "text-on-surface-variant hover:text-on-surface"
@@ -105,7 +105,7 @@ export function PurchasesToolbar({
           <select
             value={sort}
             onChange={(event) => onSortChange(event.target.value)}
-            className="h-9 cursor-pointer rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-9 font-body-medium text-body-medium text-on-surface-variant transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+            className="h-9 cursor-pointer rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-9 font-body-medium text-body-medium text-on-surface-variant transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -136,7 +136,7 @@ function SelectControl({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-9 appearance-none cursor-pointer rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-9 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-outline focus:border-primary-container focus:outline-none focus:ring-2 focus:ring-primary-container"
+        className="h-9 appearance-none cursor-pointer rounded-lg border border-outline-variant bg-surface-container-lowest pl-3 pr-9 font-body-medium text-body-medium text-on-surface transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary"
       >
         {options.map((option) => (
           <option key={option} value={option}>
