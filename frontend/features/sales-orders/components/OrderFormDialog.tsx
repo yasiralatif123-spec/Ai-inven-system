@@ -285,13 +285,13 @@ export function OrderFormDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[130] flex items-start justify-center overflow-y-auto bg-on-surface/30 p-3 pt-6 backdrop-blur-[2px] sm:p-6 sm:pt-10">
+    <div className="fixed inset-0 z-[130] flex items-start justify-center bg-on-surface/30 p-3 pt-6 backdrop-blur-[2px] sm:p-6 sm:pt-10">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
       <form
         onSubmit={handleSubmit}
-        className="relative w-full max-w-5xl rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel"
+        className="relative flex max-h-[calc(100dvh_-_2.25rem)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-outline-variant/80 bg-surface-container-lowest shadow-panel sm:max-h-[calc(100dvh_-_4rem)]"
       >
-        <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/80 bg-surface-container-lowest/95 px-4 py-4 backdrop-blur sm:px-5">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-outline-variant/80 bg-surface-container-lowest px-4 py-4 sm:px-5">
           <div className="min-w-0">
             <div className="font-headline-lg text-headline-lg tracking-tight text-on-surface">
               {isEdit ? "Edit Sale Order" : "New Sale Order"}
@@ -312,7 +312,7 @@ export function OrderFormDialog({
           </button>
         </div>
 
-        <div className="space-y-5 p-4 sm:p-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 [scrollbar-color:var(--color-outline-variant)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outline-variant [&::-webkit-scrollbar-thumb:hover]:bg-outline sm:p-5">
           <section className="rounded-xl border border-outline-variant/70 bg-surface-container-low/60 p-4">
             <CustomerAutocomplete
               customer={customer}
@@ -627,7 +627,7 @@ export function OrderFormDialog({
           ) : null}
         </div>
 
-        <div className="sticky bottom-0 z-20 flex flex-col gap-3 border-t border-outline-variant/80 bg-surface-container-lowest/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex shrink-0 flex-col gap-3 border-t border-outline-variant/80 bg-surface-container-lowest px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           {validationIssues.length > 0 && !submitting ? (
             <div
               role="alert"
