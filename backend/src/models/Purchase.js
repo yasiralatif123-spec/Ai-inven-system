@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { paymentRecordsField } = require("./PaymentRecord");
 require("./Business");
 require("./User");
 
@@ -44,21 +45,6 @@ const purchaseItemSchema = new mongoose.Schema({
   lineTotal: { type: Number, required: true, min: 0 },
 });
 
-const purchasePaymentSchema = new mongoose.Schema(
-  {
-    amount: { type: Number, required: true, min: 0 },
-    method: { type: String, default: "Cash", trim: true },
-    reference: { type: String, default: "", trim: true },
-    paidAt: { type: Date, default: Date.now },
-    createdBy: {
-      type: String,
-      default: "System",
-      trim: true,
-    },
-  },
-  { _id: true }
-);
-
 const purchaseSchema = new mongoose.Schema(
   {
     purchaseNumber: {
@@ -94,7 +80,7 @@ const purchaseSchema = new mongoose.Schema(
       total: { type: Number, required: true, min: 0 },
     },
     paidAmount: { type: Number, default: 0, min: 0 },
-    payments: { type: [purchasePaymentSchema], default: [] },
+    payments: paymentRecordsField,
     status: {
       type: String,
       enum: ["Draft", "Ordered", "Partially Received", "Received", "Cancelled"],

@@ -11,7 +11,13 @@ type RecordPaymentDialogProps = {
   onSubmit: (input: PaymentInput) => Promise<void>;
 };
 
+function newPaymentKey() {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  return `sale_payment_${uuid ?? `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
+}
+
 export function RecordPaymentDialog({ order, onClose, onSubmit }: RecordPaymentDialogProps) {
+  const [idempotencyKey] = useState(newPaymentKey);
   const [amount, setAmount] = useState(String(order.financials.outstanding));
   const [method, setMethod] = useState<string>(PAYMENT_METHODS[0]);
   const [submitting, setSubmitting] = useState(false);
@@ -28,7 +34,7 @@ export function RecordPaymentDialog({ order, onClose, onSubmit }: RecordPaymentD
     setSubmitting(true);
     setError(null);
     try {
-      await onSubmit({ amount: numericAmount, method });
+      await onSubmit({ amount: numericAmount, method, idempotencyKey });
     } catch (submitError) {
       setError(
         submitError instanceof Error ? submitError.message : "Failed to record payment. Please try again."

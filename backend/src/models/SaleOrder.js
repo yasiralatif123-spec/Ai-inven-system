@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { paymentRecordsField } = require("./PaymentRecord");
 require("./Business");
 require("./User");
 
@@ -91,6 +92,7 @@ const saleOrderSchema = new mongoose.Schema(
     },
     paymentLabel: { type: String, default: "" },
     paymentMethod: { type: String, default: "", trim: true },
+    payments: paymentRecordsField,
     status: {
       type: String,
       enum: ["Pending Approval", "Processing", "Packed", "Dispatched", "Delivered", "Credit Hold", "Cancelled"],

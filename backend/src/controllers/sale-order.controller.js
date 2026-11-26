@@ -5,6 +5,18 @@ const Customer = require("../models/Customer");
 const StockMovement = require("../models/StockMovement");
 const { runWithSession } = require("../utils/db");
 const { recalculateCustomerFinancials } = require("../utils/financials");
+const {
+  buildLegacyBalancePayment,
+  buildPaymentRecord,
+  createIdempotencyKey,
+  deriveSalePaymentState,
+  findPaymentByKey,
+  ledgerPaid,
+  parsePaymentAmount,
+  plainPayments,
+  resolveIdempotencyKey,
+  sumPayments,
+} = require("../utils/payment-accounting");
 const { tenantFilter } = require("../utils/tenant");
 const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
@@ -167,20 +179,6 @@ function sameCatalogSnapshot(previousItem, product, requestedProductId, sku) {
   return Boolean(previousSku && currentSku && previousSku === currentSku);
 }
 
-function compactAmount(value) {
-  if (value >= 1000) {
-    const thousands = value / 1000;
-    return `${Number.isInteger(thousands) ? thousands : thousands.toFixed(1)}k`;
-  }
-  return String(value);
-}
-
-function buildPaymentLabel(paymentStatus, paid, method) {
-  if (paymentStatus === "paid") return `Paid (${method || "Cash"})`;
-  if (paymentStatus === "partial") return `Partial (${compactAmount(paid)})`;
-  return "Unpaid (Due on receipt)";
-}
-
 async function findOrder(id, session = null, req = null) {
   const scope = req ? scopedFilter(req) : {};
   const key = cleanString(id);
@@ -285,8 +283,8 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
     throw new ValidationError("At least one order item is required");
   }
 
-  const paymentStatus = cleanString(body.paymentStatus) || "unpaid";
-  if (!PAYMENT_STATUSES.includes(paymentStatus)) {
+  const requestedPaymentStatus = cleanString(body.paymentStatus) || "unpaid";
+  if (!PAYMENT_STATUSES.includes(requestedPaymentStatus)) {
     throw new ValidationError("Invalid payment status");
   }
 
@@ -400,20 +398,75 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
   const tax = Math.round(((subtotal - discount) * 18) / 118);
   const total = subtotal - discount + freight;
 
-  let paid = 0;
-  if (paymentStatus === "paid") {
-    paid = total;
-  } else if (paymentStatus === "partial") {
-    paid = clamp(requireMoney(body.amountReceived, "Amount received"), 0, total);
-    if (paid <= 0) {
+  let requestedPaid = 0;
+  if (requestedPaymentStatus === "paid") {
+    requestedPaid = total;
+  } else if (requestedPaymentStatus === "partial") {
+    requestedPaid = clamp(requireMoney(body.amountReceived, "Amount received"), 0, total);
+    if (requestedPaid <= 0) {
       throw new ValidationError("amountReceived is required for partial payments");
     }
   }
 
-  const outstanding = Math.max(total - paid, 0);
   const paymentMethod = cleanString(body.paymentMethod) || "Cash";
-  const paymentLabel = buildPaymentLabel(paymentStatus, paid, paymentMethod);
-  const dueDate = outstanding > 0 ? "Due on receipt" : "Settled in full";
+  const paymentReference = cleanString(body.paymentReference);
+  const existingPayments = plainPayments(existingOrder);
+  const recordedPaid = existingOrder
+    ? existingPayments.length > 0
+      ? sumPayments(existingPayments)
+      : Number(existingOrder.financials?.paid) || 0
+    : 0;
+
+  let payments = existingPayments;
+  let paid = recordedPaid;
+  if (!existingOrder) {
+    if (requestedPaid > 0) {
+      payments = [
+        buildPaymentRecord({
+          amount: requestedPaid,
+          method: paymentMethod,
+          reference: paymentReference,
+          idempotencyKey: createIdempotencyKey("sale_initial"),
+          createdBy: resolveActorName(req),
+        }),
+      ];
+      paid = requestedPaid;
+    }
+  } else {
+    if (requestedPaid < recordedPaid) {
+      throw new ValidationError(
+        "Paid amount cannot be reduced through sale edit; payment history is immutable"
+      );
+    }
+    if (requestedPaid > recordedPaid) {
+      payments = [
+        ...existingPayments,
+        buildPaymentRecord({
+          amount: requestedPaid - recordedPaid,
+          method: paymentMethod,
+          reference: paymentReference,
+          idempotencyKey: createIdempotencyKey("sale_edit"),
+          createdBy: resolveActorName(req),
+        }),
+      ];
+      paid = requestedPaid;
+    }
+  }
+
+  paid = Math.round((paid + Number.EPSILON) * 100) / 100;
+  if (paid > total) {
+    throw new ValidationError(
+      `Recorded payments (${paid}) cannot exceed the sale total (${total}); reduce the total is not supported`
+    );
+  }
+
+  const paymentState = deriveSalePaymentState({
+    total,
+    paid,
+    method: paymentMethod,
+    dueDate: existingOrder?.financials?.dueDate,
+  });
+  const { outstanding, paymentStatus, paymentLabel, dueDate } = paymentState;
 
   return {
     customer: {
@@ -426,6 +479,7 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
     paymentStatus,
     paymentLabel,
     paymentMethod,
+    payments,
     status,
     createdBy: cleanString(existingOrder?.createdBy) || resolveActorName(req),
     bay: cleanString(body.bay) || "Counter",
@@ -675,6 +729,13 @@ async function updateSaleOrder(req, res, next) {
       const previousCustomerId = customerIdOf(order);
       const customerIds = [previousCustomerId, customerIdOf(changes)];
       const compensations = [];
+      const expectedVersion = Number(order.__v) || 0;
+      let documentUpdated = false;
+      const previousState = order.toObject();
+      delete previousState._id;
+      delete previousState.__v;
+      delete previousState.createdAt;
+      delete previousState.updatedAt;
 
       try {
         await applyStockAdjustments({
@@ -689,13 +750,28 @@ async function updateSaleOrder(req, res, next) {
           req,
         });
 
-        Object.assign(order, changes);
-        await order.save({ session });
+        const saved = await SaleOrder.findOneAndUpdate(
+          scopedFilter(req, { _id: order._id, __v: expectedVersion }),
+          { $set: changes, $inc: { __v: 1 } },
+          { new: true, runValidators: true, session }
+        );
+        if (!saved) {
+          throw new ConflictError("This sale order changed while it was being edited");
+        }
+        documentUpdated = true;
+
         await refreshCustomerFinancials(customerIds, req, session);
-        return order;
+        return saved;
       } catch (error) {
         if (!useTransaction) {
           await rollbackCompensations(compensations);
+          if (documentUpdated) {
+            await SaleOrder.updateOne(
+              scopedFilter(req, { _id: order._id, __v: expectedVersion + 1 }),
+              { $set: previousState },
+              { session }
+            ).catch(() => {});
+          }
           await refreshCustomerFinancials(customerIds, req, session).catch(() => {});
         }
         throw error;
@@ -827,69 +903,148 @@ async function recordSaleOrderPayment(req, res, next) {
       return res.status(400).json({ message: "Payments cannot be recorded against a cancelled sale order" });
     }
 
-    const amount = toNumber(req.body?.amount);
-    if (amount <= 0) {
-      return res.status(400).json({ message: "Payment amount must be greater than zero" });
-    }
-    if (amount > order.financials.outstanding) {
-      return res.status(400).json({
-        message: `Payment cannot exceed the outstanding balance (${order.financials.outstanding})`,
+    let amount;
+    let idempotencyKey;
+    try {
+      amount = parsePaymentAmount(req.body?.amount);
+      idempotencyKey = resolveIdempotencyKey(req, {
+        kind: "sale",
+        documentId: order._id,
+        amount,
       });
+    } catch (error) {
+      throw new ValidationError(error.message);
     }
-
-    const method = cleanString(req.body?.method) || order.paymentMethod || "Cash";
 
     const updated = await runWithSession(async (session, useTransaction) => {
-      const current = await SaleOrder.findOne(scopedFilter(req, { _id: order._id })).session(session);
-      if (!current) {
-        throw new NotFoundError("Sale order not found");
-      }
-      if (current.status === "Cancelled") {
-        throw new ValidationError("Payments cannot be recorded against a cancelled sale order");
-      }
-      if (amount > current.financials.outstanding) {
-        throw new ValidationError(
-          `Payment cannot exceed the outstanding balance (${current.financials.outstanding})`
-        );
-      }
+      const customerIds = [customerIdOf(order)];
 
-      const customerIds = [customerIdOf(current)];
-      const previous = {
-        financials:
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const current = await SaleOrder.findOne(scopedFilter(req, { _id: order._id })).session(session);
+        if (!current) {
+          throw new NotFoundError("Sale order not found");
+        }
+        if (current.status === "Cancelled") {
+          throw new ValidationError("Payments cannot be recorded against a cancelled sale order");
+        }
+
+        const replay = findPaymentByKey(current, idempotencyKey);
+        if (replay) {
+          if (roundMoney(replay.amount) !== amount) {
+            throw new ConflictError("This idempotency key was already used for a different payment");
+          }
+          await refreshCustomerFinancials([customerIdOf(current)], req, session);
+          return current;
+        }
+
+        const total = roundMoney(Number(current.financials?.total) || 0);
+        const recordedPaid = ledgerPaid(current, current.financials?.paid);
+        const outstanding = roundMoney(Math.max(total - recordedPaid, 0));
+        if (amount > outstanding) {
+          throw new ValidationError(`Payment cannot exceed the outstanding balance (${outstanding})`);
+        }
+
+        const method = cleanString(req.body?.method) || current.paymentMethod || "Cash";
+        const reference = cleanString(req.body?.reference);
+        const actor = resolveActorName(req);
+        const records = [];
+
+        if (plainPayments(current).length === 0 && recordedPaid > 0) {
+          const baseline = buildLegacyBalancePayment({
+            paid: recordedPaid,
+            documentId: current._id,
+            method: current.paymentMethod || method,
+            reference: "Legacy paid balance migrated on first recorded payment",
+            paidAt: current.createdAt || new Date(),
+            createdBy: current.createdBy || actor,
+          });
+          if (baseline) records.push(baseline);
+        }
+
+        records.push(
+          buildPaymentRecord({
+            amount,
+            method,
+            reference,
+            idempotencyKey,
+            createdBy: actor,
+          })
+        );
+
+        const nextPaid = roundMoney(recordedPaid + amount);
+        const paymentState = deriveSalePaymentState({
+          total,
+          paid: nextPaid,
+          method,
+          dueDate: current.financials?.dueDate,
+        });
+        const currentFinancials =
           typeof current.financials?.toObject === "function"
             ? current.financials.toObject()
-            : { ...current.financials },
-        paymentStatus: current.paymentStatus,
-        paymentMethod: current.paymentMethod,
-        paymentLabel: current.paymentLabel,
-      };
+            : { ...current.financials };
+        const nextFinancials = {
+          ...currentFinancials,
+          paid: paymentState.paid,
+          outstanding: paymentState.outstanding,
+          dueDate: paymentState.dueDate,
+        };
+        const expectedVersion = Number(current.__v) || 0;
+        const previousState = current.toObject();
+        delete previousState._id;
+        delete previousState.__v;
+        delete previousState.createdAt;
+        delete previousState.updatedAt;
 
-      try {
-        const paid = current.financials.paid + amount;
-        const outstanding = Math.max(current.financials.total - paid, 0);
-        const paymentStatus = outstanding === 0 ? "paid" : "partial";
+        const writeResult = await SaleOrder.updateOne(
+          scopedFilter(req, {
+            _id: current._id,
+            __v: expectedVersion,
+            "payments.idempotencyKey": { $ne: idempotencyKey },
+          }),
+          {
+            $set: {
+              financials: nextFinancials,
+              paymentStatus: paymentState.paymentStatus,
+              paymentLabel: paymentState.paymentLabel,
+              paymentMethod: method,
+            },
+            $push: { payments: { $each: records } },
+            $inc: { __v: 1 },
+          },
+          { session, runValidators: true }
+        );
 
-        current.financials.paid = paid;
-        current.financials.outstanding = outstanding;
-        current.financials.dueDate = outstanding === 0 ? "Settled in full" : current.financials.dueDate;
-        current.paymentStatus = paymentStatus;
-        current.paymentMethod = method;
-        current.paymentLabel = buildPaymentLabel(paymentStatus, paid, method);
-
-        await current.save({ session });
-        await refreshCustomerFinancials(customerIds, req, session);
-        return current;
-      } catch (error) {
-        if (!useTransaction) {
-          await SaleOrder.updateOne(
-            scopedFilter(req, { _id: current._id }),
-            { $set: previous },
-            { session }
-          );
-          await refreshCustomerFinancials(customerIds, req, session).catch(() => {});
+        if (writeResult.matchedCount !== 1) {
+          if (attempt < 4) continue;
+          throw new ConflictError("This sale order changed while the payment was being recorded");
         }
-        throw error;
+
+        try {
+          await refreshCustomerFinancials(customerIds, req, session);
+          return await SaleOrder.findOne(scopedFilter(req, { _id: current._id })).session(session);
+        } catch (error) {
+          if (!useTransaction) {
+            await SaleOrder.updateOne(
+              scopedFilter(req, { _id: current._id, __v: expectedVersion + 1 }),
+              {
+                $set: {
+                  financials: previousState.financials,
+                  paymentStatus: previousState.paymentStatus,
+                  paymentLabel: previousState.paymentLabel,
+                  paymentMethod: previousState.paymentMethod,
+                },
+                $pull: { payments: { idempotencyKey: { $in: records.map((record) => record.idempotencyKey) } } },
+                $inc: { __v: -1 },
+              },
+              { session }
+            ).catch(() => {});
+            await refreshCustomerFinancials(customerIds, req, session).catch(() => {});
+          }
+          throw error;
+        }
       }
+
+      throw new ConflictError("This sale order is busy with another payment. Please retry.");
     });
 
     return res.status(200).json({ message: "Payment recorded", order: updated });

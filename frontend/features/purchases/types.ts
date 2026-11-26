@@ -132,6 +132,7 @@ export type PurchasePaymentInput = {
   amount: number;
   method: string;
   reference: string;
+  idempotencyKey?: string;
 };
 
 export type PurchaseReceiveInput = {

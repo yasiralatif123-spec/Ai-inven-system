@@ -5,6 +5,17 @@ const StockMovement = require("../models/StockMovement");
 const Supplier = require("../models/Supplier");
 const { runWithSession } = require("../utils/db");
 const { recalculateSupplierFinancials } = require("../utils/financials");
+const {
+  buildLegacyBalancePayment,
+  buildPaymentRecord,
+  createIdempotencyKey,
+  findPaymentByKey,
+  ledgerPaid,
+  parsePaymentAmount,
+  plainPayments,
+  resolveIdempotencyKey,
+  roundMoney: roundPaymentMoney,
+} = require("../utils/payment-accounting");
 const { tenantFilter } = require("../utils/tenant");
 const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
@@ -444,13 +455,16 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
   }
   const paidAmount = round(paymentAmount);
   const initialPayments = paidAmount > 0
-    ? [{
-        amount: paidAmount,
-        method: cleanString(body.paymentMethod) || "Cash",
-        reference: cleanString(body.paymentReference) || cleanString(body.invoiceNumber),
-        paidAt: now,
-        createdBy: resolveActorName(req),
-      }]
+    ? [
+        buildPaymentRecord({
+          amount: paidAmount,
+          method: cleanString(body.paymentMethod) || "Cash",
+          reference: cleanString(body.paymentReference) || cleanString(body.invoiceNumber),
+          idempotencyKey: createIdempotencyKey("purchase_initial"),
+          paidAt: now,
+          createdBy: resolveActorName(req),
+        }),
+      ]
     : [];
 
   const wasCancelled = existingPurchase?.status === "Cancelled";
@@ -840,43 +854,55 @@ async function getPurchaseByNumber(req, res, next) {
 
 async function updatePurchase(req, res, next) {
   try {
-    const purchase = await findPurchase(req.params.id, req);
-    if (!purchase) {
+    const existing = await findPurchase(req.params.id, req);
+    if (!existing) {
       return res.status(404).json({ message: "Purchase not found" });
     }
 
-    const { changes, stockUpdates } = await buildPurchaseChanges(req.body || {}, purchase, req);
-    const businessId = tenantBusinessId(req);
-    const createdByUserId = isTenantEnforced(req) ? req.auth.id : null;
-    const previousState = {
-      status: purchase.status,
-      items: purchase.items.map((item) =>
-        typeof item.toObject === "function" ? item.toObject() : { ...item }
-      ),
-    };
-    const supplierIds = [supplierIdOf(purchase), supplierIdOf(changes)];
-
     const updated = await runWithSession(async (session, useTransaction) => {
-      const compensations = [];
-      try {
-        if (stockUpdates.length > 0) {
-          compensations.push(async () => {
-            await Purchase.updateOne(
-              { _id: purchase._id },
-              { $set: previousState },
-              { session }
-            );
-          });
-        }
+      const purchase = await Purchase.findOne(scopedFilter(req, { _id: existing._id })).session(session);
+      if (!purchase) {
+        throw new NotFoundError("Purchase not found");
+      }
 
-        purchase.set({
-          ...changes,
-          paidAmount: Number(purchase.paidAmount) || 0,
-          payments: purchase.payments || [],
-          createdBy: purchase.createdBy,
-          createdAt: purchase.createdAt,
-        });
-        await purchase.save({ session });
+      const { changes, stockUpdates } = await buildPurchaseChanges(req.body || {}, purchase, req);
+      const recordedPaid = ledgerPaid(purchase, purchase.paidAmount);
+      if (recordedPaid > roundPaymentMoney(changes.financials.total)) {
+        throw new ValidationError(
+          `Recorded payments (${recordedPaid}) cannot exceed the purchase total (${changes.financials.total})`
+        );
+      }
+
+      const businessId = tenantBusinessId(req);
+      const createdByUserId = isTenantEnforced(req) ? req.auth.id : null;
+      const supplierIds = [supplierIdOf(purchase), supplierIdOf(changes)];
+      const compensations = [];
+      const expectedVersion = Number(purchase.__v) || 0;
+      let documentUpdated = false;
+      const previousState = purchase.toObject();
+      delete previousState._id;
+      delete previousState.__v;
+      delete previousState.createdAt;
+      delete previousState.updatedAt;
+
+      try {
+        const saved = await Purchase.findOneAndUpdate(
+          scopedFilter(req, { _id: purchase._id, __v: expectedVersion }),
+          {
+            $set: {
+              ...changes,
+              paidAmount: recordedPaid,
+              payments: plainPayments(purchase),
+              createdBy: purchase.createdBy,
+            },
+            $inc: { __v: 1 },
+          },
+          { new: true, runValidators: true, session }
+        );
+        if (!saved) {
+          throw new ConflictError("This purchase changed while it was being edited");
+        }
+        documentUpdated = true;
 
         for (const update of stockUpdates) {
           await applyStockReceipt({
@@ -899,10 +925,17 @@ async function updatePurchase(req, res, next) {
         }
 
         await refreshSupplierFinancials(supplierIds, req, session);
-        return purchase;
+        return saved;
       } catch (error) {
         if (!useTransaction) {
           await runCompensations(compensations);
+          if (documentUpdated) {
+            await Purchase.updateOne(
+              scopedFilter(req, { _id: purchase._id, __v: expectedVersion + 1 }),
+              { $set: previousState },
+              { session }
+            ).catch(() => {});
+          }
           await refreshSupplierFinancials(supplierIds, req, session).catch(() => {});
         }
         throw error;
@@ -1276,64 +1309,121 @@ async function recordPurchasePayment(req, res, next) {
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
-
-    const amount = toNumber(req.body?.amount);
-    if (amount <= 0) {
-      throw new ValidationError("Payment amount must be greater than zero");
+    if (purchase.status === "Cancelled") {
+      throw new ValidationError("Payments cannot be recorded against a cancelled purchase");
     }
 
-    const total = Number(purchase.financials?.total) || 0;
-    const paid = Number(purchase.paidAmount) || 0;
-    const remaining = Math.max(total - paid, 0);
-    if (amount > remaining) {
-      throw new ValidationError(`Payment cannot exceed the remaining balance of ${remaining}`);
+    let amount;
+    let idempotencyKey;
+    try {
+      amount = parsePaymentAmount(req.body?.amount);
+      idempotencyKey = resolveIdempotencyKey(req, {
+        kind: "purchase",
+        documentId: purchase._id,
+        amount,
+      });
+    } catch (error) {
+      throw new ValidationError(error.message);
     }
 
     const updated = await runWithSession(async (session, useTransaction) => {
-      const current = await Purchase.findOne(scopedFilter(req, { _id: purchase._id })).session(session);
-      if (!current) {
-        throw new NotFoundError("Purchase not found");
-      }
+      const supplierIds = [supplierIdOf(purchase)];
 
-      const total = Number(current.financials?.total) || 0;
-      const paid = Number(current.paidAmount) || 0;
-      const remaining = Math.max(total - paid, 0);
-      if (amount > remaining) {
-        throw new ValidationError(`Payment cannot exceed the remaining balance of ${remaining}`);
-      }
-
-      const supplierIds = [supplierIdOf(current)];
-      const previous = {
-        paidAmount: current.paidAmount,
-        payments: (current.payments || []).map((payment) =>
-          typeof payment.toObject === "function" ? payment.toObject() : { ...payment }
-        ),
-      };
-
-      try {
-        current.payments = current.payments || [];
-        current.payments.push({
-          amount,
-          method: cleanString(req.body?.method) || "Cash",
-          reference: cleanString(req.body?.reference),
-          paidAt: new Date(),
-          createdBy: resolveActorName(req),
-        });
-        current.paidAmount = round(paid + amount);
-        await current.save({ session });
-        await refreshSupplierFinancials(supplierIds, req, session);
-        return current;
-      } catch (error) {
-        if (!useTransaction) {
-          await Purchase.updateOne(
-            scopedFilter(req, { _id: current._id }),
-            { $set: previous },
-            { session }
-          );
-          await refreshSupplierFinancials(supplierIds, req, session).catch(() => {});
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const current = await Purchase.findOne(scopedFilter(req, { _id: purchase._id })).session(session);
+        if (!current) {
+          throw new NotFoundError("Purchase not found");
         }
-        throw error;
+        if (current.status === "Cancelled") {
+          throw new ValidationError("Payments cannot be recorded against a cancelled purchase");
+        }
+
+        const replay = findPaymentByKey(current, idempotencyKey);
+        if (replay) {
+          if (roundPaymentMoney(replay.amount) !== amount) {
+            throw new ConflictError("This idempotency key was already used for a different payment");
+          }
+          await refreshSupplierFinancials([supplierIdOf(current)], req, session);
+          return current;
+        }
+
+        const total = roundPaymentMoney(Number(current.financials?.total) || 0);
+        const recordedPaid = ledgerPaid(current, current.paidAmount);
+        const remaining = roundPaymentMoney(Math.max(total - recordedPaid, 0));
+        if (amount > remaining) {
+          throw new ValidationError(`Payment cannot exceed the remaining balance of ${remaining}`);
+        }
+
+        const method = cleanString(req.body?.method) || "Cash";
+        const reference = cleanString(req.body?.reference);
+        const actor = resolveActorName(req);
+        const records = [];
+
+        if (plainPayments(current).length === 0 && recordedPaid > 0) {
+          const baseline = buildLegacyBalancePayment({
+            paid: recordedPaid,
+            documentId: current._id,
+            method: current.paymentMethod || method,
+            reference: "Legacy paid balance migrated on first recorded payment",
+            paidAt: current.createdAt || new Date(),
+            createdBy: current.createdBy || actor,
+          });
+          if (baseline) records.push(baseline);
+        }
+
+        records.push(
+          buildPaymentRecord({
+            amount,
+            method,
+            reference,
+            idempotencyKey,
+            createdBy: actor,
+          })
+        );
+
+        const nextPaid = roundPaymentMoney(recordedPaid + amount);
+        const expectedVersion = Number(current.__v) || 0;
+
+        const writeResult = await Purchase.updateOne(
+          scopedFilter(req, {
+            _id: current._id,
+            __v: expectedVersion,
+            "payments.idempotencyKey": { $ne: idempotencyKey },
+          }),
+          {
+            $set: { paidAmount: nextPaid },
+            $push: { payments: { $each: records } },
+            $inc: { __v: 1 },
+          },
+          { session, runValidators: true }
+        );
+
+        if (writeResult.matchedCount !== 1) {
+          if (attempt < 4) continue;
+          throw new ConflictError("This purchase changed while the payment was being recorded");
+        }
+
+        try {
+          await refreshSupplierFinancials(supplierIds, req, session);
+          return await Purchase.findOne(scopedFilter(req, { _id: current._id })).session(session);
+        } catch (error) {
+          if (!useTransaction) {
+            await Purchase.updateOne(
+              scopedFilter(req, { _id: current._id, __v: expectedVersion + 1 }),
+              {
+                $set: { paidAmount: current.paidAmount },
+                $pull: { payments: { idempotencyKey: { $in: records.map((record) => record.idempotencyKey) } } },
+                $inc: { __v: -1 },
+              },
+              { session }
+            ).catch(() => {});
+            await refreshSupplierFinancials(supplierIds, req, session).catch(() => {});
+          }
+          throw error;
+        }
       }
+
+      throw new ConflictError("This purchase is busy with another payment. Please retry.");
     });
 
     return res.status(200).json({ message: "Payment recorded", purchase: updated });

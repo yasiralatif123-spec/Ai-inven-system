@@ -402,12 +402,14 @@ export function PurchasesView() {
         onClose={() => setReceiveTarget(null)}
         onConfirm={handleReceiveConfirm}
       />
-      <RecordPurchasePaymentDialog
-        purchase={paymentPurchase}
-        saving={paymentSaving}
-        onClose={() => setPaymentPurchase(null)}
-        onConfirm={handlePaymentConfirm}
-      />
+      {paymentPurchase ? (
+        <RecordPurchasePaymentDialog
+          purchase={paymentPurchase}
+          saving={paymentSaving}
+          onClose={() => setPaymentPurchase(null)}
+          onConfirm={handlePaymentConfirm}
+        />
+      ) : null}
       <DeletePurchaseDialog
         purchase={pendingDelete}
         deleting={deletingPurchase}

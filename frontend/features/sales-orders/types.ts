@@ -95,6 +95,7 @@ export type DraftOrderInput = {
 export type PaymentInput = {
   amount: number;
   method: string;
+  idempotencyKey?: string;
 };
 
 export type SaleOrderDto = {

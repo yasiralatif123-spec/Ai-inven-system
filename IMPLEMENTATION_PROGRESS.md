@@ -297,3 +297,135 @@ Not possible in the available environment. A direct read-only `hello` command ag
 ## No gateway / no new payment system
 
 Confirmed: no Stripe, PayPal, JazzCash, Easypaisa, gateway API, payment collection, or new payment workflow was introduced. Existing manual payment fields and endpoints were preserved and only made session/compensation safe.
+
+---
+
+# Phase 2 — Internal Payment Accounting & Payment Integrity
+
+## Step 1 — Inspection (before changes)
+
+### Existing payment architecture
+
+- **Sale orders** (`backend/src/models/SaleOrder.js`, `backend/src/controllers/sale-order.controller.js`):
+  - `financials.paid`, `financials.outstanding`, `paymentStatus` (`paid` / `partial` / `unpaid`), `paymentLabel`, and `paymentMethod` exist.
+  - There is **no sale `payments` array** and no payment record schema.
+  - `POST /api/sale-orders/:id/payment` updates the financial fields in place and calls `recalculateCustomerFinancials()`.
+  - Create/edit derive `paid` from `paymentStatus` and `amountReceived` in `buildOrderChanges()`.
+- **Purchases** (`backend/src/models/Purchase.js`, `backend/src/controllers/purchase.controller.js`):
+  - `paidAmount` and an embedded `payments` array (`amount`, `method`, `reference`, `paidAt`, `createdBy`, `_id`) already exist.
+  - `POST /api/purchases/:id/payment` pushes a payment record, increments `paidAmount`, and calls `recalculateSupplierFinancials()`.
+  - Create accepts `paymentAmount`; edit preserves `paidAmount` / `payments` by overriding the generated changes.
+  - There is no stored purchase payment-status field; list filters are derived in the frontend.
+- Both routers apply `enforceTenantAuth`, and both controllers scope reads/writes with `scopedFilter(req, ...)` / `tenantFilter`.
+- Both use `runWithSession()`; the available test MongoDB is standalone, so the exercised behavior is compensation, not ACID transactions.
+- Frontend payment services simply forward `{ amount, method }` for sales and `{ amount, method, reference }` for purchases.
+
+## Step 2 — Audit
+
+### Confirmed bugs and root causes
+
+1. **Sale payments leave no record.** Root cause: `SaleOrder` has no `payments` schema and `recordSaleOrderPayment()` only mutates `financials`. This makes payment history unauditable and impossible to reconcile.
+2. **No idempotency on either payment endpoint.** Root cause: neither endpoint accepts or stores an idempotency key, and purchase records have no uniqueness constraint. A double click or retry can create two purchase records or apply two sale increments.
+3. **Concurrent payments can lose updates.** Root cause: both endpoints read the document, validate against stale `outstanding` / `paidAmount`, then save. Two concurrent requests can both pass validation and the later write can overwrite the earlier one.
+4. **Invalid numeric payment values are not strictly parsed.** Root cause: `toNumber()` coerces malformed strings to the fallback `0`, producing a generic “greater than zero” error instead of rejecting the value as invalid.
+5. **Sale edit can silently reclassify or erase payment accounting.** Root cause: `buildOrderChanges()` recomputes `paid` from the submitted `paymentStatus`/`amountReceived` without referencing existing records. A later edit can set paid back to zero without changing any payment record.
+6. **Purchase edit can leave an overpaid document.** Root cause: `updatePurchase()` preserves `paidAmount` even when the edited total is reduced below the recorded payments; no edit-time guard exists.
+7. **Cancelled purchases can still receive payments.** Root cause: `recordPurchasePayment()` checks only that the purchase exists, unlike the sale endpoint which rejects cancelled documents.
+8. **Payment records carry no idempotency key and no in-document uniqueness validation.** Root cause: schema gap on both sale and purchase payment subdocuments.
+9. **Initial payments are inconsistent.** Purchase create stores an initial payment record, but sale create/edit with `paid`/`partial` stores only derived totals and no record.
+
+### Proposed fixes
+
+- Add a consistent embedded payment-record schema to both sale and purchase documents, including `idempotencyKey`, `amount`, `method`, `reference`, `paidAt`, and `createdBy`, plus in-document uniqueness validation for non-empty keys.
+- Add a shared payment utility for strict amount parsing, idempotency-key resolution, record construction, and derived paid/outstanding/status calculations. Backend remains authoritative; no frontend-supplied paid amount is trusted.
+- Replace read-then-save payment writes with conditional atomic updates using an optimistic `__v` guard, a `payments.idempotencyKey != key` guard, and a balance guard. Retry on version conflicts; replay the stored result on duplicate keys.
+- Preserve `runWithSession()` and add standalone compensation for summary-recalculation failures.
+- On sale/purchase edits, derive paid amounts from immutable records, reject reductions through edit, reject overpayment, and append a record only when an edit explicitly increases paid through the existing status/amount fields.
+- Reject payments against cancelled purchases as well as cancelled sales.
+- Generate a stable idempotency key per payment-dialog submission in the frontend and forward it to the backend. Backend still accepts explicit keys from any client; a deterministic fallback preserves compatibility with existing callers/tests.
+
+## Step 3 — Implementation
+
+### New files
+
+| Path | Why |
+|---|---|
+| `backend/src/utils/payment-accounting.js` | Shared strict money parsing, idempotency-key resolution, immutable payment-record construction, ledger sums, legacy-balance migration, and sale payment-state derivation. |
+| `backend/src/models/PaymentRecord.js` | Shared embedded payment subdocument schema (`amount`, `method`, `reference`, `paidAt`, `createdBy`, `idempotencyKey`) with in-document duplicate-key validation. |
+| `backend/test/payment-integrity.test.js` | 33 deterministic MongoDB-backed payment-integrity tests. |
+
+### Modified files
+
+| Path | Why |
+|---|---|
+| `backend/src/models/SaleOrder.js` | Adds `payments: paymentRecordsField`; sale payments are now recorded on the same document as the order. |
+| `backend/src/models/Purchase.js` | Replaces the old purchase-only payment subdocument with the shared `paymentRecordsField`, adding idempotency keys and uniqueness validation. |
+| `backend/src/controllers/sale-order.controller.js` | Creates immutable records for initial/edit payments; sale edit derives paid state from records, rejects paid reductions and overpayment; payment endpoint uses strict parsing, conditional `__v` + idempotency-key updates, replay/conflict handling, fresh reads, and standalone compensation. |
+| `backend/src/controllers/purchase.controller.js` | Stores an idempotency key on initial payments; rejects cancelled-document payments; enforces ledger-based overpayment guard on edit; makes payment writes conditional and replayable with compensation. |
+| `frontend/features/sales-orders/types.ts` | Adds optional `idempotencyKey` to `PaymentInput`. |
+| `frontend/features/sales-orders/components/RecordPaymentDialog.tsx` | Generates one stable key per mounted dialog and forwards it with each payment submission; existing submit button already blocks repeat clicks while saving. |
+| `frontend/features/purchases/types.ts` | Adds optional `idempotencyKey` to `PurchasePaymentInput`. |
+| `frontend/features/purchases/components/RecordPurchasePaymentDialog.tsx` | Generates one stable key per mounted dialog and forwards it with each payment submission. |
+| `frontend/features/purchases/components/PurchasesView.tsx` | Mounts the payment dialog only while a purchase is selected, so each new dialog gets a fresh key while retries of the same submission keep the same key. |
+
+No payment gateway/provider was added. No `businessId`, tenant middleware, route, auth, role, status enum, stock rule, snapshot, or Phase 1 recalculation behavior was removed or weakened.
+
+## Step 4 — Payment behavior after the fix
+
+- Every recorded manual sale and purchase payment now has an embedded immutable record with amount, method, reference, timestamp, actor, and idempotency key.
+- `financials.paid` (sale) and `paidAmount` (purchase) are recomputed from the recorded ledger on each payment and on edit; status remains an input/workflow field for sales but is authoritative-derived on payment completion instead of being trusted as proof of money received.
+- Explicit `Idempotency-Key` headers and `idempotencyKey` bodies are supported. A deterministic legacy fallback keeps unchanged existing clients safe from identical retries.
+- Duplicate keys replay the original result without adding a record; a reused key with a different amount returns 409.
+- Conditional writes guard on `__v` + absence of the payment key; retries re-read and revalidate. Concurrent different-key payments both record; concurrent overpayments cannot both pass the balance check.
+- Edits restore a snapshot only when their own conditional write succeeded, so a losing edit cannot overwrite a payment that landed concurrently.
+- Standalone MongoDB failures in party-summary recalculation are compensated by restoring the payment document and refreshing the summary. Legacy documents with paid totals but no ledger are migrated with one `legacy_balance_<documentId>` carried-forward record on the first new payment.
+
+## Step 5 — Tests executed and exact results
+
+From `backend/`:
+
+| Command | Result |
+|---|---|
+| `npx jest test/payment-integrity.test.js --runInBand` | PASS — 1 suite / 33 tests |
+| `npx jest test/payment-integrity.test.js test/customer-financials.test.js test/supplier-financials.test.js test/phase6b-tenant.test.js test/tenant.test.js test/product-inventory-tenant.test.js --runInBand` | PASS — 6 suites / 78 tests |
+| `npm test -- --runInBand` | PASS — 23 suites / 199 tests |
+| `node --check src/controllers/sale-order.controller.js` | PASS |
+| `node --check src/controllers/purchase.controller.js` | PASS |
+| `node --check src/utils/payment-accounting.js` | PASS |
+| `node --check src/models/PaymentRecord.js` | PASS |
+
+The 33 new tests assert actual MongoDB document values with `findById(...).lean()` after each API call: full/partial/multiple sale and purchase payments, initial payment records, legacy paid balance migration, malformed/zero/negative/scientific-notation amounts, overpayment, duplicate replay, key-with-different-amount conflict, deterministic concurrent payments, concurrent balance enforcement, edit history preservation, edit reduction rejection, purchase edit overpayment guard, cancelled sale/purchase rejection, failed-summary rollback, Phase 1 party-summary recalculation, and cross-tenant payment rejection with enforcement explicitly enabled.
+
+From `frontend/`:
+
+| Command | Result |
+|---|---|
+| `npx tsc --noEmit` | PASS (no output) |
+| `npm run lint` | PASS — 0 errors, 8 pre-existing unrelated warnings |
+| `npm run build` | PASS — Next.js 16.4.6, 21 routes generated |
+
+Repository:
+
+| Command | Result |
+|---|---|
+| `git diff --check` | PASS — only pre-existing LF/CRLF notices |
+| `git status --short` | Only Phase 1/Phase 2 intended files changed; pre-existing untracked `.agents/` and `skills-lock.json` untouched; no commit/push |
+
+## Step 6 — Review, risks, and final status
+
+### Verified
+
+- Tenant enforcement was explicitly enabled for cross-tenant payment tests; foreign-tenant requests returned 404 and left both ledger and party summary unchanged.
+- Existing Paid/Unpaid/Pending dropdown/status behavior and all prior suites remain intact.
+- `businessId` and `scopedFilter(req, ...)`/`tenantFilter` remain on every new read and write path.
+- No production/development database was reset or modified; only the test DB was cleared by the existing helper.
+
+### Remaining risks / limitations
+
+1. Test MongoDB is standalone (`transactionsSupported: false`); real ACID transaction behavior is not verifiable here. Standalone compensation is tested, not replica-set atomicity.
+2. Optimistic concurrency retries are in-process; a multi-process deployment still benefits from the conditional database guards but does not have a distributed lock or real transactions on standalone Mongo.
+3. Legacy deterministic fallback dedupes identical requests from unchanged clients, so two genuinely identical sequential payments from an old client require an explicit key to be recorded separately.
+4. Frontend has no browser test framework; dialog key wiring was validated by TypeScript, ESLint, and a production build only.
+5. No refunds, credit transfers, or allocation of payments across documents were introduced; those remain external business decisions.
+
+Final Phase 2 status: **COMPLETED (with the documented standalone-MongoDB and legacy-client limitations above).**

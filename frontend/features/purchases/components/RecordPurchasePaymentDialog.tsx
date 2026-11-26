@@ -13,12 +13,18 @@ type RecordPurchasePaymentDialogProps = {
   onConfirm: (purchase: PurchaseRecord, payload: PurchasePaymentInput) => void;
 };
 
+function newPaymentKey() {
+  const uuid = globalThis.crypto?.randomUUID?.();
+  return `purchase_payment_${uuid ?? `${Date.now()}_${Math.random().toString(36).slice(2)}`}`;
+}
+
 export function RecordPurchasePaymentDialog({
   purchase,
   saving,
   onClose,
   onConfirm,
 }: RecordPurchasePaymentDialogProps) {
+  const [idempotencyKey] = useState(newPaymentKey);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState(PAYMENT_METHODS[0]);
   const [reference, setReference] = useState("");
@@ -38,7 +44,7 @@ export function RecordPurchasePaymentDialog({
     }
 
     setError(null);
-    onConfirm(purchase!, { amount: numeric, method, reference });
+    onConfirm(purchase!, { amount: numeric, method, reference, idempotencyKey });
   }
 
   return (
