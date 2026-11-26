@@ -22,6 +22,8 @@ const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
   normalizeUnit,
   toBasePieces,
+  toBasePiecesStrict,
+  parseWholeQuantity,
   isSupportedUnit,
   priceForUnit,
   parseMoneyInput,
@@ -152,8 +154,9 @@ async function resolveCustomer(body, session = null, req = null) {
   return null;
 }
 
-function toWholeNumber(value, fallback = 0) {
-  return Math.floor(toNumber(value, fallback));
+function toWholeNumber(value) {
+  const parsed = parseWholeQuantity(value);
+  return parsed === null ? null : parsed;
 }
 
 function clamp(value, min, max) {
@@ -318,8 +321,8 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
         `Item ${name || sku || "line item"} has an invalid unit. Use Carton, Box, or Piece`
       );
     }
-    const baseQuantity = toBasePieces(quantity, unitLabel);
-    if (!Number.isFinite(baseQuantity) || baseQuantity <= 0) {
+    const baseQuantity = toBasePiecesStrict(quantity, unitLabel);
+    if (baseQuantity === null || baseQuantity <= 0) {
       throw new ValidationError(`Item ${name || sku || "line item"} has an invalid quantity/unit conversion`);
     }
 
@@ -814,6 +817,9 @@ async function updateSaleOrderStatus(req, res, next) {
     if (existing.status === "Cancelled" && status !== "Cancelled") {
       return res.status(400).json({ message: "Cancelled sales orders cannot be reactivated" });
     }
+    if (existing.status === "Cancelled" && status === "Cancelled") {
+      return res.status(200).json({ message: "Sale order already cancelled", order: existing });
+    }
 
     if (status === "Cancelled" && existing.status !== "Cancelled") {
       const updated = await runWithSession(async (session, useTransaction) => {
@@ -823,10 +829,55 @@ async function updateSaleOrderStatus(req, res, next) {
         }
         if (order.status === "Cancelled") return order;
 
+        const expectedVersion = Number(order.__v) || 0;
+        const previousStatus = order.status;
+        const customerIds = [customerIdOf(order)];
+        const cancelledItems = (order.items || []).map((item) => {
+          const plain = typeof item.toObject === "function" ? item.toObject() : { ...item };
+          return { ...plain, stockDeducted: false };
+        });
         const compensations = [];
+
         try {
-          // If delivered, goods already reached customer - do not restock inventory.
-          if (order.status !== "Delivered") {
+          // Claim terminal status first so concurrent cancellations cannot both
+          // restore stock. Phase 2 payment fields are never re-saved here.
+          const claim = await SaleOrder.updateOne(
+            scopedFilter(req, {
+              _id: order._id,
+              __v: expectedVersion,
+              status: { $ne: "Cancelled" },
+            }),
+            {
+              $set: { status: "Cancelled", items: cancelledItems },
+              $inc: { __v: 1 },
+            },
+            { session, runValidators: true }
+          );
+
+          if (claim.matchedCount !== 1) {
+            const current = await SaleOrder.findOne(scopedFilter(req, { _id: order._id }))
+              .session(session)
+              .lean();
+            if (current?.status === "Cancelled") return current;
+            throw new ConflictError("This sale order changed while it was being cancelled");
+          }
+          compensations.push(async () => {
+            await SaleOrder.updateOne(
+              scopedFilter(req, {
+                _id: order._id,
+                __v: expectedVersion + 1,
+                status: "Cancelled",
+              }),
+              {
+                $set: { status: previousStatus, items: order.items },
+                $inc: { __v: -1 },
+              },
+              { session }
+            );
+          });
+
+          // If delivered, goods already reached the customer - do not restock.
+          if (previousStatus !== "Delivered") {
             await applyStockAdjustments({
               orderNumber: order.orderNumber,
               previousItems: order.items,
@@ -840,19 +891,12 @@ async function updateSaleOrderStatus(req, res, next) {
             });
           }
 
-          // Prevent future delete/edit from double-restocking cancelled orders.
-          order.items = (order.items || []).map((item) => {
-            const plain = typeof item.toObject === "function" ? item.toObject() : { ...item };
-            return { ...plain, stockDeducted: false };
-          });
-          order.status = "Cancelled";
-          await order.save({ session });
-          await refreshCustomerFinancials([customerIdOf(order)], req, session);
-          return order;
+          await refreshCustomerFinancials(customerIds, req, session);
+          return await SaleOrder.findOne(scopedFilter(req, { _id: order._id })).session(session);
         } catch (error) {
           if (!useTransaction) {
             await rollbackCompensations(compensations);
-            await refreshCustomerFinancials([customerIdOf(order)], req, session).catch(() => {});
+            await refreshCustomerFinancials(customerIds, req, session).catch(() => {});
           }
           throw error;
         }
@@ -866,21 +910,41 @@ async function updateSaleOrderStatus(req, res, next) {
       if (!order) {
         throw new NotFoundError("Sale order not found");
       }
+      if (order.status === "Cancelled" && status !== "Cancelled") {
+        throw new ValidationError("Cancelled sales orders cannot be reactivated");
+      }
 
       const customerIds = [customerIdOf(order)];
       const previousStatus = order.status;
+      const expectedVersion = Number(order.__v) || 0;
+      let statusUpdated = false;
+
       try {
-        order.status = status;
-        await order.save({ session });
+        const result = await SaleOrder.updateOne(
+          scopedFilter(req, {
+            _id: order._id,
+            __v: expectedVersion,
+            status: { $ne: "Cancelled" },
+          }),
+          { $set: { status }, $inc: { __v: 1 } },
+          { session, runValidators: true }
+        );
+        if (result.matchedCount !== 1) {
+          throw new ConflictError("This sale order changed while its status was being updated");
+        }
+        statusUpdated = true;
+
         await refreshCustomerFinancials(customerIds, req, session);
-        return order;
+        return await SaleOrder.findOne(scopedFilter(req, { _id: order._id })).session(session);
       } catch (error) {
         if (!useTransaction) {
-          await SaleOrder.updateOne(
-            scopedFilter(req, { _id: order._id }),
-            { $set: { status: previousStatus } },
-            { session }
-          );
+          if (statusUpdated) {
+            await SaleOrder.updateOne(
+              scopedFilter(req, { _id: order._id, __v: expectedVersion + 1 }),
+              { $set: { status: previousStatus }, $inc: { __v: -1 } },
+              { session }
+            ).catch(() => {});
+          }
           await refreshCustomerFinancials(customerIds, req, session).catch(() => {});
         }
         throw error;
@@ -1067,7 +1131,10 @@ async function deleteSaleOrder(req, res, next) {
       }
 
       const customerId = customerIdOf(order);
+      const expectedVersion = Number(order.__v) || 0;
+      const orderSnapshot = order.toObject();
       const compensations = [];
+      let deleted = false;
       try {
         await applyStockAdjustments({
           orderNumber: order.orderNumber,
@@ -1081,11 +1148,23 @@ async function deleteSaleOrder(req, res, next) {
           req,
         });
 
-        await SaleOrder.deleteOne(scopedFilter(req, { _id: order._id }), { session });
+        const result = await SaleOrder.deleteOne(
+          scopedFilter(req, { _id: order._id, __v: expectedVersion }),
+          { session }
+        );
+        if (result.deletedCount !== 1) {
+          throw new ConflictError("This sale order changed while it was being deleted");
+        }
+        deleted = true;
+
         await refreshCustomerFinancials([customerId], req, session);
       } catch (error) {
         if (!useTransaction) {
           await rollbackCompensations(compensations);
+          if (deleted) {
+            delete orderSnapshot._id;
+            await SaleOrder.create([orderSnapshot], { session }).catch(() => {});
+          }
           await refreshCustomerFinancials([customerId], req, session).catch(() => {});
         }
         throw error;

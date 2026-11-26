@@ -28,6 +28,13 @@ const stockMovementSchema = new mongoose.Schema(
     reason: { type: String, default: "" },
     reference: { type: String, default: "" },
     notes: { type: String, default: "" },
+    // Set only on compensating movements. The original movement is never
+    // edited or deleted; this link makes a reversal detectable and idempotent.
+    reversesMovement: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "StockMovement",
+      default: null,
+    },
     performedBy: { type: String, default: "System" },
     // Denormalized counterparty captured at movement time: supplier name for
     // purchases, customer/buyer name for sales. The ledger is immutable.
@@ -47,6 +54,16 @@ const stockMovementSchema = new mongoose.Schema(
     },
   },
   { timestamps: true }
+);
+
+// A movement may be compensated at most once. Null/default values are excluded
+// so ordinary ledger entries remain unrestricted.
+stockMovementSchema.index(
+  { reversesMovement: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { reversesMovement: { $type: "objectId" } },
+  }
 );
 
 module.exports = mongoose.model("StockMovement", stockMovementSchema);

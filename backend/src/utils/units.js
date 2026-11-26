@@ -39,6 +39,39 @@ function toBasePieces(quantity, unit) {
   return Math.round(qty * factor);
 }
 
+/**
+ * Strictly parses a stock count. Transactional stock quantities are whole
+ * Pieces (or whole Boxes/Cartons), so decimals, NaN, Infinity, malformed
+ * strings, and unsafe integers are rejected instead of being truncated.
+ */
+function parseWholeQuantity(value, { allowZero = false } = {}) {
+  let quantity;
+
+  if (typeof value === "number") {
+    quantity = value;
+  } else if (typeof value === "string") {
+    const text = value.trim();
+    if (!/^\d+$/.test(text)) return null;
+    quantity = Number(text);
+  } else {
+    return null;
+  }
+
+  if (!Number.isSafeInteger(quantity)) return null;
+  if (quantity < 0 || (!allowZero && quantity === 0)) return null;
+  return quantity;
+}
+
+/** Converts a strictly validated quantity into base Pieces. */
+function toBasePiecesStrict(quantity, unit, options = {}) {
+  const parsed = parseWholeQuantity(quantity, { allowZero: true, ...options });
+  if (parsed === null) return null;
+  const factor = toPiecesPerUnit(unit);
+  if (factor === null) return null;
+  const base = parsed * factor;
+  return Number.isSafeInteger(base) ? base : null;
+}
+
 function fromBasePieces(totalPieces) {
   const total = Math.max(0, Math.trunc(Number(totalPieces) || 0));
   const cartons = Math.floor(total / 24);
@@ -139,6 +172,8 @@ module.exports = {
   isSupportedUnit,
   toPiecesPerUnit,
   toBasePieces,
+  parseWholeQuantity,
+  toBasePiecesStrict,
   fromBasePieces,
   formatStock,
   roundMoney,

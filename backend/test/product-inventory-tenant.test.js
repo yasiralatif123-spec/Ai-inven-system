@@ -143,9 +143,9 @@ describe("Phase 6 Part A - product/inventory tenant enforcement", () => {
     const movB = await request(app).get("/api/inventory/movements").set("Cookie", cookieB);
     expect(movA.status).toBe(200);
     expect(movB.status).toBe(200);
-    expect(movA.body.movements).toHaveLength(1);
-    expect(movB.body.movements).toHaveLength(0);
-    expect(movA.body.movements[0].businessId).toBe(String(businessA._id));
+    expect(movA.body.movements).toHaveLength(2);
+    expect(movB.body.movements).toHaveLength(1);
+    expect(movA.body.movements.every((m) => m.businessId === String(businessA._id))).toBe(true);
 
     const productsA = await request(app).get("/api/products").set("Cookie", cookieA);
     const productsB = await request(app).get("/api/products").set("Cookie", cookieB);
@@ -198,7 +198,16 @@ describe("Phase 6 Part A - product/inventory tenant enforcement", () => {
     const movementId = adjB.body.movement._id;
 
     await request(app).delete(`/api/inventory/movements/${movementId}`).set("Cookie", cookieA).expect(404);
+    const reversed = await request(app)
+      .delete(`/api/inventory/movements/${movementId}`)
+      .set("Cookie", cookieB);
+    expect(reversed.status).toBe(200);
+    expect(reversed.body.reversal.reversesMovement).toBe(movementId);
+
+    // History is immutable and a second reversal is idempotent.
     await request(app).delete(`/api/inventory/movements/${movementId}`).set("Cookie", cookieB).expect(200);
+    const original = await StockMovement.findById(movementId).lean();
+    expect(original).not.toBeNull();
   });
 
   test("update cannot change businessId", async () => {

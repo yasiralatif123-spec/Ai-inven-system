@@ -21,6 +21,8 @@ const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
   normalizeUnit,
   toBasePieces,
+  toBasePiecesStrict,
+  parseWholeQuantity,
   isSupportedUnit,
   priceForUnit,
   parseMoneyInput,
@@ -102,8 +104,17 @@ function toNumber(value, fallback = 0) {
 }
 
 function toWholeNumber(value) {
-  const numeric = Math.floor(toNumber(value, NaN));
-  return Number.isFinite(numeric) ? numeric : null;
+  const parsed = parseWholeQuantity(value, { allowZero: true });
+  return parsed === null ? null : parsed;
+}
+
+function receivedBaseQuantityOf(item) {
+  const storedBase = parseWholeQuantity(item?.receivedBaseQuantity, { allowZero: true });
+  if (storedBase !== null) return storedBase;
+
+  const received = parseWholeQuantity(item?.receivedQuantity, { allowZero: true });
+  if (received === null || received === 0) return 0;
+  return toBasePiecesStrict(received, normalizeUnit(item?.unit) || "Piece") ?? received;
 }
 
 async function findProductForPurchaseItem(item, req = null) {
@@ -250,7 +261,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
 
   for (const [index, rawItem] of body.items.entries()) {
     const name = cleanString(rawItem?.name);
-    const quantity = toWholeNumber(rawItem?.quantity);
+    const quantity = parseWholeQuantity(rawItem?.quantity);
     const submittedUnitPrice = requireMoney(
       rawItem?.unitPrice,
       `Item ${index + 1} unit price`
@@ -269,8 +280,8 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
         `Item ${index + 1} has an invalid unit. Use Carton, Box, or Piece`
       );
     }
-    const baseQuantity = toBasePieces(quantity, unit);
-    if (!Number.isFinite(baseQuantity) || baseQuantity <= 0) {
+    const baseQuantity = quantity === null ? null : toBasePiecesStrict(quantity, unit);
+    if (baseQuantity === null || baseQuantity <= 0) {
       throw new ValidationError(`Item ${index + 1} has an invalid quantity/unit conversion`);
     }
 
@@ -311,11 +322,9 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       : submittedUnitPrice;
     const priceBasis = product ? "catalog" : "manual";
 
-    const previousReceived = Math.max(0, Number(existingItem?.receivedQuantity) || 0);
-    const previousReceivedBase = Math.max(
-      0,
-      Number(existingItem?.receivedBaseQuantity) || toBasePieces(previousReceived, normalizeUnit(existingItem?.unit) || unit) || 0
-    );
+    const previousReceived =
+      parseWholeQuantity(existingItem?.receivedQuantity, { allowZero: true }) ?? 0;
+    const previousReceivedBase = receivedBaseQuantityOf(existingItem);
     const availableStock = Math.max(
       0,
       Number(
@@ -324,14 +333,25 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
           : rawItem?.availableStock
       ) || 0
     );
-    let receivedQuantity = existingItem ? toWholeNumber(rawItem?.receivedQuantity) : 0;
+
+    let receivedQuantity;
+    if (existingItem) {
+      const rawReceived = rawItem?.receivedQuantity;
+      if (rawReceived === undefined || rawReceived === null || String(rawReceived).trim() === "") {
+        receivedQuantity = previousReceived;
+      } else {
+        receivedQuantity = parseWholeQuantity(rawReceived, { allowZero: true });
+        if (receivedQuantity === null) {
+          throw new ValidationError("Received quantity must be a non-negative whole number");
+        }
+      }
+    } else {
+      receivedQuantity = 0;
+    }
     const receipts = Array.isArray(existingItem?.receipts) ? [...existingItem.receipts] : [];
 
     if (existingItem) {
       if (status !== "Received") {
-        if (receivedQuantity === null || receivedQuantity < 0) {
-          receivedQuantity = previousReceived;
-        }
         if (receivedQuantity < previousReceived) {
           throw new ValidationError(
             `Received quantity for ${name} cannot be reduced below ${previousReceived}`
@@ -348,6 +368,12 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
           `The product for ${name} cannot be changed after goods have been received`
         );
       }
+      const existingUnit = normalizeUnit(existingItem?.unit) || "Piece";
+      if (previousReceived > 0 && existingUnit !== unit) {
+        throw new ValidationError(
+          `The unit for ${name} cannot be changed after goods have been received`
+        );
+      }
     }
 
     if (status === "Received") {
@@ -360,22 +386,29 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       receivedQuantity = quantity;
       const delta = receivedQuantity - previousReceived;
       const baseDelta = baseQuantity - previousReceivedBase;
-      if (delta > 0) {
-        receipts.push(
-          createReceiptEntry({
-            quantity: delta,
-            receivedQuantity,
-            baseQuantity: baseDelta,
-            receivedBaseQuantity: baseQuantity,
-            reference: receiptReference,
-            notes: receiptNotes,
-            receivedAt,
-            performedBy,
-          })
+      if (baseDelta < 0) {
+        throw new ValidationError(
+          `Received stock for ${name} cannot be reduced below ${previousReceivedBase} base pieces`
         );
+      }
+      if (delta > 0 || baseDelta > 0) {
+        if (delta > 0) {
+          receipts.push(
+            createReceiptEntry({
+              quantity: delta,
+              receivedQuantity,
+              baseQuantity: baseDelta,
+              receivedBaseQuantity: baseQuantity,
+              reference: receiptReference,
+              notes: receiptNotes,
+              receivedAt,
+              performedBy,
+            })
+          );
+        }
 
         const resolvedProductId = product?._id ? String(product._id) : productId;
-        if (product && mongoose.isValidObjectId(resolvedProductId)) {
+        if (product && mongoose.isValidObjectId(resolvedProductId) && baseDelta > 0) {
           stockUpdates.push({
             productId: resolvedProductId,
             delta: baseDelta,
@@ -394,15 +427,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
         `Received quantity for ${name} cannot exceed the ordered quantity`
       );
     }
-    const receivedBaseQuantity =
-      status === "Received"
-        ? baseQuantity
-        : Math.max(
-            0,
-            Number(existingItem?.receivedBaseQuantity) ||
-              toBasePieces(receivedQuantity, normalizeUnit(existingItem?.unit) || unit) ||
-              0
-          );
+    const receivedBaseQuantity = status === "Received" ? baseQuantity : previousReceivedBase;
 
     const itemSubtotal = round(quantity * unitPrice);
     const discount = clamp(requireMoney(rawItem?.discount, `Item ${index + 1} discount`), 0, itemSubtotal);
@@ -471,6 +496,16 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
   if (wasCancelled && status !== "Cancelled") {
     throw new ValidationError("Cancelled purchases cannot be reactivated");
   }
+  if (
+    existingPurchase &&
+    ["Draft", "Ordered"].includes(status) &&
+    RECEIVING_STATUSES.includes(existingPurchase.status) &&
+    existingItems.some((item) => receivedBaseQuantityOf(item) > 0)
+  ) {
+    throw new ValidationError(
+      "A purchase with received goods cannot be moved back to Draft or Ordered"
+    );
+  }
 
   const anyReceived = items.some((item) => item.receivedQuantity > 0);
   const allReceived = items.every((item) => item.receivedQuantity >= item.quantity);
@@ -486,13 +521,8 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
 
   if (derivedStatus === "Cancelled" && !wasCancelled) {
     for (const item of existingItems) {
-      const received = Math.max(0, Number(item.receivedQuantity) || 0);
-      const receivedBase = Math.max(
-        0,
-        Number(item.receivedBaseQuantity) ||
-          toBasePieces(received, normalizeUnit(item.unit) || "Piece") ||
-          received
-      );
+      const received = parseWholeQuantity(item.receivedQuantity, { allowZero: true }) ?? 0;
+      const receivedBase = receivedBaseQuantityOf(item);
       const productId = cleanString(item.productId);
       if (receivedBase <= 0 || !mongoose.isValidObjectId(productId)) continue;
       stockUpdates.push({
@@ -505,6 +535,12 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
         product: null,
       });
     }
+    // Goods have been reversed; clearing the counters prevents a later edit or
+    // delete from reversing the same receipts again. Receipt history is kept.
+    items.forEach((item) => {
+      item.receivedQuantity = 0;
+      item.receivedBaseQuantity = 0;
+    });
   }
 
   return {
@@ -600,7 +636,10 @@ async function applyStockReceipt({
   businessId = null,
   createdByUserId = null,
 }) {
-  if (!delta || !mongoose.isValidObjectId(productId)) return null;
+  const amount = Number(delta);
+  if (!Number.isSafeInteger(amount) || amount === 0 || !mongoose.isValidObjectId(productId)) {
+    return null;
+  }
 
   const scope = businessId ? { _id: productId, businessId } : { _id: productId };
   const snapshotQuery = Product.findOne(scope).select("title sku uom openingStock");
@@ -614,23 +653,39 @@ async function applyStockReceipt({
     throw new ValidationError(`The product linked to ${itemName} no longer exists`);
   }
 
+  if (amount < 0) scope.openingStock = { $gte: Math.abs(amount) };
+
   const targetId = String(product._id || productId);
   const updatedProduct = await Product.findOneAndUpdate(
     scope,
-    { $inc: { openingStock: delta } },
+    { $inc: { openingStock: amount } },
     { new: true, runValidators: true, session }
   );
 
   if (!updatedProduct) {
+    const current = await Product.findOne(
+      businessId ? { _id: productId, businessId } : { _id: productId }
+    )
+      .session(session)
+      .lean();
+    if (current) {
+      throw new ValidationError(
+        `Insufficient stock to reverse ${itemName}. Available: ${Number(current.openingStock) || 0}, requested: ${Math.abs(amount)}`
+      );
+    }
     throw new ValidationError(`The product linked to ${itemName} no longer exists`);
   }
 
+  const newStock = Number(updatedProduct.openingStock) || 0;
   compensations.push(async () => {
-    await Product.findOneAndUpdate(scope, { $inc: { openingStock: -delta } }, { session });
+    await Product.findOneAndUpdate(
+      { ...(businessId ? { businessId } : {}), _id: productId, openingStock: newStock },
+      { $inc: { openingStock: -amount } },
+      { session }
+    );
   });
 
-  const newStock = Number(updatedProduct.openingStock) || 0;
-  const baseDelta = Math.max(0, Math.floor(Math.abs(Number(delta) || 0)));
+  const baseDelta = Math.abs(amount);
   const movementUnit = normalizeUnit(originalUnit || unit) || cleanString(unit) || "";
   const [movement] = await StockMovement.create(
     [
@@ -639,7 +694,7 @@ async function applyStockReceipt({
         sku: product.sku,
         productTitle: product.title,
         type: "purchase",
-        direction: delta >= 0 ? "in" : "out",
+        direction: amount >= 0 ? "in" : "out",
         quantity: baseDelta,
         originalQuantity: Math.max(
           0,
@@ -647,10 +702,10 @@ async function applyStockReceipt({
         ),
         originalUnit: movementUnit,
         baseQuantity: baseDelta,
-        previousStock: newStock - delta,
+        previousStock: newStock - amount,
         newStock,
         unit: movementUnit || product.uom || "",
-        reason: delta >= 0 ? "Purchase goods receipt" : "Purchase stock reversal",
+        reason: amount >= 0 ? "Purchase goods receipt" : "Purchase stock reversal",
         reference,
         notes: cleanString(notes),
         performedBy: cleanString(performedBy) || DEFAULT_ACTOR_NAME,
@@ -969,43 +1024,100 @@ async function updatePurchaseStatus(req, res, next) {
       const businessId = tenantBusinessId(req);
       const createdByUserId = isTenantEnforced(req) ? req.auth.id : null;
       const updated = await runWithSession(async (session, useTransaction) => {
+        const current = await Purchase.findOne(scopedFilter(req, { _id: purchase._id })).session(session);
+        if (!current) {
+          throw new NotFoundError("Purchase not found");
+        }
+        if (current.status === "Cancelled") return current;
+
+        const expectedVersion = Number(current.__v) || 0;
+        const previousStatus = current.status;
+        const supplierIds = [supplierIdOf(current)];
+        const reversals = [];
+        const claimSet = { status: "Cancelled" };
+        const restoreSet = { status: previousStatus };
+
+        (current.items || []).forEach((item, index) => {
+          const received = parseWholeQuantity(item.receivedQuantity, { allowZero: true }) ?? 0;
+          const receivedBase = receivedBaseQuantityOf(item);
+          if (received === 0 && receivedBase === 0) return;
+
+          claimSet[`items.${index}.receivedQuantity`] = 0;
+          claimSet[`items.${index}.receivedBaseQuantity`] = 0;
+          restoreSet[`items.${index}.receivedQuantity`] = received;
+          restoreSet[`items.${index}.receivedBaseQuantity`] = receivedBase;
+
+          reversals.push({
+            productId: cleanString(item.productId),
+            received,
+            receivedBase,
+            itemName: item.name,
+            unit: normalizeUnit(item.unit) || item.unit || "Piece",
+          });
+        });
+
         const compensations = [];
         try {
-          for (const item of purchase.items || []) {
-            const received = Math.max(0, Number(item.receivedQuantity) || 0);
-            const receivedBase = Math.max(
-              0,
-              Number(item.receivedBaseQuantity) ||
-                toBasePieces(received, normalizeUnit(item.unit) || "Piece") ||
-                received
+          // Claim cancellation atomically and clear received counters so a
+          // repeated cancel, edit, or delete cannot reverse the same goods.
+          const claim = await Purchase.updateOne(
+            scopedFilter(req, {
+              _id: current._id,
+              __v: expectedVersion,
+              status: { $ne: "Cancelled" },
+            }),
+            { $set: claimSet, $inc: { __v: 1 } },
+            { session, runValidators: true }
+          );
+
+          if (claim.matchedCount !== 1) {
+            const latest = await Purchase.findOne(scopedFilter(req, { _id: current._id }))
+              .session(session)
+              .lean();
+            if (latest?.status === "Cancelled") return latest;
+            throw new ConflictError("This purchase changed while it was being cancelled");
+          }
+
+          compensations.push(async () => {
+            await Purchase.updateOne(
+              scopedFilter(req, {
+                _id: current._id,
+                __v: expectedVersion + 1,
+                status: "Cancelled",
+              }),
+              { $set: restoreSet, $inc: { __v: -1 } },
+              { session }
             );
-            const productId = cleanString(item.productId);
-            if (receivedBase <= 0 || !mongoose.isValidObjectId(productId)) continue;
+          });
+
+          for (const reversal of reversals) {
+            if (reversal.receivedBase <= 0 || !mongoose.isValidObjectId(reversal.productId)) {
+              continue;
+            }
             await applyStockReceipt({
               compensations,
-              productId,
-              delta: -receivedBase,
-              itemName: item.name,
-              unit: normalizeUnit(item.unit) || item.unit || "Piece",
-              originalQuantity: received,
-              originalUnit: normalizeUnit(item.unit) || item.unit || "Piece",
-              reference: `${purchase.purchaseNumber} - CANCELLED`,
+              productId: reversal.productId,
+              delta: -reversal.receivedBase,
+              itemName: reversal.itemName,
+              unit: reversal.unit,
+              originalQuantity: reversal.received,
+              originalUnit: reversal.unit,
+              reference: `${current.purchaseNumber} - CANCELLED`,
               notes: "Stock reversed due to purchase cancellation",
               performedBy: resolveActorName(req),
-              partyName: purchase.supplier?.name,
+              partyName: current.supplier?.name,
               session,
               businessId,
               createdByUserId,
             });
           }
-          purchase.status = "Cancelled";
-          await purchase.save({ session });
-          await refreshSupplierFinancials([supplierIdOf(purchase)], req, session);
-          return purchase;
+
+          await refreshSupplierFinancials(supplierIds, req, session);
+          return await Purchase.findOne(scopedFilter(req, { _id: current._id })).session(session);
         } catch (error) {
           if (!useTransaction) {
             await runCompensations(compensations);
-            await refreshSupplierFinancials([supplierIdOf(purchase)], req, session).catch(() => {});
+            await refreshSupplierFinancials(supplierIds, req, session).catch(() => {});
           }
           throw error;
         }
@@ -1025,21 +1137,52 @@ async function updatePurchaseStatus(req, res, next) {
       if (current.status === "Cancelled" && status !== "Cancelled") {
         throw new ValidationError("Cancelled purchases cannot be reactivated");
       }
+      if (current.status === "Cancelled" && status === "Cancelled") return current;
+
+      const hasReceivedStock = (current.items || []).some(
+        (item) => receivedBaseQuantityOf(item) > 0
+      );
+      if (
+        ["Draft", "Ordered"].includes(status) &&
+        RECEIVING_STATUSES.includes(current.status) &&
+        hasReceivedStock
+      ) {
+        throw new ValidationError(
+          "A purchase with received goods cannot be moved back to Draft or Ordered"
+        );
+      }
 
       const supplierIds = [supplierIdOf(current)];
       const previousStatus = current.status;
+      const expectedVersion = Number(current.__v) || 0;
+      let statusUpdated = false;
+
       try {
-        current.status = status;
-        await current.save({ session });
+        const result = await Purchase.updateOne(
+          scopedFilter(req, {
+            _id: current._id,
+            __v: expectedVersion,
+            status: { $ne: "Cancelled" },
+          }),
+          { $set: { status }, $inc: { __v: 1 } },
+          { session, runValidators: true }
+        );
+        if (result.matchedCount !== 1) {
+          throw new ConflictError("This purchase changed while its status was being updated");
+        }
+        statusUpdated = true;
+
         await refreshSupplierFinancials(supplierIds, req, session);
-        return current;
+        return await Purchase.findOne(scopedFilter(req, { _id: current._id })).session(session);
       } catch (error) {
         if (!useTransaction) {
-          await Purchase.updateOne(
-            scopedFilter(req, { _id: current._id }),
-            { $set: { status: previousStatus } },
-            { session }
-          );
+          if (statusUpdated) {
+            await Purchase.updateOne(
+              scopedFilter(req, { _id: current._id, __v: expectedVersion + 1 }),
+              { $set: { status: previousStatus }, $inc: { __v: -1 } },
+              { session }
+            ).catch(() => {});
+          }
           await refreshSupplierFinancials(supplierIds, req, session).catch(() => {});
         }
         throw error;
@@ -1083,7 +1226,7 @@ async function receivePurchase(req, res, next) {
 
       const ordered = Math.max(0, Number(target.item.quantity) || 0);
       const previousReceived = Math.max(0, Number(target.item.receivedQuantity) || 0);
-      const desired = toWholeNumber(rawItem?.receivedQuantity);
+      const desired = parseWholeQuantity(rawItem?.receivedQuantity, { allowZero: true });
 
       if (desired === null || desired < 0) {
         throw new ValidationError("Received quantity must be a non-negative whole number");
@@ -1100,12 +1243,19 @@ async function receivePurchase(req, res, next) {
       }
 
       const itemUnit = normalizeUnit(target.item.unit) || "Piece";
-      const itemBaseQty = Math.max(0, Number(target.item.baseQuantity) || toBasePieces(ordered, itemUnit) || 0);
-      const previousReceivedBase = Math.max(
-        0,
-        Number(target.item.receivedBaseQuantity) || toBasePieces(previousReceived, itemUnit) || 0
-      );
-      const desiredBase = desired >= ordered ? itemBaseQty || toBasePieces(desired, itemUnit) || 0 : toBasePieces(desired, itemUnit) || 0;
+      const storedBase = parseWholeQuantity(target.item.baseQuantity, {
+        allowZero: true,
+      });
+      const orderedBase = toBasePiecesStrict(ordered, itemUnit);
+      const convertedBase = toBasePiecesStrict(desired, itemUnit);
+      if (orderedBase === null || convertedBase === null) {
+        throw new ValidationError(
+          `Received quantity for ${target.item.name} has an unsafe unit conversion`
+        );
+      }
+      const itemBaseQty = storedBase ?? orderedBase;
+      const previousReceivedBase = receivedBaseQuantityOf(target.item);
+      const desiredBase = desired >= ordered ? itemBaseQty : convertedBase;
       const baseDelta = Math.max(0, desiredBase - previousReceivedBase);
       updates.push({
         ...target,
@@ -1140,15 +1290,44 @@ async function receivePurchase(req, res, next) {
         ? "Partially Received"
         : purchase.status;
     const previousStatus = purchase.status;
-    const hasChanges = updates.some((update) => update.delta > 0);
 
     const updated = await runWithSession(async (session, useTransaction) => {
       const compensations = [];
+      const expectedVersion = Number(purchase.__v) || 0;
+      const changedUpdates = updates.filter(
+        (update) => update.delta > 0 || update.baseDelta > 0
+      );
+      const noOp = changedUpdates.length === 0 && nextStatus === previousStatus;
 
-      try {
-        for (const update of updates) {
-          if (update.delta === 0) continue;
+      if (noOp) {
+        return Purchase.findById(purchase._id).session(session);
+      }
 
+      const indexForUpdate = (update) =>
+        update.arrayFilter
+          ? purchase.items.findIndex(
+              (candidate) =>
+                candidate._id &&
+                candidate._id.toString() ===
+                  update.arrayFilter["item._id"].toString()
+            )
+          : purchase.items.indexOf(update.item);
+
+      const claimFilter = scopedFilter(req, {
+        _id: purchase._id,
+        __v: expectedVersion,
+      });
+      const claimSet = {};
+      const claimPush = {};
+      const receipts = new Map();
+
+      for (const update of changedUpdates) {
+        const index = indexForUpdate(update);
+        claimFilter[`items.${index}.receivedQuantity`] = update.previousReceived;
+        claimSet[`items.${index}.receivedQuantity`] = update.desired;
+        claimSet[`items.${index}.receivedBaseQuantity`] = update.desiredBase;
+
+        if (update.delta > 0) {
           const receipt = createReceiptEntry({
             quantity: update.delta,
             receivedQuantity: update.desired,
@@ -1159,92 +1338,71 @@ async function receivePurchase(req, res, next) {
             receivedAt,
             performedBy,
           });
+          receipts.set(update.key, receipt);
+          claimPush[`items.${index}.receipts`] = receipt;
+        }
+      }
+      claimSet.status = nextStatus;
 
-          const casFilter = update.arrayFilter
-            ? {
-                _id: purchase._id,
-                items: {
-                  $elemMatch: {
-                    _id: update.arrayFilter["item._id"],
-                    receivedQuantity: update.previousReceived,
-                  },
-                },
-              }
-            : {
-                _id: purchase._id,
-                [`${update.path}.receivedQuantity`]: update.previousReceived,
-              };
-          const options = update.arrayFilter
-            ? { arrayFilters: [update.arrayFilter], session }
-            : { session };
+      try {
+        const claimUpdate = { $set: claimSet, $inc: { __v: 1 } };
+        if (Object.keys(claimPush).length > 0) claimUpdate.$push = claimPush;
 
-          const receiptResult = await Purchase.updateOne(
-            casFilter,
-            {
-              $set: {
-                [`${update.path}.receivedQuantity`]: update.desired,
-                [`${update.path}.receivedBaseQuantity`]: update.desiredBase,
-              },
-              $push: { [`${update.path}.receipts`]: receipt },
-            },
-            options
-          );
+        const claim = await Purchase.updateOne(claimFilter, claimUpdate, {
+          session,
+          runValidators: true,
+        });
 
-          if (receiptResult.matchedCount !== 1) {
-            const current = await Purchase.findById(purchase._id).session(session).lean();
-            const currentItem = current?.items?.find((candidate) => {
-              if (update.arrayFilter) {
-                return (
-                  candidate._id &&
-                  candidate._id.toString() ===
-                    update.arrayFilter["item._id"].toString()
-                );
-              }
-              return itemKey(candidate, purchase.items.indexOf(update.item)) === update.key;
+        if (claim.matchedCount !== 1) {
+          const current = await Purchase.findById(purchase._id).session(session).lean();
+          const alreadyApplied =
+            current &&
+            current.status === nextStatus &&
+            changedUpdates.every((update) => {
+              const index = indexForUpdate(update);
+              const item = current.items?.[index];
+              return (
+                Number(item?.receivedQuantity) === update.desired &&
+                Number(item?.receivedBaseQuantity || 0) === update.desiredBase
+              );
             });
-            const currentReceived = Math.max(0, Number(currentItem?.receivedQuantity) || 0);
-            if (currentReceived === update.desired) {
-              continue;
-            }
-            throw new ConflictError(
-              "This purchase changed while receiving. Refresh the page and try again."
-            );
+          if (alreadyApplied) return current;
+          throw new ConflictError(
+            "This purchase changed while receiving. Refresh the page and try again."
+          );
+        }
+
+        compensations.push(async () => {
+          const rollbackSet = { status: previousStatus };
+          for (const update of changedUpdates) {
+            const index = indexForUpdate(update);
+            rollbackSet[`items.${index}.receivedQuantity`] = update.previousReceived;
+            rollbackSet[`items.${index}.receivedBaseQuantity`] =
+              update.previousReceivedBase;
           }
-
-          const rollbackFilter = update.arrayFilter
-            ? {
-                _id: purchase._id,
-                items: {
-                  $elemMatch: {
-                    _id: update.arrayFilter["item._id"],
-                    receivedQuantity: update.desired,
-                  },
-                },
-              }
-            : {
-                _id: purchase._id,
-                [`${update.path}.receivedQuantity`]: update.desired,
+          const rollbackUpdate = { $set: rollbackSet, $inc: { __v: -1 } };
+          if (Object.keys(claimPush).length > 0) {
+            rollbackUpdate.$pull = {};
+            for (const [key, receipt] of receipts) {
+              const index = indexForUpdate(
+                changedUpdates.find((update) => update.key === key)
+              );
+              rollbackUpdate.$pull[`items.${index}.receipts`] = {
+                quantity: receipt.quantity,
+                receivedQuantity: receipt.receivedQuantity,
+                receivedAt: receipt.receivedAt,
               };
+            }
+          }
+          await Purchase.updateOne(
+            scopedFilter(req, { _id: purchase._id, __v: expectedVersion + 1 }),
+            rollbackUpdate,
+            { session }
+          );
+        });
 
-          compensations.push(async () => {
-            await Purchase.updateOne(
-              rollbackFilter,
-              {
-                $set: {
-                  [`${update.path}.receivedQuantity`]: update.previousReceived,
-                  [`${update.path}.receivedBaseQuantity`]: update.previousReceivedBase,
-                },
-                $pull: {
-                  [`${update.path}.receipts`]: {
-                    quantity: update.delta,
-                    receivedQuantity: update.desired,
-                    receivedAt,
-                  },
-                },
-              },
-              options
-            );
-          });
+        for (const update of changedUpdates) {
+          if (update.baseDelta === 0) continue;
 
           await applyStockReceipt({
             compensations,
@@ -1261,28 +1419,6 @@ async function receivePurchase(req, res, next) {
             performedBy,
             partyName: purchase.supplier?.name,
             session,
-          });
-        }
-
-        if (hasChanges && nextStatus !== previousStatus) {
-          const statusResult = await Purchase.updateOne(
-            { _id: purchase._id, status: previousStatus },
-            { $set: { status: nextStatus } },
-            { session }
-          );
-
-          if (statusResult.matchedCount !== 1) {
-            throw new ConflictError(
-              "This purchase changed while receiving. Refresh the page and try again."
-            );
-          }
-
-          compensations.push(async () => {
-            await Purchase.updateOne(
-              { _id: purchase._id, status: nextStatus },
-              { $set: { status: previousStatus } },
-              { session }
-            );
           });
         }
 
@@ -1440,84 +1576,62 @@ async function deletePurchase(req, res, next) {
     }
 
     await runWithSession(async (session, useTransaction) => {
+      const current = await Purchase.findOne(scopedFilter(req, { _id: purchase._id })).session(session);
+      if (!current) {
+        throw new NotFoundError("Purchase not found");
+      }
+
       const compensations = [];
-      const supplierId = supplierIdOf(purchase);
+      const supplierId = supplierIdOf(current);
+      const businessId = tenantBusinessId(req);
+      const createdByUserId = isTenantEnforced(req) ? req.auth.id : null;
+      const expectedVersion = Number(current.__v) || 0;
+      const purchaseSnapshot = current.toObject();
+      let deleted = false;
 
       try {
-        const references = new Set();
-        for (const item of purchase.items) {
-          const received = Math.max(0, Number(item.receivedQuantity) || 0);
-          const receivedBase = Math.max(
-            0,
-            Number(item.receivedBaseQuantity) ||
-              toBasePieces(received, normalizeUnit(item.unit) || "Piece") ||
-              received
-          );
-          const productId = cleanString(item.productId);
+        // Cancellation already reversed received goods and cleared the counters.
+        // Only live receipts need a compensating movement on deletion.
+        if (current.status !== "Cancelled") {
+          for (const item of current.items || []) {
+            const received = parseWholeQuantity(item.receivedQuantity, { allowZero: true }) ?? 0;
+            const receivedBase = receivedBaseQuantityOf(item);
+            const productId = cleanString(item.productId);
+            if (receivedBase <= 0 || !mongoose.isValidObjectId(productId)) continue;
 
-          for (const receipt of item.receipts || []) {
-            const reference = cleanString(receipt.reference);
-            if (reference) {
-              references.add(`${purchase.purchaseNumber} - ${reference}`);
-              references.add(`${purchase.purchaseNumber} \u2014 ${reference}`);
-              references.add(`${purchase.purchaseNumber} A� ${reference}`);
-            }
-          }
-
-          if (receivedBase === 0 || !mongoose.isValidObjectId(productId)) continue;
-
-          const scope = tenantBusinessId(req)
-            ? { _id: productId, businessId: tenantBusinessId(req) }
-            : { _id: productId };
-          const product = await Product.findOneAndUpdate(
-            scope,
-            { $inc: { openingStock: -receivedBase } },
-            { new: true, runValidators: true, session }
-          );
-          if (!product) {
-            throw new ValidationError(
-              `The product linked to ${item.name} no longer exists`
-            );
-          }
-
-          compensations.push(async () => {
-            await Product.findOneAndUpdate(
-              scope,
-              { $inc: { openingStock: receivedBase } },
-              { session }
-            );
-          });
-        }
-
-        if (references.size > 0) {
-          const movementFilter = {
-            type: "purchase",
-            reference: { $in: Array.from(references) },
-            ...(tenantBusinessId(req) ? { businessId: tenantBusinessId(req) } : {}),
-          };
-          const movementQuery = StockMovement.find(movementFilter);
-          movementQuery.session(session);
-          const movements = await movementQuery.lean();
-
-          if (movements.length > 0) {
-            await StockMovement.deleteMany(movementFilter, { session });
-            compensations.push(async () => {
-              await StockMovement.insertMany(movements, { session });
+            await applyStockReceipt({
+              compensations,
+              productId,
+              delta: -receivedBase,
+              itemName: item.name,
+              unit: normalizeUnit(item.unit) || item.unit || "Piece",
+              originalQuantity: received,
+              originalUnit: normalizeUnit(item.unit) || item.unit || "Piece",
+              reference: `${current.purchaseNumber} - DELETED`,
+              notes: "Stock reversed after purchase deletion; original receipt movements retained",
+              performedBy: resolveActorName(req),
+              partyName: current.supplier?.name,
+              session,
+              businessId,
+              createdByUserId,
             });
           }
         }
 
-        const purchaseSnapshot = purchase.toObject();
-        const deleted = await Purchase.deleteOne({ _id: purchase._id }, { session });
-        if (deleted.deletedCount !== 1) {
+        const deletedResult = await Purchase.deleteOne(
+          scopedFilter(req, { _id: current._id, __v: expectedVersion }),
+          { session }
+        );
+        if (deletedResult.deletedCount !== 1) {
           throw new ConflictError("This purchase changed while deleting. Refresh and try again.");
         }
+        deleted = true;
         compensations.push(async () => {
           await Purchase.create(purchaseSnapshot, { session });
         });
 
         await refreshSupplierFinancials([supplierId], req, session);
-        return purchase;
+        return current;
       } catch (error) {
         if (!useTransaction) {
           for (const compensate of compensations.reverse()) {

@@ -429,3 +429,181 @@ Repository:
 5. No refunds, credit transfers, or allocation of payments across documents were introduced; those remain external business decisions.
 
 Final Phase 2 status: **COMPLETED (with the documented standalone-MongoDB and legacy-client limitations above).**
+
+---
+
+# Phase 3 — Stock Integrity, Inventory Movements & Quantity Validation
+
+## Step 1 — Mandatory initial inspection (before changes)
+
+### Repository state
+
+- Current commit: `c8ea6f0 fix: enforce manual payment integrity`.
+- Working tree before Phase 3 changes: only pre-existing untracked `.agents/` and `skills-lock.json`; no tracked modifications. Both paths are preserved.
+- No database reset, production data change, commit, or push has been performed.
+
+### Schemas and utilities inspected
+
+- `backend/src/models/Product.js`: `openingStock` is an unvalidated Number and is the canonical stock field (base Pieces). `businessId` and `createdByUserId` are present.
+- `backend/src/models/StockMovement.js`: immutable-by-convention fields already exist (`product`, `sku`, `productTitle`, `type`, `direction`, `quantity`, `originalQuantity`, `originalUnit`, `baseQuantity`, `previousStock`, `newStock`, `unit`, `reason`, `reference`, `notes`, `performedBy`, `partyName`, `businessId`, `createdByUserId`, timestamps). Normal users have no explicit immutability guard on the existing DELETE endpoint.
+- `backend/src/models/SaleOrder.js`: item quantities use `quantity`, `baseQuantity`, `unitLabel`, and `stockDeducted`; sale payments were already added in Phase 2.
+- `backend/src/models/Purchase.js`: item quantities use `quantity`, `baseQuantity`, `receivedQuantity`, `receivedBaseQuantity`, `receipts`, and `unit`; purchase payments were already added in Phase 2.
+- `backend/src/utils/units.js`: Piece=1, Box=12, Carton=24. `toBasePieces()` rounds and accepts fractional numbers; canonical prices stay per Piece. `parseMoneyInput()` is strict for money but there is no strict whole-quantity parser.
+- `backend/src/utils/db.js`: `runWithSession()` uses a real transaction only when MongoDB reports replica-set/sharded support; standalone mode relies on caller compensation.
+- `backend/src/utils/tenant.js`: `tenantFilter()`, `findOwned()`, and `resolveBusinessId()` are the existing tenant boundary.
+- `backend/src/utils/financials.js`: Phase 1 customer/supplier recalculation is unchanged by this audit.
+- `backend/src/utils/payment-accounting.js`: Phase 2 payment ledger behavior is unchanged by this audit.
+- Routes inspected: `product.routes.js`, `inventory.routes.js`, `sale-order.routes.js`, `purchase.routes.js`. All apply `enforceTenantAuth`.
+- Existing tests inspected: `unit-conversion.test.js`, `product-inventory-tenant.test.js`, `pricing-contract.test.js`, `sale-order-cancellation.test.js`, `actor-name.test.js`, `customer-financials.test.js`, `supplier-financials.test.js`, `payment-integrity.test.js`, `phase6b-tenant.test.js`, `tenant.test.js`.
+
+### Existing business rules confirmed from code/history
+
+- Piece is the only stock unit; Box and Carton are display/input units converted to 12 and 24 base Pieces.
+- Product prices remain canonical per Piece; `priceUnit` and `uom` are input/display preferences only.
+- Sales deduct stock at order creation, including `Pending Approval` and `Credit Hold`; cancellation restores stock only when the sale was not `Delivered`.
+- Purchases add stock only when `Received` or when a GRN records a positive received delta; `Draft` and `Ordered` do not add stock.
+- Delivered sales are not restocked on cancellation.
+- No reserved-stock model exists; the frontend’s `reserved: 0` is display-only. Deduction at sale creation is the current internally consistent rule and is not being redesigned in Phase 3.
+
+## Step 2 — Stock mutation audit and root causes
+
+### Every backend stock mutation path inspected
+
+| Operation | Current implementation | Stock effect | Movement | Risk / root cause |
+|---|---|---|---|---|
+| Product create | `product.controller.js::createProduct`, line 228: `openingStock: toNumber(openingStock)` | Sets initial stock directly | None | Accepts decimals, negatives, NaN→0; initial stock has no traceability. |
+| Product edit | `product.controller.js::updateProduct`, line 394: `product.openingStock = toNumber(openingStock); product.save()` | Replaces stock directly | None | Silent stock rewrite; no validation; no concurrency guard; no movement. |
+| Product delete | `product.controller.js::deleteProduct` | Removes product and its stock | None | Remaining stock disappears without a movement. |
+| Manual stock adjustment | `inventory.controller.js::adjustStock` | Conditional `$inc` with `openingStock >= baseQty` for deductions | Adjustment in/out created after update; stock compensated if movement creation fails | `Math.floor(Number(quantity))` silently truncates decimals and coerces invalid values; add path is unconditional but atomic. |
+| Movement delete/reversal | `inventory.controller.js::deleteStockMovement` | Reverses stock, then **deletes** the movement | Original movement deleted | Historical record is rewritten; repeated calls can reverse twice; no compensating-movement preference. |
+| Purchase create | `purchase.controller.js::createPurchase` → `buildPurchaseChanges` → `applyStockReceipt` | Adds stock only for `Received` status | Purchase in | Item quantity uses `Math.floor`; negative/decimal values not strictly rejected. |
+| Purchase edit | `purchase.controller.js::updatePurchase` | Adds positive received delta for `Received`; cancellation branch reverses all previously received base quantity | Purchase in/out | Same loose parsing; cancellation through edit leaves `receivedQuantity` intact, enabling later double reversal; unit may change after receipt without correction. |
+| Purchase receive | `purchase.controller.js::receivePurchase` | CAS on previous `receivedQuantity`, then positive base delta | Purchase in | Same loose parsing; CAS/status filters are not tenant-scoped; duplicate identical receive is skipped but not explicitly reported. |
+| Purchase status → Cancelled | `purchase.controller.js::updatePurchaseStatus` | Reverses all received stock, then `purchase.save()` | Purchase out | No version/status CAS; concurrent cancellation can reverse twice; received fields are not zeroed; no negative-stock guard. |
+| Purchase delete | `purchase.controller.js::deletePurchase` | Reverses received stock with unconditional `$inc` and **deletes** matching purchase movements | Originals deleted | Can drive stock negative; rewrites movement history; no document version guard; double reversal after cancellation. |
+| Sale create | `sale-order.controller.js::createSaleOrder` → `applyStockAdjustments` | Deducts base Pieces at creation | Sale out | Existing intended rule; loose item quantity parsing; deduction is conditional on available stock. |
+| Sale edit | `sale-order.controller.js::updateSaleOrder` | Applies signed base-Piece delta before a `__v`-guarded document write | Sale in/out | Concurrency is protected by CAS + compensation; loose item quantity parsing remains. |
+| Sale cancel | `sale-order.controller.js::updateSaleOrderStatus` | Restores stock before `order.save()` when not Delivered | Sale in | No CAS; concurrent cancel can restore twice; whole-document save can overwrite a concurrent Phase 2 payment. |
+| Sale delete | `sale-order.controller.js::deleteSaleOrder` | Restores stock only for items still marked `stockDeducted` | Sale in | Safe for already-cancelled orders; loose parsing is inherited from stored snapshots. |
+| Other sale status transitions | `updateSaleOrderStatus` plain path | No stock effect | None | Whole-document `save()` can overwrite concurrent payment fields. |
+| Sale/purchase payments | Phase 2 payment endpoints | No stock effect | None | Verified no stock dependency was introduced. |
+
+### Confirmed bugs
+
+1. **Initial and edited product stock bypass the movement ledger.** Root cause: direct writes to `Product.openingStock` in `createProduct()` and `updateProduct()`.
+2. **Product stock accepts invalid values.** Root cause: `toNumber()` coerces malformed values to `0`; decimals and negatives are not rejected; `Math.floor()` in other stock paths silently truncates.
+3. **Product delete silently removes stock.** Root cause: `deleteProduct()` has no stock check and no write-off movement.
+4. **Movement history is mutable.** Root cause: `DELETE /api/inventory/movements/:id` deletes the movement, and `deletePurchase()` deletes all matching purchase movement records.
+5. **Purchase cancellation can double-reverse stock.** Root cause: cancellation reverses stock but leaves `receivedQuantity`/`receivedBaseQuantity` on the purchase, so a later edit or delete reverses again.
+6. **Concurrent purchase/sale cancellation is unsafe.** Root cause: both cancellation handlers read then `save()` without a version/status conditional update.
+7. **Plain sale/purchase status updates can overwrite Phase 2 payment fields.** Root cause: whole-document `save()` on a stale document instead of a field-scoped conditional update.
+8. **Negative stock can be produced by purchase reversal/delete.** Root cause: negative `$inc` operations have no `openingStock >= quantity` guard.
+9. **Purchase receiving writes are not fully tenant-scoped.** Root cause: receipt/status conditional filters use only `_id`; the initial read is scoped but all writes should be too.
+10. **Unit changes after receipt can desynchronize base Pieces.** Root cause: `buildPurchaseChanges()` recomputes `baseQuantity` from a submitted unit but gates stock updates on the display-unit delta, so a same-number Carton→Box change can overwrite `receivedBaseQuantity` without applying the real base-Piece delta. `receivePurchase()` has the same `delta === 0` skip.
+11. **A received purchase can regress to `Draft`/`Ordered` while stock remains added.** Root cause: the generic status branch only blocks reactivation of cancelled purchases and never checks whether received goods are already recorded.
+12. **Duplicate movement-delete requests can reverse stock twice.** Root cause: both requests can pass the stock reversal with the same stale movement before `findOneAndDelete()` makes one of them lose; the loser is not compensated.
+13. **Fractional legacy base deltas can surface as a 500.** Root cause: `StockMovement.quantity` requires `min: 1` while helpers can compute a floored zero; the local controller error handlers do not translate Mongoose validation errors.
+14. **No reservation model exists.** Root cause: reserved stock is a frontend display constant; sale stock is deducted at creation. This is documented as a limitation, not redesigned in Phase 3.
+
+## Step 3 — Proposed implementation plan (approved scope for this phase)
+
+1. Add strict whole-number stock parsing to `backend/src/utils/units.js`:
+   - Reject NaN, Infinity, invalid strings, decimals, negative values, missing required values, and values unsafe to convert to base Pieces.
+   - Add a strict base-Piece conversion that preserves Piece/Box/Carton factors without changing the existing `toBasePieces()` price/display behavior.
+2. Use the strict parser in product create/edit, manual adjustment, sale item validation, purchase item validation, and purchase receiving.
+3. Add immutable movement records for product create, product edit stock deltas, and product deletion with remaining stock. Product edit uses a conditional update on `__v` and previous stock so concurrent stock changes cannot be lost.
+4. Change movement “delete” into a compensating reversal: keep the original movement, append the opposite movement, and prevent a second reversal.
+5. Change purchase delete to append compensating stock movements instead of deleting historical ones, and add negative-stock guards to every reversal.
+6. Make sale and purchase lifecycle transitions concurrency-safe:
+   - Conditional `__v` + `status !== "Cancelled"` claims for cancellation.
+   - Zero received quantities on purchase cancellation; mark sale items `stockDeducted: false` atomically.
+   - Field-scoped conditional updates for plain status transitions so Phase 2 payment data is preserved.
+   - Tenant-scoped purchase receipt/status conditional filters.
+7. Reject received-item unit changes after goods have been received.
+8. Keep all existing statuses, unit factors, canonical per-Piece prices, snapshots, tenant checks, auth, and Phase 1/Phase 2 recalculation behavior.
+9. Add `backend/test/stock-integrity.test.js` with at least 31 deterministic MongoDB-backed assertions covering every required scenario, including actual persisted stock and movement records.
+10. Update `IMPLEMENTATION_PROGRESS.md` with implementation evidence, exact test results, review findings, risks, and final status.
+
+No new payment gateway, no new status, no reservation architecture, no database reset, no production data change, no commit, and no push are part of this plan.
+
+## Step 4 — Implementation evidence
+
+### New/changed source files
+
+| Path | Implemented behavior |
+|---|---|
+| `backend/src/utils/units.js` | Added `parseWholeQuantity()` and `toBasePiecesStrict()`. Strict parsing accepts only whole numbers / whole-number strings, rejects negatives, decimals, `NaN`, `Infinity`, malformed strings, missing required values and unsafe integers; strict conversion rejects unsupported units and unsafe Piece/Box/Carton multiplication. Existing `toBasePieces()` and pricing/display helpers were left unchanged. |
+| `backend/src/models/StockMovement.js` | Added optional `reversesMovement` ObjectId plus a unique partial index so one movement can have at most one compensating reversal. Null/default values are excluded. |
+| `backend/src/controllers/product.controller.js` | Product create records opening stock as an immutable `adjustment`. Product edit parses stock strictly, uses `__v` + previous-stock CAS, writes an in/out adjustment for the exact delta, and restores prior fields/movement on standalone failure. Product delete writes a `writeoff` for remaining stock before deletion and compensates on failure. |
+| `backend/src/controllers/inventory.controller.js` | Manual adjust uses strict parsing/conversion, a session, and a guarded deduction. Movement “delete” is now an immutable compensating reversal linked by `reversesMovement`; the original is retained, repeat reversal is idempotent, and concurrent duplicates are stopped by the unique index. Legacy fractional movements return 400 rather than 500. |
+| `backend/src/controllers/sale-order.controller.js` | Sale item quantities use strict parsing/conversion. Cancellation claims terminal status with `__v`/status CAS, sets `stockDeducted: false` atomically, and never re-saves Phase 2 payment fields. Plain status changes are field-scoped CAS writes. Delete uses a version guard and restores the document snapshot if downstream work fails on standalone MongoDB. |
+| `backend/src/controllers/purchase.controller.js` | Purchase quantities/receipts use strict parsing. Stock updates are gated on the base-Piece delta. Received items cannot change product/unit; received purchases cannot regress to `Draft`/`Ordered` through status or edit. Cancellation via status or edit claims the document atomically, zeroes received counters, and reverses only recorded received base Pieces with negative-stock guards. Delete appends compensating movements instead of deleting history. Receive Goods uses one tenant-scoped document claim so concurrent duplicate receipts add stock only once. |
+
+### Contract changes
+
+- `DELETE /api/inventory/movements/:id` now reverses an adjustment instead of deleting it. Response still includes the original `movement` and now also includes the new `reversal`; the message changed from “deleted” to “reversed”. A sequential repeat returns 200 with the existing reversal; a concurrent losing duplicate can return 409 from the unique index.
+- Non-adjustment movements are still rejected, with the message updated to “Only stock adjustment entries can be reversed”.
+- No route, status enum, auth rule, role rule, price-unit rule, tenant middleware, or payment endpoint was added/removed.
+
+### Phase 1 / Phase 2 preservation
+
+- Customer and supplier financial recalculation calls, tenant `businessId` propagation, `scopedFilter(req, ...)`, and their compensation refreshes remain in place.
+- Existing manual payment endpoints, immutable payment records, idempotency keys, replay/conflict handling, CAS updates, cancellation guards and payment-derived paid totals were not rewritten. Field-scoped status writes specifically avoid overwriting `payments`, `paidAmount`, and `financials.paid`.
+- Delivered sales are still not restocked; other sales still deduct at creation and restore on cancellation. Draft/Ordered purchases still do not add stock; received goods still add stock only through receipt/GRN paths.
+
+## Step 5 — Tests executed and exact results
+
+From `backend/`:
+
+| Command | Result |
+|---|---|
+| `npx jest --runInBand test/stock-integrity.test.js` | PASS — 1 suite / 45 tests |
+| `npm test -- --runInBand` | PASS — 24 suites / 244 tests |
+| `node --check src/utils/units.js` | PASS |
+| `node --check src/models/StockMovement.js` | PASS |
+| `node --check src/controllers/product.controller.js` | PASS |
+| `node --check src/controllers/inventory.controller.js` | PASS |
+| `node --check src/controllers/sale-order.controller.js` | PASS |
+| `node --check src/controllers/purchase.controller.js` | PASS |
+| `node --check test/stock-integrity.test.js` | PASS |
+| `node --check test/product-inventory-tenant.test.js` | PASS |
+
+No frontend source file changed in Phase 3, so frontend TypeScript, lint and build commands were not rerun for this phase.
+
+`backend/test/stock-integrity.test.js` contains 45 MongoDB-backed scenarios (requirement: at least 31). Each scenario asserts persisted `Product.openingStock` and/or persisted `StockMovement` documents — not just HTTP status. Coverage includes: product create/edit/delete movements; strict rejection of negative, decimal, `NaN`, `Infinity`, malformed and unsafe inputs; Box/Carton base conversion; manual adjustment and guarded deduction; compensating reversal, idempotent replay and legacy fractional rejection; sale create/edit/cancel/concurrent cancel/delete and payment preservation; overstock and concurrent oversell prevention; purchase receive/repeat/concurrent receive, quantity edit, unit-change lock, status regression lock, cancellation via status and edit, concurrent cancellation, deletion, negative-stock guard and payment preservation.
+
+Updated existing test: `backend/test/product-inventory-tenant.test.js` now asserts the new immutable-reversal contract (owner gets a compensating movement, original remains, repeat reversal is idempotent) and the two tenant-scoped movement records created by opening stock plus manual adjustment.
+
+## Step 6 — Review findings and fixes applied
+
+1. **Concurrent duplicate Receive Goods could roll back the winner’s stock.** Initial per-item CAS allowed the losing request to attempt the status update after its receipt claim failed. Fixed with a single tenant-scoped document claim; the duplicate now returns the already-applied state without applying stock. Covered by a deterministic concurrent test.
+2. **Purchase cancellation through `PUT /api/purchases/:id` left received counters set.** Fixed by zeroing `receivedQuantity` / `receivedBaseQuantity` in the final cancelled item set while retaining receipt history. Covered by edit-cancel then delete test.
+3. **A received purchase could regress to `Draft`/`Ordered` through the edit endpoint.** Added the same guard used by the status endpoint to `buildPurchaseChanges()`. Covered by a regression test.
+4. **Legacy fractional movement reversal could fail schema validation as a 500.** Added an explicit whole-number guard and a regression test that inserts a legacy raw movement and asserts 400 with unchanged stock.
+5. **Duplicate schema index warning on `reversesMovement`.** Removed the field-level `index: true` so only the unique partial schema index remains.
+
+No further correctness issue was found in the final diff review. `git diff --check` passed; output contained only the repository’s pre-existing LF/CRLF notices.
+
+## Step 7 — Database and environment evidence
+
+- MongoDB server used for tests is the existing dedicated `MONGODB_TEST_URI`; no development or production database was reset or modified.
+- Test collections are cleared only by the existing `clearTestDB()` helper between tests.
+- No data migration or destructive migration was run.
+- The only schema-level change is the new `reversesMovement` field and its unique partial index. Mongoose creates the index when the model is loaded; existing non-null values are impossible because the field is new in this phase.
+- Test MongoDB is standalone (`transactionsSupported: false`). `runWithSession()` therefore provides a session but no ACID transaction; all multi-document changes were verified through the explicit compensation path. No real-transaction atomicity claim is made.
+
+## Step 8 — Final risks and limitations
+
+1. Standalone MongoDB does not verify ACID transaction behavior. Replica-set testing would be required for that guarantee.
+2. The unique partial index enforces at most one compensating movement per original movement; concurrent duplicates may receive 409 instead of the sequential idempotent 200.
+3. Legacy incorrect stock snapshots were not backfilled; no production data was touched.
+4. No reservation model was introduced. Sale stock is still deducted at creation; `reserved: 0` remains display-only.
+5. Product `PUT` still treats omitted `openingStock` as zero, matching the existing full-replacement contract; callers must submit the current value to avoid a stock write-off movement.
+6. Movement-history immutability is enforced at the application layer plus the reversal index; direct database writes are outside this phase’s control.
+
+## Step 9 — Final scope confirmation
+
+- No Phase 4 work, payment gateway, new status, reservation architecture, UI redesign, unrelated refactor, commit or push was performed.
+- HEAD remains `c8ea6f0 fix: enforce manual payment integrity`; all Phase 3 changes are uncommitted.
+- Pre-existing untracked `.agents/` and `skills-lock.json` were preserved untouched.
+- Final Phase 3 status: **COMPLETED** (with the documented standalone-transaction and legacy-data limitations above).

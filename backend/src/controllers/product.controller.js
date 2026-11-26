@@ -1,12 +1,16 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Brand = require("../models/Brand");
+const StockMovement = require("../models/StockMovement");
 const { ensureCloudinaryConfigured } = require("../config/cloudinary");
 const { tenantFilter, findOwned } = require("../utils/tenant");
+const { runWithSession } = require("../utils/db");
+const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
   normalizeUnit,
   isSupportedUnit,
   parseMoneyInput,
+  parseWholeQuantity,
   pricePerPiece,
   roundMoney,
 } = require("../utils/units");
@@ -87,9 +91,70 @@ function resolvePricing(body) {
   return { priceUnit, ...canonical };
 }
 
+class ConflictError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ConflictError";
+  }
+}
+
+function parseStockValue(value, { required = false, label = "Opening stock" } = {}) {
+  if (value === undefined || value === null || String(value).trim() === "") {
+    return required ? null : 0;
+  }
+  const parsed = parseWholeQuantity(value, { allowZero: true });
+  if (parsed === null) {
+    throw new ProductValidationError(`${label} must be a non-negative whole number`);
+  }
+  return parsed;
+}
+
+function buildProductMovement({
+  product,
+  delta,
+  previousStock,
+  newStock,
+  reason,
+  reference,
+  notes,
+  req,
+  type = "adjustment",
+  reversesMovement = null,
+}) {
+  const quantity = Math.abs(delta);
+  if (!Number.isSafeInteger(quantity) || quantity < 1) return null;
+
+  const actor = resolveActorName(req) || DEFAULT_ACTOR_NAME;
+  return {
+    product: product._id,
+    sku: product.sku,
+    productTitle: product.title,
+    type,
+    direction: delta > 0 ? "in" : "out",
+    quantity,
+    originalQuantity: quantity,
+    originalUnit: "Piece",
+    baseQuantity: quantity,
+    previousStock,
+    newStock,
+    unit: "Piece",
+    reason,
+    reference,
+    notes,
+    performedBy: actor,
+    reversesMovement,
+    ...(isTenantEnforced(req)
+      ? { businessId: req.auth.businessId, createdByUserId: req.auth.id }
+      : {}),
+  };
+}
+
 function handleControllerError(error, res, next) {
   if (error instanceof ProductValidationError) {
     return res.status(400).json({ message: error.message });
+  }
+  if (error instanceof ConflictError) {
+    return res.status(409).json({ message: error.message });
   }
   return next(error);
 }
@@ -211,7 +276,8 @@ async function createProduct(req, res, next) {
       imagePublicId = uploadResult.public_id;
     }
 
-    const product = await Product.create({
+    const openingStockPieces = parseStockValue(openingStock);
+    const productData = {
       title: String(title).trim(),
       sku: normalizedSku,
       barcode: barcode ? String(barcode).trim() : "",
@@ -225,7 +291,7 @@ async function createProduct(req, res, next) {
       priceUnit: pricing.priceUnit,
       taxBracket: taxBracket ? String(taxBracket).trim() : "",
       uom: normalizedUom,
-      openingStock: toNumber(openingStock),
+      openingStock: openingStockPieces,
       reorderThreshold: reorderThresholdNum,
       warehouse: warehouse ? String(warehouse).trim() : "",
       rackBay: rackBay ? String(rackBay).trim() : "",
@@ -241,7 +307,61 @@ async function createProduct(req, res, next) {
       ...(isTenantEnforced(req)
         ? { businessId: req.auth.businessId, createdByUserId: req.auth.id }
         : {}),
-    });
+    };
+
+    let product;
+    try {
+      product = await runWithSession(async (session, useTransaction) => {
+        let created;
+        const compensations = [];
+
+        try {
+          const [document] = await Product.create([productData], { session });
+          created = document;
+
+          if (openingStockPieces > 0) {
+            const movementData = buildProductMovement({
+              product: created,
+              delta: openingStockPieces,
+              previousStock: 0,
+              newStock: openingStockPieces,
+              reason: "Opening stock on product creation",
+              reference: `PRODUCT-CREATE-${created.sku}`,
+              notes: "Initial stock recorded as an immutable adjustment",
+              req,
+            });
+            const [movement] = await StockMovement.create([movementData], { session });
+            compensations.push(async () => {
+              await StockMovement.deleteOne({ _id: movement._id }, { session });
+            });
+          }
+
+          return created;
+        } catch (error) {
+          if (!useTransaction) {
+            for (const compensate of [...compensations].reverse()) {
+              try {
+                await compensate();
+              } catch (compensationError) {
+                console.error(
+                  "Failed to compensate product creation:",
+                  compensationError.message
+                );
+              }
+            }
+            if (created) {
+              await Product.deleteOne({ _id: created._id }, { session }).catch(() => {});
+            }
+          }
+          throw error;
+        }
+      });
+    } catch (error) {
+      if (imagePublicId) {
+        await destroyCloudinaryImage(imagePublicId).catch(() => {});
+      }
+      throw error;
+    }
 
     return res.status(201).json({ message: "Product created", product });
   } catch (error) {
@@ -364,57 +484,147 @@ async function updateProduct(req, res, next) {
 
     const pricing = resolvePricing(req.body);
     const normalizedUom = resolveProductUom(uom);
+    const desiredStock = parseStockValue(openingStock);
 
     const previousPublicId = product.imagePublicId || "";
     const shouldRemoveImage = String(removeImage).toLowerCase() === "true";
     let uploadedImage = null;
+    let nextImageUrl = product.imageUrl || "";
+    let nextImagePublicId = product.imagePublicId || "";
 
     if (req.file && req.file.buffer) {
       uploadedImage = await uploadBufferToCloudinary(req.file.buffer);
-      product.imageUrl = uploadedImage.secure_url;
-      product.imagePublicId = uploadedImage.public_id;
+      nextImageUrl = uploadedImage.secure_url;
+      nextImagePublicId = uploadedImage.public_id;
     } else if (shouldRemoveImage) {
-      product.imageUrl = "";
-      product.imagePublicId = "";
+      nextImageUrl = "";
+      nextImagePublicId = "";
     }
 
-    product.title = String(title).trim();
-    product.sku = normalizedSku;
-    product.barcode = barcode ? String(barcode).trim() : "";
-    product.category = String(category).trim();
-    product.brand = brandRef.brand;
-    product.brandId = brandRef.brandId;
-    product.description = description ? String(description).trim() : "";
-    product.purchasePrice = pricing.purchasePrice;
-    product.wholesalePrice = pricing.wholesalePrice;
-    product.retailPrice = pricing.retailPrice;
-    product.priceUnit = pricing.priceUnit;
-    product.taxBracket = taxBracket ? String(taxBracket).trim() : "";
-    product.uom = normalizedUom;
-    product.openingStock = toNumber(openingStock);
-    product.reorderThreshold = reorderThresholdNum;
-    product.warehouse = warehouse ? String(warehouse).trim() : "";
-    product.rackBay = rackBay ? String(rackBay).trim() : "";
-    product.catalogStatus = catalogStatus || "active";
-    product.batchTracking = toBoolean(batchTracking);
-    product.expiryDate = expiryDate ? new Date(expiryDate) : null;
+    const nextFields = {
+      title: String(title).trim(),
+      sku: normalizedSku,
+      barcode: barcode ? String(barcode).trim() : "",
+      category: String(category).trim(),
+      brand: brandRef.brand,
+      brandId: brandRef.brandId,
+      description: description ? String(description).trim() : "",
+      purchasePrice: pricing.purchasePrice,
+      wholesalePrice: pricing.wholesalePrice,
+      retailPrice: pricing.retailPrice,
+      priceUnit: pricing.priceUnit,
+      taxBracket: taxBracket ? String(taxBracket).trim() : "",
+      uom: normalizedUom,
+      reorderThreshold: reorderThresholdNum,
+      warehouse: warehouse ? String(warehouse).trim() : "",
+      rackBay: rackBay ? String(rackBay).trim() : "",
+      catalogStatus: catalogStatus || "active",
+      batchTracking: toBoolean(batchTracking),
+      expiryDate: expiryDate ? new Date(expiryDate) : null,
+      imageUrl: nextImageUrl,
+      imagePublicId: nextImagePublicId,
+    };
+    const previousFields = {};
+    for (const key of Object.keys(nextFields)) {
+      previousFields[key] = product[key];
+    }
 
+    const previousStock = Number(product.openingStock) || 0;
+    const stockDelta = desiredStock - previousStock;
+    const expectedVersion = Number(product.__v) || 0;
+    const imageChanged = Boolean(uploadedImage) || shouldRemoveImage;
+
+    let saved;
     try {
-      await product.save();
-    } catch (saveError) {
+      saved = await runWithSession(async (session, useTransaction) => {
+        const compensations = [];
+        let documentUpdated = false;
+
+        try {
+          const updated = await Product.findOneAndUpdate(
+            productFilter(req, {
+              _id: product._id,
+              __v: expectedVersion,
+              openingStock: previousStock,
+            }),
+            {
+              $set: { ...nextFields, openingStock: desiredStock },
+              $inc: { __v: 1 },
+            },
+            { new: true, runValidators: true, session }
+          );
+
+          if (!updated) {
+            throw new ConflictError(
+              "This product changed while it was being edited. Refresh and try again."
+            );
+          }
+          documentUpdated = true;
+
+          if (stockDelta !== 0) {
+            const movementData = buildProductMovement({
+              product: updated,
+              delta: stockDelta,
+              previousStock,
+              newStock: desiredStock,
+              reason:
+                stockDelta > 0
+                  ? "Opening stock increased by product edit"
+                  : "Opening stock reduced by product edit",
+              reference: `PRODUCT-EDIT-${updated.sku}`,
+              notes: "Stock correction recorded during product edit",
+              req,
+            });
+            const [movement] = await StockMovement.create([movementData], { session });
+            compensations.push(async () => {
+              await StockMovement.deleteOne({ _id: movement._id }, { session });
+            });
+          }
+
+          return updated;
+        } catch (error) {
+          if (!useTransaction) {
+            for (const compensate of [...compensations].reverse()) {
+              try {
+                await compensate();
+              } catch (compensationError) {
+                console.error(
+                  "Failed to compensate product edit:",
+                  compensationError.message
+                );
+              }
+            }
+            if (documentUpdated) {
+              await Product.findOneAndUpdate(
+                productFilter(req, {
+                  _id: product._id,
+                  __v: expectedVersion + 1,
+                  openingStock: desiredStock,
+                }),
+                {
+                  $set: { ...previousFields, openingStock: previousStock },
+                  $inc: { __v: -1 },
+                },
+                { session }
+              ).catch(() => {});
+            }
+          }
+          throw error;
+        }
+      });
+    } catch (error) {
       // Avoid leaving an orphaned newly uploaded image if the DB write fails.
       if (uploadedImage && uploadedImage.public_id) {
         await destroyCloudinaryImage(uploadedImage.public_id);
       }
-      throw saveError;
+      throw error;
     }
 
-    const imageChanged = Boolean(uploadedImage) || shouldRemoveImage;
-    if (imageChanged && previousPublicId && previousPublicId !== product.imagePublicId) {
+    if (imageChanged && previousPublicId && previousPublicId !== saved.imagePublicId) {
       await destroyCloudinaryImage(previousPublicId);
     }
 
-    return res.status(200).json({ message: "Product updated", product });
+    return res.status(200).json({ message: "Product updated", product: saved });
   } catch (error) {
     return handleControllerError(error, res, next);
   }
@@ -433,7 +643,84 @@ async function deleteProduct(req, res, next) {
     }
 
     const publicId = product.imagePublicId || "";
-    await product.deleteOne();
+    const remainingStock = Number(product.openingStock) || 0;
+    const expectedVersion = Number(product.__v) || 0;
+
+    await runWithSession(async (session, useTransaction) => {
+      const compensations = [];
+      let stockCleared = false;
+
+      try {
+        if (remainingStock > 0) {
+          const cleared = await Product.findOneAndUpdate(
+            productFilter(req, {
+              _id: product._id,
+              __v: expectedVersion,
+              openingStock: remainingStock,
+            }),
+            { $set: { openingStock: 0 }, $inc: { __v: 1 } },
+            { new: true, runValidators: true, session }
+          );
+          if (!cleared) {
+            throw new ConflictError(
+              "This product changed while it was being deleted. Refresh and try again."
+            );
+          }
+          stockCleared = true;
+
+          const movementData = buildProductMovement({
+            product: product,
+            delta: -remainingStock,
+            previousStock: remainingStock,
+            newStock: 0,
+            reason: "Remaining stock written off on product deletion",
+            reference: `PRODUCT-DELETE-${product.sku}`,
+            notes: "Product record removed; stock ledger entry preserved",
+            req,
+            type: "writeoff",
+          });
+          const [movement] = await StockMovement.create([movementData], { session });
+          compensations.push(async () => {
+            await StockMovement.deleteOne({ _id: movement._id }, { session });
+          });
+        }
+
+        const deleted = await Product.deleteOne(
+          productFilter(req, { _id: product._id, openingStock: 0 }),
+          { session }
+        );
+        if (deleted.deletedCount !== 1) {
+          throw new ConflictError(
+            "This product changed while it was being deleted. Refresh and try again."
+          );
+        }
+      } catch (error) {
+        if (!useTransaction) {
+          for (const compensate of [...compensations].reverse()) {
+            try {
+              await compensate();
+            } catch (compensationError) {
+              console.error(
+                "Failed to compensate product deletion:",
+                compensationError.message
+              );
+            }
+          }
+          if (stockCleared) {
+            await Product.findOneAndUpdate(
+              productFilter(req, {
+                _id: product._id,
+                __v: expectedVersion + 1,
+                openingStock: 0,
+              }),
+              { $set: { openingStock: remainingStock }, $inc: { __v: -1 } },
+              { session }
+            ).catch(() => {});
+          }
+        }
+        throw error;
+      }
+    });
 
     // Delete the Cloudinary image only after the database record is gone.
     await destroyCloudinaryImage(publicId);
