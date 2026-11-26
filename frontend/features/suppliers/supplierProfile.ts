@@ -260,11 +260,14 @@ function toFinancials(
     (sum, purchase) => sum + Math.max(Number(purchase.paidAmount) || 0, 0),
     0
   );
-  const remainingPayable = activePurchases.reduce((sum, purchase) => {
-    const total = Math.max(Number(purchase.financials?.total) || 0, 0);
-    const paid = Math.max(Number(purchase.paidAmount) || 0, 0);
-    return sum + Math.max(total - paid, 0);
-  }, 0);
+  const openingBalance = Math.max(Number(supplier.openingBalance) || 0, 0);
+  const remainingPayable =
+    openingBalance +
+    activePurchases.reduce((sum, purchase) => {
+      const total = Math.max(Number(purchase.financials?.total) || 0, 0);
+      const paid = Math.max(Number(purchase.paidAmount) || 0, 0);
+      return sum + Math.max(total - paid, 0);
+    }, 0);
   const termsLabel =
     PAYMENT_TERM_OPTIONS.find((option) => option.value === supplier.paymentTerms)?.label ||
     supplier.paymentTerms;

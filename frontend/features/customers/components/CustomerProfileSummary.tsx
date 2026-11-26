@@ -1,6 +1,5 @@
 "use client";
 
-import type { SalesOrder } from "../../sales-orders/types";
 import type { Customer } from "../types";
 import { formatNumber, formatRs } from "../utils";
 import { getCustomerFinancials, paymentTermsLabel } from "../profile";
@@ -12,14 +11,10 @@ import {
 
 type CustomerProfileSummaryProps = {
   customer: Customer;
-  orders?: SalesOrder[];
 };
 
-export function CustomerProfileSummary({ customer, orders = [] }: CustomerProfileSummaryProps) {
-  const { headroom, exposure, overLimit, warning } = getCustomerFinancials(customer);
-  const totalPaid = orders.length
-    ? orders.reduce((sum, order) => sum + Math.max(order.financials.paid, 0), 0)
-    : Math.max(customer.totalPurchases - customer.outstanding, 0);
+export function CustomerProfileSummary({ customer }: CustomerProfileSummaryProps) {
+  const { totalPaid, headroom, exposure, overLimit, warning } = getCustomerFinancials(customer);
 
   return (
     <div className="flex flex-col gap-3">

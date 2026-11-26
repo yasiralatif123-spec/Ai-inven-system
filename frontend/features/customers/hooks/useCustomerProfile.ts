@@ -5,7 +5,7 @@ import { fetchSaleOrders } from "../../sales-orders/services/sale-order.service"
 import type { SalesOrder } from "../../sales-orders/types";
 import { fetchCustomer } from "../services/customer.service";
 import type { Customer } from "../types";
-import { applyCustomerOrderMetrics, customerMatchesOrder } from "../utils";
+import { customerMatchesOrder } from "../utils";
 
 export function useCustomerProfile(customerId: string) {
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -43,9 +43,9 @@ export function useCustomerProfile(customerId: string) {
           seen.add(order.id);
           return true;
         });
-        const [profileCustomer] = applyCustomerOrderMetrics([customerData], customerOrders);
-
-        setCustomer(profileCustomer);
+        // Financial totals come from the backend customer record; the orders
+        // below are only the transaction ledger shown in the profile tabs.
+        setCustomer(customerData);
         setOrders(customerOrders);
       } catch (loadError) {
         if (!cancelled) {

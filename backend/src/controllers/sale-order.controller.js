@@ -4,6 +4,7 @@ const Product = require("../models/Product");
 const Customer = require("../models/Customer");
 const StockMovement = require("../models/StockMovement");
 const { runWithSession } = require("../utils/db");
+const { recalculateCustomerFinancials } = require("../utils/financials");
 const { tenantFilter } = require("../utils/tenant");
 const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
@@ -27,6 +28,22 @@ function scopedFilter(req, extra = {}) {
 
 function tenantBusinessId(req) {
   return isTenantEnforced(req) ? req.auth.businessId : null;
+}
+
+function customerIdOf(order) {
+  const id = order?.customer?.customerId;
+  return id ? String(id) : null;
+}
+
+async function refreshCustomerFinancials(ids, req, session = null) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  for (const customerId of uniqueIds) {
+    await recalculateCustomerFinancials({
+      customerId,
+      businessId: tenantBusinessId(req),
+      session,
+    });
+  }
 }
 
 const PAYMENT_STATUSES = ["paid", "partial", "unpaid"];
@@ -567,6 +584,7 @@ async function createSaleOrder(req, res, next) {
     const order = await runWithSession(async (session, useTransaction) => {
       const changes = await buildOrderChanges(req.body || {}, null, session, req);
       const compensations = [];
+      const customerIds = [];
       let created;
 
       try {
@@ -602,6 +620,16 @@ async function createSaleOrder(req, res, next) {
           req,
         });
 
+        const customerId = customerIdOf(created);
+        if (customerId) {
+          customerIds.push(customerId);
+          await recalculateCustomerFinancials({
+            customerId,
+            businessId: tenantBusinessId(req),
+            session,
+          });
+        }
+
         return created;
       } catch (error) {
         if (!useTransaction) {
@@ -609,6 +637,7 @@ async function createSaleOrder(req, res, next) {
           if (created) {
             await SaleOrder.deleteOne({ _id: created._id }, { session }).catch(() => {});
           }
+          await refreshCustomerFinancials(customerIds, req, session).catch(() => {});
         }
         throw error;
       }
@@ -643,6 +672,8 @@ async function updateSaleOrder(req, res, next) {
       if (changes.status === "Cancelled" && order.status !== "Cancelled") {
         throw new ValidationError("Use the Cancel action to cancel a sale order");
       }
+      const previousCustomerId = customerIdOf(order);
+      const customerIds = [previousCustomerId, customerIdOf(changes)];
       const compensations = [];
 
       try {
@@ -660,9 +691,13 @@ async function updateSaleOrder(req, res, next) {
 
         Object.assign(order, changes);
         await order.save({ session });
+        await refreshCustomerFinancials(customerIds, req, session);
         return order;
       } catch (error) {
-        if (!useTransaction) await rollbackCompensations(compensations);
+        if (!useTransaction) {
+          await rollbackCompensations(compensations);
+          await refreshCustomerFinancials(customerIds, req, session).catch(() => {});
+        }
         throw error;
       }
     });
@@ -736,9 +771,13 @@ async function updateSaleOrderStatus(req, res, next) {
           });
           order.status = "Cancelled";
           await order.save({ session });
+          await refreshCustomerFinancials([customerIdOf(order)], req, session);
           return order;
         } catch (error) {
-          if (!useTransaction) await rollbackCompensations(compensations);
+          if (!useTransaction) {
+            await rollbackCompensations(compensations);
+            await refreshCustomerFinancials([customerIdOf(order)], req, session).catch(() => {});
+          }
           throw error;
         }
       });
@@ -746,9 +785,33 @@ async function updateSaleOrderStatus(req, res, next) {
       return res.status(200).json({ message: "Sale order cancelled", order: updated });
     }
 
-    existing.status = status;
-    await existing.save();
-    return res.status(200).json({ message: "Sale order status updated", order: existing });
+    const updated = await runWithSession(async (session, useTransaction) => {
+      const order = await SaleOrder.findOne(scopedFilter(req, { _id: existing._id })).session(session);
+      if (!order) {
+        throw new NotFoundError("Sale order not found");
+      }
+
+      const customerIds = [customerIdOf(order)];
+      const previousStatus = order.status;
+      try {
+        order.status = status;
+        await order.save({ session });
+        await refreshCustomerFinancials(customerIds, req, session);
+        return order;
+      } catch (error) {
+        if (!useTransaction) {
+          await SaleOrder.updateOne(
+            scopedFilter(req, { _id: order._id }),
+            { $set: { status: previousStatus } },
+            { session }
+          );
+          await refreshCustomerFinancials(customerIds, req, session).catch(() => {});
+        }
+        throw error;
+      }
+    });
+
+    return res.status(200).json({ message: "Sale order status updated", order: updated });
   } catch (error) {
     return handleControllerError(error, res, next);
   }
@@ -775,21 +838,63 @@ async function recordSaleOrderPayment(req, res, next) {
     }
 
     const method = cleanString(req.body?.method) || order.paymentMethod || "Cash";
-    const paid = order.financials.paid + amount;
-    const outstanding = Math.max(order.financials.total - paid, 0);
-    const paymentStatus = outstanding === 0 ? "paid" : "partial";
 
-    order.financials.paid = paid;
-    order.financials.outstanding = outstanding;
-    order.financials.dueDate = outstanding === 0 ? "Settled in full" : order.financials.dueDate;
-    order.paymentStatus = paymentStatus;
-    order.paymentMethod = method;
-    order.paymentLabel = buildPaymentLabel(paymentStatus, paid, method);
+    const updated = await runWithSession(async (session, useTransaction) => {
+      const current = await SaleOrder.findOne(scopedFilter(req, { _id: order._id })).session(session);
+      if (!current) {
+        throw new NotFoundError("Sale order not found");
+      }
+      if (current.status === "Cancelled") {
+        throw new ValidationError("Payments cannot be recorded against a cancelled sale order");
+      }
+      if (amount > current.financials.outstanding) {
+        throw new ValidationError(
+          `Payment cannot exceed the outstanding balance (${current.financials.outstanding})`
+        );
+      }
 
-    await order.save();
-    return res.status(200).json({ message: "Payment recorded", order });
+      const customerIds = [customerIdOf(current)];
+      const previous = {
+        financials:
+          typeof current.financials?.toObject === "function"
+            ? current.financials.toObject()
+            : { ...current.financials },
+        paymentStatus: current.paymentStatus,
+        paymentMethod: current.paymentMethod,
+        paymentLabel: current.paymentLabel,
+      };
+
+      try {
+        const paid = current.financials.paid + amount;
+        const outstanding = Math.max(current.financials.total - paid, 0);
+        const paymentStatus = outstanding === 0 ? "paid" : "partial";
+
+        current.financials.paid = paid;
+        current.financials.outstanding = outstanding;
+        current.financials.dueDate = outstanding === 0 ? "Settled in full" : current.financials.dueDate;
+        current.paymentStatus = paymentStatus;
+        current.paymentMethod = method;
+        current.paymentLabel = buildPaymentLabel(paymentStatus, paid, method);
+
+        await current.save({ session });
+        await refreshCustomerFinancials(customerIds, req, session);
+        return current;
+      } catch (error) {
+        if (!useTransaction) {
+          await SaleOrder.updateOne(
+            scopedFilter(req, { _id: current._id }),
+            { $set: previous },
+            { session }
+          );
+          await refreshCustomerFinancials(customerIds, req, session).catch(() => {});
+        }
+        throw error;
+      }
+    });
+
+    return res.status(200).json({ message: "Payment recorded", order: updated });
   } catch (error) {
-    return next(error);
+    return handleControllerError(error, res, next);
   }
 }
 
@@ -806,6 +911,7 @@ async function deleteSaleOrder(req, res, next) {
         throw new NotFoundError("Sale order not found");
       }
 
+      const customerId = customerIdOf(order);
       const compensations = [];
       try {
         await applyStockAdjustments({
@@ -821,8 +927,12 @@ async function deleteSaleOrder(req, res, next) {
         });
 
         await SaleOrder.deleteOne(scopedFilter(req, { _id: order._id }), { session });
+        await refreshCustomerFinancials([customerId], req, session);
       } catch (error) {
-        if (!useTransaction) await rollbackCompensations(compensations);
+        if (!useTransaction) {
+          await rollbackCompensations(compensations);
+          await refreshCustomerFinancials([customerId], req, session).catch(() => {});
+        }
         throw error;
       }
     });

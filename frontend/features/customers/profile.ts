@@ -40,7 +40,9 @@ export function formatShortDate(value: string): string {
 }
 
 export function getCustomerFinancials(customer: Customer) {
-  const totalPaid = Math.max(0, customer.totalPurchases - customer.outstanding);
+  const openingBalance = Math.max(0, Number(customer.openingBalance) || 0);
+  const orderOutstanding = Math.max(0, customer.outstanding - openingBalance);
+  const totalPaid = Math.max(0, customer.totalPurchases - orderOutstanding);
   const headroom = customer.creditLimit - customer.outstanding;
   const exposure =
     customer.creditLimit > 0 ? Math.round((customer.outstanding / customer.creditLimit) * 1000) / 10 : 0;

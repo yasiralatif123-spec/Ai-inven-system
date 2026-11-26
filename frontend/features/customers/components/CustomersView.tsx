@@ -2,11 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchSaleOrders } from "../../sales-orders/services/sale-order.service";
 import { deleteCustomer, fetchCustomers } from "../services/customer.service";
 import type { BalanceFilter, Customer, CustomerSort } from "../types";
 import {
-  applyCustomerOrderMetrics,
   customersToCsv,
   downloadCsv,
   filterCustomers,
@@ -48,12 +46,9 @@ export function CustomersView() {
     async function load() {
       try {
         setLoading(true);
-        const [customerData, orders] = await Promise.all([
-          fetchCustomers(),
-          fetchSaleOrders(),
-        ]);
+        const data = await fetchCustomers();
         if (!cancelled) {
-          const data = applyCustomerOrderMetrics(customerData, orders);
+          // Financial totals are stored and returned by the backend.
           setCustomers(data);
           setSelectedIds((current) => current.filter((id) => data.some((item) => item.id === id)));
           setError(null);

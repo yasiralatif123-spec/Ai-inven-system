@@ -4,6 +4,7 @@ const Product = require("../models/Product");
 const StockMovement = require("../models/StockMovement");
 const Supplier = require("../models/Supplier");
 const { runWithSession } = require("../utils/db");
+const { recalculateSupplierFinancials } = require("../utils/financials");
 const { tenantFilter } = require("../utils/tenant");
 const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
@@ -26,6 +27,22 @@ function scopedFilter(req, extra = {}) {
 
 function tenantBusinessId(req) {
   return isTenantEnforced(req) ? req.auth.businessId : null;
+}
+
+function supplierIdOf(purchase) {
+  const id = purchase?.supplier?.id;
+  return id ? String(id) : null;
+}
+
+async function refreshSupplierFinancials(ids, req, session = null) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
+  for (const supplierId of uniqueIds) {
+    await recalculateSupplierFinancials({
+      supplierId,
+      businessId: tenantBusinessId(req),
+      session,
+    });
+  }
 }
 
 const PURCHASE_STATUSES = [
@@ -51,6 +68,13 @@ class ConflictError extends Error {
   constructor(message) {
     super(message);
     this.name = "ConflictError";
+  }
+}
+
+class NotFoundError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "NotFoundError";
   }
 }
 
@@ -513,6 +537,9 @@ function handleControllerError(error, res, next) {
   if (error instanceof ConflictError) {
     return res.status(409).json({ message: error.message });
   }
+  if (error instanceof NotFoundError) {
+    return res.status(404).json({ message: error.message });
+  }
   return next(error);
 }
 
@@ -711,6 +738,7 @@ async function createPurchase(req, res, next) {
     const createdByUserId = isTenantEnforced(req) ? req.auth.id : null;
     const purchase = await runWithSession(async (session, useTransaction) => {
       const compensations = [];
+      const supplierIds = [];
       let created;
       try {
         for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -753,11 +781,24 @@ async function createPurchase(req, res, next) {
           });
         }
 
+        const supplierId = supplierIdOf(created);
+        if (supplierId) {
+          supplierIds.push(supplierId);
+          await recalculateSupplierFinancials({
+            supplierId,
+            businessId,
+            session,
+          });
+        }
+
         return created;
       } catch (error) {
-        if (!useTransaction) await runCompensations(compensations);
-        if (created) {
-          await Purchase.deleteOne({ _id: created._id }, { session }).catch(() => {});
+        if (!useTransaction) {
+          await runCompensations(compensations);
+          if (created) {
+            await Purchase.deleteOne({ _id: created._id }, { session }).catch(() => {});
+          }
+          await refreshSupplierFinancials(supplierIds, req, session).catch(() => {});
         }
         throw error;
       }
@@ -813,6 +854,7 @@ async function updatePurchase(req, res, next) {
         typeof item.toObject === "function" ? item.toObject() : { ...item }
       ),
     };
+    const supplierIds = [supplierIdOf(purchase), supplierIdOf(changes)];
 
     const updated = await runWithSession(async (session, useTransaction) => {
       const compensations = [];
@@ -856,9 +898,13 @@ async function updatePurchase(req, res, next) {
           });
         }
 
+        await refreshSupplierFinancials(supplierIds, req, session);
         return purchase;
       } catch (error) {
-        if (!useTransaction) await runCompensations(compensations);
+        if (!useTransaction) {
+          await runCompensations(compensations);
+          await refreshSupplierFinancials(supplierIds, req, session).catch(() => {});
+        }
         throw error;
       }
     });
@@ -921,9 +967,13 @@ async function updatePurchaseStatus(req, res, next) {
           }
           purchase.status = "Cancelled";
           await purchase.save({ session });
+          await refreshSupplierFinancials([supplierIdOf(purchase)], req, session);
           return purchase;
         } catch (error) {
-          if (!useTransaction) await runCompensations(compensations);
+          if (!useTransaction) {
+            await runCompensations(compensations);
+            await refreshSupplierFinancials([supplierIdOf(purchase)], req, session).catch(() => {});
+          }
           throw error;
         }
       });
@@ -934,9 +984,36 @@ async function updatePurchaseStatus(req, res, next) {
       throw new ValidationError("Cancelled purchases cannot be reactivated");
     }
 
-    purchase.status = status;
-    await purchase.save();
-    return res.status(200).json({ message: "Purchase status updated", purchase });
+    const updated = await runWithSession(async (session, useTransaction) => {
+      const current = await Purchase.findOne(scopedFilter(req, { _id: purchase._id })).session(session);
+      if (!current) {
+        throw new NotFoundError("Purchase not found");
+      }
+      if (current.status === "Cancelled" && status !== "Cancelled") {
+        throw new ValidationError("Cancelled purchases cannot be reactivated");
+      }
+
+      const supplierIds = [supplierIdOf(current)];
+      const previousStatus = current.status;
+      try {
+        current.status = status;
+        await current.save({ session });
+        await refreshSupplierFinancials(supplierIds, req, session);
+        return current;
+      } catch (error) {
+        if (!useTransaction) {
+          await Purchase.updateOne(
+            scopedFilter(req, { _id: current._id }),
+            { $set: { status: previousStatus } },
+            { session }
+          );
+          await refreshSupplierFinancials(supplierIds, req, session).catch(() => {});
+        }
+        throw error;
+      }
+    });
+
+    return res.status(200).json({ message: "Purchase status updated", purchase: updated });
   } catch (error) {
     return handleControllerError(error, res, next);
   }
@@ -1176,9 +1253,13 @@ async function receivePurchase(req, res, next) {
           });
         }
 
+        await refreshSupplierFinancials([supplierIdOf(purchase)], req, session);
         return Purchase.findById(purchase._id).session(session);
       } catch (error) {
-        if (!useTransaction) await runCompensations(compensations);
+        if (!useTransaction) {
+          await runCompensations(compensations);
+          await refreshSupplierFinancials([supplierIdOf(purchase)], req, session).catch(() => {});
+        }
         throw error;
       }
     });
@@ -1208,18 +1289,54 @@ async function recordPurchasePayment(req, res, next) {
       throw new ValidationError(`Payment cannot exceed the remaining balance of ${remaining}`);
     }
 
-    purchase.payments = purchase.payments || [];
-    purchase.payments.push({
-      amount,
-      method: cleanString(req.body?.method) || "Cash",
-      reference: cleanString(req.body?.reference),
-      paidAt: new Date(),
-      createdBy: resolveActorName(req),
-    });
-    purchase.paidAmount = round(paid + amount);
-    await purchase.save();
+    const updated = await runWithSession(async (session, useTransaction) => {
+      const current = await Purchase.findOne(scopedFilter(req, { _id: purchase._id })).session(session);
+      if (!current) {
+        throw new NotFoundError("Purchase not found");
+      }
 
-    return res.status(200).json({ message: "Payment recorded", purchase });
+      const total = Number(current.financials?.total) || 0;
+      const paid = Number(current.paidAmount) || 0;
+      const remaining = Math.max(total - paid, 0);
+      if (amount > remaining) {
+        throw new ValidationError(`Payment cannot exceed the remaining balance of ${remaining}`);
+      }
+
+      const supplierIds = [supplierIdOf(current)];
+      const previous = {
+        paidAmount: current.paidAmount,
+        payments: (current.payments || []).map((payment) =>
+          typeof payment.toObject === "function" ? payment.toObject() : { ...payment }
+        ),
+      };
+
+      try {
+        current.payments = current.payments || [];
+        current.payments.push({
+          amount,
+          method: cleanString(req.body?.method) || "Cash",
+          reference: cleanString(req.body?.reference),
+          paidAt: new Date(),
+          createdBy: resolveActorName(req),
+        });
+        current.paidAmount = round(paid + amount);
+        await current.save({ session });
+        await refreshSupplierFinancials(supplierIds, req, session);
+        return current;
+      } catch (error) {
+        if (!useTransaction) {
+          await Purchase.updateOne(
+            scopedFilter(req, { _id: current._id }),
+            { $set: previous },
+            { session }
+          );
+          await refreshSupplierFinancials(supplierIds, req, session).catch(() => {});
+        }
+        throw error;
+      }
+    });
+
+    return res.status(200).json({ message: "Payment recorded", purchase: updated });
   } catch (error) {
     return handleControllerError(error, res, next);
   }
@@ -1234,6 +1351,7 @@ async function deletePurchase(req, res, next) {
 
     await runWithSession(async (session, useTransaction) => {
       const compensations = [];
+      const supplierId = supplierIdOf(purchase);
 
       try {
         const references = new Set();
@@ -1308,6 +1426,7 @@ async function deletePurchase(req, res, next) {
           await Purchase.create(purchaseSnapshot, { session });
         });
 
+        await refreshSupplierFinancials([supplierId], req, session);
         return purchase;
       } catch (error) {
         if (!useTransaction) {
@@ -1321,6 +1440,7 @@ async function deletePurchase(req, res, next) {
               );
             }
           }
+          await refreshSupplierFinancials([supplierId], req, session).catch(() => {});
         }
         throw error;
       }

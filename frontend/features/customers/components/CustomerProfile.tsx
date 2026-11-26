@@ -226,7 +226,7 @@ export function CustomerProfile({ customerId }: CustomerProfileProps) {
         </div>
       ) : null}
 
-      <CustomerProfileSummary customer={customer} orders={orders} />
+      <CustomerProfileSummary customer={customer} />
 
       <ProfileTabs tabs={TABS.map((tab) => ({
         ...tab,
