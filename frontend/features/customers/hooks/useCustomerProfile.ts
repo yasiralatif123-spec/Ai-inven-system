@@ -22,16 +22,32 @@ export function useCustomerProfile(customerId: string) {
     async function load() {
       setLoading(true);
       setError(null);
+      setCustomer(null);
+      setOrders([]);
 
       try {
-        const [customerData, linkedOrders, allOrders] = await Promise.all([
-          fetchCustomer(customerId),
+        // Financial cards are backed by the customer API. Load and show them
+        // independently of the sale-order ledger so a ledger failure cannot
+        // hide Total Purchases, Opening Balance or Current Outstanding.
+        const customerData = await fetchCustomer(customerId);
+        if (cancelled) return;
+
+        // Never render a response for a different row after a route change.
+        if (customerData.id !== customerId) {
+          throw new Error("Loaded customer does not match the selected customer.");
+        }
+
+        setCustomer(customerData);
+        setLoading(false);
+
+        const [linkedResult, allResult] = await Promise.allSettled([
           fetchSaleOrders(customerId),
           fetchSaleOrders(),
         ]);
-
         if (cancelled) return;
 
+        const linkedOrders = linkedResult.status === "fulfilled" ? linkedResult.value : [];
+        const allOrders = allResult.status === "fulfilled" ? allResult.value : [];
         // Linked orders come from the backend customerId filter. Include legacy
         // orders that predate the link by matching phone or exact name.
         const legacyOrders = allOrders.filter(
@@ -43,12 +59,11 @@ export function useCustomerProfile(customerId: string) {
           seen.add(order.id);
           return true;
         });
-        // Financial totals come from the backend customer record; the orders
-        // below are only the transaction ledger shown in the profile tabs.
-        setCustomer(customerData);
         setOrders(customerOrders);
       } catch (loadError) {
         if (!cancelled) {
+          setCustomer(null);
+          setOrders([]);
           setError(
             loadError instanceof Error
               ? loadError.message

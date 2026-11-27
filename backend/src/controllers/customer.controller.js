@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Customer = require("../models/Customer");
 const { tenantFilter } = require("../utils/tenant");
 const { resolveActorName } = require("../utils/actor");
+const { withAuthoritativeCustomerFinancials } = require("../utils/financials");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -10,6 +11,17 @@ function isTenantEnforced(req) {
 function scopedFilter(req, extra = {}) {
   if (!isTenantEnforced(req)) return { ...extra };
   return tenantFilter(req, extra);
+}
+
+function financialBusinessId(req) {
+  return isTenantEnforced(req) ? req.auth.businessId : null;
+}
+
+async function customerResponse(customer, req) {
+  const [withFinancials] = await withAuthoritativeCustomerFinancials([customer], {
+    businessId: financialBusinessId(req),
+  });
+  return withFinancials;
 }
 
 const CITIES = {
@@ -203,7 +215,10 @@ async function getCustomers(req, res, next) {
       ];
     }
     const customers = await Customer.find(filter).sort({ createdAt: -1 }).lean();
-    return res.status(200).json({ customers });
+    const withFinancials = await withAuthoritativeCustomerFinancials(customers, {
+      businessId: financialBusinessId(req),
+    });
+    return res.status(200).json({ customers: withFinancials });
   } catch (error) {
     return next(error);
   }
@@ -221,7 +236,7 @@ async function getCustomerById(req, res, next) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
-    return res.status(200).json({ customer });
+    return res.status(200).json({ customer: await customerResponse(customer, req) });
   } catch (error) {
     return next(error);
   }
@@ -237,7 +252,7 @@ async function getCustomerByCode(req, res, next) {
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    return res.status(200).json({ customer });
+    return res.status(200).json({ customer: await customerResponse(customer, req) });
   } catch (error) {
     return next(error);
   }
@@ -264,7 +279,10 @@ async function createCustomer(req, res, next) {
       }
     }
 
-    return res.status(201).json({ message: "Customer created", customer });
+    return res.status(201).json({
+      message: "Customer created",
+      customer: await customerResponse(customer, req),
+    });
   } catch (error) {
     return handleControllerError(error, res, next);
   }
@@ -303,8 +321,14 @@ async function updateCustomer(req, res, next) {
       new: true,
       runValidators: true,
     });
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
 
-    return res.status(200).json({ message: "Customer updated", customer });
+    return res.status(200).json({
+      message: "Customer updated",
+      customer: await customerResponse(customer, req),
+    });
   } catch (error) {
     return handleControllerError(error, res, next);
   }

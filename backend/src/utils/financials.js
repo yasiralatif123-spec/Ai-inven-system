@@ -19,8 +19,17 @@ function nonNegativeMoney(value) {
   return Number.isFinite(rounded) && rounded > 0 ? rounded : 0;
 }
 
+function toObjectId(value) {
+  const id = String(value || "");
+  return mongoose.isValidObjectId(id) ? new mongoose.Types.ObjectId(id) : null;
+}
+
+// JWT auth supplies businessId as a string. Aggregation $match does not cast
+// strings to ObjectIds the way Model.find() does, so normalize it here or the
+// ledger silently matches zero orders in tenant-enforced mode.
 function tenantScope(businessId) {
-  return businessId ? { businessId } : {};
+  if (!businessId) return {};
+  return { businessId: toObjectId(businessId) || businessId };
 }
 
 // A recomputation reads the ledger and then writes a denormalized summary.
@@ -48,6 +57,78 @@ function runSerialized(key, task) {
 }
 
 /**
+ * Aggregate active sale orders by customer. Every query is scoped by businessId
+ * when tenant enforcement is active, so a customer can never inherit totals
+ * from another tenant's ledger.
+ */
+async function aggregateCustomerFinancials({
+  customerIds = [],
+  businessId = null,
+  session = null,
+} = {}) {
+  const uniqueIds = [
+    ...new Set(customerIds.map(toObjectId).filter(Boolean).map(String)),
+  ];
+
+  if (uniqueIds.length === 0) return new Map();
+
+  const aggregate = SaleOrder.aggregate([
+    {
+      $match: {
+        "customer.customerId": {
+          $in: uniqueIds.map((id) => new mongoose.Types.ObjectId(id)),
+        },
+        status: { $ne: "Cancelled" },
+        ...tenantScope(businessId),
+      },
+    },
+    {
+      $group: {
+        _id: "$customer.customerId",
+        orders: { $sum: 1 },
+        totalPurchases: { $sum: { $ifNull: ["$financials.total", 0] } },
+        orderOutstanding: { $sum: { $ifNull: ["$financials.outstanding", 0] } },
+      },
+    },
+  ]);
+  if (session) aggregate.session(session);
+
+  const rows = await aggregate;
+  return new Map(rows.map((row) => [String(row._id), row]));
+}
+
+function deriveCustomerFinancialSummary(customer, summary) {
+  return {
+    orders: Math.max(0, Number(summary?.orders) || 0),
+    totalPurchases: nonNegativeMoney(summary?.totalPurchases),
+    outstanding: nonNegativeMoney(
+      nonNegativeMoney(customer?.openingBalance) + nonNegativeMoney(summary?.orderOutstanding)
+    ),
+  };
+}
+
+/**
+ * Build customer responses whose money/count fields are derived from the live
+ * sale ledger. Legacy records can keep stale denormalized values in the
+ * database, but API consumers never receive them and no client-side order
+ * query is trusted.
+ */
+async function withAuthoritativeCustomerFinancials(customers, { businessId = null } = {}) {
+  const rows = (Array.isArray(customers) ? customers : []).map((customer) =>
+    customer && typeof customer.toObject === "function" ? customer.toObject() : customer
+  );
+  const summaries = await aggregateCustomerFinancials({
+    customerIds: rows.map((customer) => customer?._id),
+    businessId,
+  });
+
+  return rows.map((customer) => ({
+    ...customer,
+    ...deriveCustomerFinancialSummary(customer, summaries.get(String(customer?._id))),
+  }));
+}
+
+/**
  * Recompute a customer's stored financial summary from the authoritative sale
  * order ledger. Recomputing from scratch (instead of incrementing) makes every
  * call idempotent and automatically reverses edits, cancellations and deletes.
@@ -57,10 +138,10 @@ async function recalculateCustomerFinancials({
   businessId = null,
   session = null,
 } = {}) {
-  if (!customerId || !mongoose.isValidObjectId(String(customerId))) return null;
+  const id = toObjectId(customerId);
+  if (!id) return null;
 
-  return runSerialized(recalculationKey("customer", businessId, customerId), async () => {
-    const id = new mongoose.Types.ObjectId(String(customerId));
+  return runSerialized(recalculationKey("customer", businessId, id), async () => {
     const scope = tenantScope(businessId);
     const customerFilter = { _id: id, ...scope };
 
@@ -69,39 +150,17 @@ async function recalculateCustomerFinancials({
     const customer = await customerQuery.lean();
     if (!customer) return null; // Never touch a customer outside this tenant.
 
-    const orderFilter = {
-      "customer.customerId": id,
-      status: { $ne: "Cancelled" },
-      ...scope,
-    };
-    const aggregate = SaleOrder.aggregate([
-      { $match: orderFilter },
-      {
-        $group: {
-          _id: null,
-          orders: { $sum: 1 },
-          totalPurchases: { $sum: { $ifNull: ["$financials.total", 0] } },
-          orderOutstanding: { $sum: { $ifNull: ["$financials.outstanding", 0] } },
-        },
-      },
-    ]);
-    if (session) aggregate.session(session);
-    const [summary] = await aggregate;
-
-    const orders = Math.max(0, Number(summary?.orders) || 0);
-    const totalPurchases = nonNegativeMoney(summary?.totalPurchases);
-    const outstanding = nonNegativeMoney(
-      nonNegativeMoney(customer.openingBalance) + nonNegativeMoney(summary?.orderOutstanding)
-    );
+    const summaries = await aggregateCustomerFinancials({
+      customerIds: [id],
+      businessId,
+      session,
+    });
+    const financials = deriveCustomerFinancialSummary(customer, summaries.get(String(id)));
 
     const options = session ? { session } : {};
-    await Customer.updateOne(
-      customerFilter,
-      { $set: { orders, totalPurchases, outstanding } },
-      options
-    );
+    await Customer.updateOne(customerFilter, { $set: financials }, options);
 
-    return { orders, totalPurchases, outstanding };
+    return financials;
   });
 }
 
@@ -196,6 +255,9 @@ async function recalculateSupplierFinancials({
 }
 
 module.exports = {
+  aggregateCustomerFinancials,
+  deriveCustomerFinancialSummary,
   recalculateCustomerFinancials,
   recalculateSupplierFinancials,
+  withAuthoritativeCustomerFinancials,
 };

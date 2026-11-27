@@ -910,7 +910,7 @@ describe("manual payment integrity", () => {
       const saved = await saleFromDb(createdSale.body.order._id);
       expect(saved.payments).toHaveLength(0);
       expect(saved.financials).toMatchObject({ paid: 0, outstanding: 20 });
-      expect(await customerFromDb(createdCustomer.body.customer._id)).toMatchObject({ outstanding: 20 });
+      expect(await customerFromDb(createdCustomer.body.customer._id)).toMatchObject({ outstanding: 40 });
     });
 
     test("a foreign tenant cannot pay a purchase", async () => {
@@ -956,7 +956,7 @@ describe("manual payment integrity", () => {
       const saved = await purchaseFromDb(createdPurchase.body.purchase._id);
       expect(saved.payments).toHaveLength(0);
       expect(saved.paidAmount).toBe(0);
-      expect(await supplierFromDb(createdSupplier.body.supplier._id)).toMatchObject({ outstanding: 20 });
+      expect(await supplierFromDb(createdSupplier.body.supplier._id)).toMatchObject({ outstanding: 40 });
     });
   });
 });

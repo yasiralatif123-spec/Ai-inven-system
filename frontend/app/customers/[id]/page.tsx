@@ -16,7 +16,9 @@ export default function CustomerProfilePage({
           </div>
         }
       >
-        {params.then(({ id }) => <CustomerProfile customerId={id} />)}
+        {params.then(({ id }) => (
+          <CustomerProfile key={id} customerId={id} />
+        ))}
       </Suspense>
     </AppShell>
   );

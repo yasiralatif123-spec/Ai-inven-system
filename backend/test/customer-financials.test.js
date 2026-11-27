@@ -316,6 +316,42 @@ describe("customer financial integrity", () => {
     });
   });
 
+  test("legacy stored totals are replaced by authoritative ledger totals in API responses", async () => {
+    const product = await createProduct({ wholesalePrice: 10.25 });
+    const customer = await createCustomer({ openingBalance: 25.5 });
+    await createSale(customer, product, {
+      items: [{ ...salePayload(customer, product).items[0], quantity: 3 }],
+    });
+
+    // Simulate a customer document written before ledger reconciliation existed.
+    await Customer.updateOne(
+      { _id: customer._id },
+      { $set: { orders: 0, totalPurchases: 0, outstanding: 25.5 } }
+    );
+    expect(await customerFromDb(customer._id)).toMatchObject({
+      orders: 0,
+      totalPurchases: 0,
+      outstanding: 25.5,
+    });
+
+    const expected = {
+      creditLimit: 1000000,
+      openingBalance: 25.5,
+      orders: 1,
+      totalPurchases: 30.75,
+      outstanding: 56.25,
+    };
+
+    const list = await request(app).get("/api/customers");
+    expect(list.status).toBe(200);
+    const listRow = list.body.customers.find((row) => row._id === String(customer._id));
+    expect(listRow).toMatchObject(expected);
+
+    const detail = await request(app).get(`/api/customers/${customer._id}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.customer).toMatchObject(expected);
+  });
+
   test("a zero-value sale is rejected and does not change customer financials", async () => {
     const product = await createProduct({ wholesalePrice: 0 });
     const customer = await createCustomer();
@@ -514,6 +550,121 @@ describe("customer financial integrity", () => {
         totalPurchases: 0,
         outstanding: 100,
       });
+    });
+
+    test("customer responses ignore sale orders from another tenant's ledger", async () => {
+      const businessA = await createBusiness({ name: "Fin Read A", slug: "fin-read-a" });
+      const businessB = await createBusiness({ name: "Fin Read B", slug: "fin-read-b" });
+      await createUser({
+        business: businessB,
+        email: "fin-read-b@example.com",
+        role: "owner",
+      });
+      const cookieB = await loginAs("fin-read-b@example.com");
+
+      const createdB = await request(app)
+        .post("/api/customers")
+        .set("Cookie", cookieB)
+        .send(customerPayload({ businessName: "Tenant B Read Biz" }));
+      expect(createdB.status).toBe(201);
+      const customerB = createdB.body.customer;
+
+      // An order that leaked into another tenant's collection must never be
+      // included in this customer's authoritative API response.
+      await SaleOrder.create({
+        orderNumber: "SO-CROSS-TENANT-READ",
+        customer: {
+          customerId: customerB._id,
+          name: customerB.name,
+          phone: customerB.phone,
+          location: "",
+        },
+        businessId: businessA._id,
+        status: "Pending Approval",
+        paymentStatus: "unpaid",
+        items: [],
+        amount: 500,
+        financials: { total: 500, paid: 0, outstanding: 500 },
+      });
+
+      const detail = await request(app)
+        .get(`/api/customers/${customerB._id}`)
+        .set("Cookie", cookieB);
+      expect(detail.status).toBe(200);
+      expect(detail.body.customer).toMatchObject({
+        orders: 0,
+        totalPurchases: 0,
+        outstanding: 100,
+      });
+
+      const list = await request(app).get("/api/customers").set("Cookie", cookieB);
+      expect(list.status).toBe(200);
+      const row = list.body.customers.find((item) => item._id === String(customerB._id));
+      expect(row).toMatchObject({
+        orders: 0,
+        totalPurchases: 0,
+        outstanding: 100,
+      });
+    });
+
+    test("authenticated customer responses derive totals with a string tenant id", async () => {
+      const business = await createBusiness({
+        name: "Fin String Id",
+        slug: "fin-string-id",
+      });
+      await createUser({
+        business,
+        email: "fin-string-id@example.com",
+        role: "owner",
+      });
+      const cookie = await loginAs("fin-string-id@example.com");
+
+      const createdCustomer = await request(app)
+        .post("/api/customers")
+        .set("Cookie", cookie)
+        .send(customerPayload({ businessName: "String Id Biz" }));
+      expect(createdCustomer.status).toBe(201);
+      const customer = createdCustomer.body.customer;
+
+      const createdProduct = await request(app)
+        .post("/api/products")
+        .set("Cookie", cookie)
+        .send({
+          title: "String Id Product",
+          sku: `FIN-SID-${randomSuffix()}`,
+          category: "Test",
+          brand: "Test",
+          openingStock: 50,
+          reorderThreshold: 5,
+          wholesalePrice: 10,
+          purchasePrice: 5,
+        });
+      expect(createdProduct.status).toBe(201);
+
+      const sale = await request(app)
+        .post("/api/sale-orders")
+        .set("Cookie", cookie)
+        .send(salePayload(customer, createdProduct.body.product));
+      expect(sale.status).toBe(201);
+
+      const expected = {
+        creditLimit: 1000000,
+        openingBalance: 100,
+        orders: 1,
+        totalPurchases: 20,
+        outstanding: 120,
+      };
+
+      const detail = await request(app)
+        .get(`/api/customers/${customer._id}`)
+        .set("Cookie", cookie);
+      expect(detail.status).toBe(200);
+      expect(detail.body.customer).toMatchObject(expected);
+
+      const list = await request(app).get("/api/customers").set("Cookie", cookie);
+      expect(list.status).toBe(200);
+      const row = list.body.customers.find((item) => item._id === String(customer._id));
+      expect(row).toMatchObject(expected);
     });
   });
 });
