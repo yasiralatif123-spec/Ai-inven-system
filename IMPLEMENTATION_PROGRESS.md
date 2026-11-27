@@ -604,6 +604,151 @@ No further correctness issue was found in the final diff review. `git diff --che
 ## Step 9 — Final scope confirmation
 
 - No Phase 4 work, payment gateway, new status, reservation architecture, UI redesign, unrelated refactor, commit or push was performed.
-- HEAD remains `c8ea6f0 fix: enforce manual payment integrity`; all Phase 3 changes are uncommitted.
+- HEAD advanced to `43b5198 fix: enforce stock integrity and immutable movements`; Phase 3 is committed and pushed.
 - Pre-existing untracked `.agents/` and `skills-lock.json` were preserved untouched.
 - Final Phase 3 status: **COMPLETED** (with the documented standalone-transaction and legacy-data limitations above).
+
+---
+
+# Phase 4 — Sales & Purchase Lifecycle Integrity
+
+## Approved scope and decisions
+
+Phase 4 was approved with these decisions:
+
+1. Implement core backend lifecycle fixes plus only minimal frontend alignment required for lifecycle correctness.
+2. Add conditional role authorization for sensitive sale/purchase mutations: `owner` and `admin` may perform them; authentication-disabled development mode must remain unchanged.
+3. Add tenant fail-closed behavior when authentication is enabled but a valid business context is missing; intentional single-tenant mode with authentication disabled must remain unchanged.
+4. Block deletion of `Delivered` sales and preserve their historical records. `Delivered` cancellation continues to follow the existing no-restock rule.
+5. Received purchase items cannot be removed or reduced below their already-received quantities.
+6. Receiving remains the only authoritative path for adding received-purchase stock. Existing create-with-`Received` and received-quantity-edit behavior from Phase 3 is preserved.
+7. Sale stock aggregation uses the resolved `productId`, not the submitted SKU.
+8. `amountReceived` greater than the sale total is rejected, not clamped.
+9. Payment replay is hardened so a successful recorded payment cannot return 500 merely because a summary refresh fails.
+10. No Phase 5, payment gateway, reservation architecture, UI redesign, database reset, production data change, commit, or push.
+
+## Approved implementation plan
+
+1. Record the audit, transition matrix, and this approved plan here before implementation.
+2. Add a shared backend lifecycle utility with the actual sale and purchase status definitions and transition rules.
+3. Wire the transition rules into sale create/edit/status and purchase create/edit/status paths without weakening Phase 1–3 behavior:
+   - Sales allow forward progression (including direct progression to `Delivered`) but reject backwards/regressive transitions, `Credit Hold → Delivered`, and all transitions out of `Cancelled`.
+   - `Delivered → Cancelled` remains allowed and does not restock.
+   - Purchases keep `Draft`/`Ordered`/`Partially Received`/`Received`/`Cancelled`; Receive Goods remains the authoritative receiving path; received purchases cannot regress to `Draft`/`Ordered`.
+4. Fix received purchase item removal/reduction, canonical sale product keying, strict `amountReceived`, scoped purchase receive re-reads, and delivered-sale deletion.
+5. Harden payment replay refresh handling.
+6. Inspect role/tenant route and test effects before changing middleware/routes; then add conditional role checks and tenant fail-closed behavior.
+7. Add MongoDB-backed lifecycle tests and run the full backend suite, syntax checks, `git diff --check`, and frontend checks if frontend files change.
+8. Review the diff and report final Phase 4 status with evidence. Do not commit or push.
+
+## Audit findings and disposition
+
+| ID | Severity | Finding | Disposition |
+| --- | --- | --- | --- |
+| VB1 | Critical | Purchase edit could remove a received line item, orphaning stock and losing receipt history. | Resolved: removal is rejected when a line has receipts or received quantity. |
+| VB2 | High | Sale status transitions were unrestricted (`Delivered → Processing`, `Credit Hold → Delivered`). | Resolved: forward-only sale transitions in `src/utils/lifecycle.js`; `Delivered → Cancelled` remains valid. |
+| VB3 | Medium | Sale stock aggregation keyed submitted SKU while product resolution prefers `productId`. | Resolved: `stockKey()` prefers the resolved valid `productId`. |
+| VB4 | Medium | Sale list capped at 200 results. | Deferred by approved scope. |
+| VB5 | Medium | Sale `credit` / `warning` snapshot fields were never written. | Deferred by approved scope. |
+| VB6 | Low | `amountReceived > total` was silently clamped. | Resolved: rejected with a validation error before any write. |
+| VB7 | Medium | Phase 3 commit/status text in this file was stale. | Resolved: corrected above. |
+| VB8 | Medium | Purchase Receive Goods used unscoped `findById` re-reads. | Resolved: all three re-reads use tenant-scoped `findPurchase`. |
+| R1 | High | No role guard on sensitive sale/purchase mutations. | Resolved: `owner`/`admin` guard active only when `AUTH_ENFORCEMENT=true`. |
+| R2 | High | Authenticated but business-context-less requests could fall back to unscoped access. | Resolved: fail-closed 403 when auth is enabled and `req.auth.businessId` is missing/invalid. |
+| R3 | Medium | Delivered sale edit/delete could destroy historical records. | Resolved: deletion of `Delivered` sales is blocked; cancellation archives without restock. |
+| R4 | Medium | Duplicate payment replay could return 500 if summary refresh failed. | Resolved: replay refresh failures no longer turn a recorded payment into an error. |
+| R5 | Medium | Edits overwrite historical price/total snapshots. | Deferred by approved scope (amendment-history schema). |
+| R6 | Low | Purchase reversals are not linked via `StockMovement.reversesMovement`. | Deferred by approved scope. |
+| R7 | Medium | Frontend edit idempotency-key alignment not addressed. | Deferred by approved scope. |
+
+## Final implementation record
+
+Changed files:
+
+- Modified: `IMPLEMENTATION_PROGRESS.md`
+- Modified: `backend/src/controllers/sale-order.controller.js`
+- Modified: `backend/src/controllers/purchase.controller.js`
+- Modified: `backend/src/middlewares/enforcement.middleware.js`
+- Modified: `backend/src/routes/sale-order.routes.js`
+- Modified: `backend/src/routes/purchase.routes.js`
+- Modified: `backend/test/customer-financials.test.js`
+- Modified: `backend/test/supplier-financials.test.js`
+- Added: `backend/src/utils/lifecycle.js`
+- Added: `backend/test/lifecycle-integrity.test.js`
+- Unchanged/preserved: `.agents/`, `skills-lock.json`
+- No frontend files were changed; backend lifecycle guards make UI-side status/edit restrictions unnecessary for correctness in this phase.
+
+Verification evidence:
+
+- `npx jest --runInBand test/lifecycle-integrity.test.js`: **1 suite / 14 tests passed**.
+- Targeted regression (stock, cancellation, payment, financials, pricing, tenant, actor, middleware): **10 suites / 158 tests passed**.
+- Full backend suite `npx jest --runInBand`: **25 suites / 258 tests passed** (Phase 4 added one suite and 14 tests; two Phase 1 test names/assertions were realigned to valid repeated transitions without weakening idempotency coverage).
+- `node --check` on every changed/new backend JS file: passed.
+- `git diff --check`: passed; only Git's LF-to-CRLF normalization warnings were reported.
+- Frontend TypeScript/lint/build: not run because no frontend file changed.
+
+Limitations and unresolved items:
+
+- Deferred by approved scope: sale list 200-result cap, `credit`/`warning` snapshots, amendment-history schema for historical price/total immutability, `StockMovement.reversesMovement` linkage for purchase reversals, and frontend edit idempotency-key alignment.
+- Test MongoDB remains standalone, so `runWithSession()` exercises compensating writes rather than ACID transactions.
+- Financial recalculation serialization remains process-local.
+- No live or production API verification was performed; evidence is local MongoDB-backed tests only.
+- Conditional role checks apply only when `AUTH_ENFORCEMENT=true`; auth-disabled single-tenant development mode remains intentionally unchanged.
+- No commit or push was performed. Branch: `main`; HEAD remains `43b5198 fix: enforce stock integrity and immutable movements`.
+
+- Final Phase 4 status: **COMPLETED** with the documented deferred items and standalone-transaction limitation above.
+
+---
+
+# Customer Opening Balance & Financial Summary UI Fix
+
+## Approved scope
+
+Approved after the read-only audit:
+
+1. Add a visible Opening Balance input to the Add Customer form, default `0`, accepting non-negative monetary values through the existing `openingBalance` API field.
+2. Display the saved backend `openingBalance` in the customer profile.
+3. Remove the unsupported frontend-derived `Total Paid` metric; the backend does not expose `totalPaid` and frontend-derived financial summaries are not allowed.
+4. Do not add an `Available Credit` field or metric; the backend does not expose one.
+5. Preserve backend-authoritative `totalPurchases`, `outstanding`, and `creditLimit` rendering, and preserve opening-balance immutability on update.
+6. No backend financial utility, payment, stock, lifecycle, tenant, database, migration, production-data, Phase 5, commit, or push changes.
+
+## Implementation plan
+
+1. Add the input in `frontend/features/customers/components/AddCustomerForm.tsx` using the existing `Field`/input pattern and `form.openingBalance` state.
+2. Replace the derived Total Paid card in `CustomerProfileSummary.tsx` with an Opening Balance card backed by `customer.openingBalance`.
+3. Remove the now-unused `totalPaid` derivation from `frontend/features/customers/profile.ts`.
+4. Strengthen the existing backend profile-response test to assert `openingBalance`.
+5. Run frontend typecheck, lint, build, relevant backend tests, full backend suite, and `git diff --check`.
+6. Report exact fields already working versus changed fields; do not commit or push.
+
+## Final implementation record
+
+Fields already working before this fix:
+
+- `openingBalance`: accepted and validated by `POST /api/customers`, stored with `min: 0`, returned by the detail API, mapped by `customer.service.ts`, and immutable under `PUT /api/customers`.
+- `totalPurchases`: returned by the backend, mapped by `customer.service.ts`, and already rendered in `CustomerProfileSummary.tsx`.
+- `outstanding`: returned by the backend, mapped, and rendered as “Current Outstanding”.
+- `creditLimit`: returned by the backend, mapped, and rendered as “Credit Limit”; no confusion with outstanding was found.
+- `availableCredit`: not exposed by the backend; no new value was invented.
+
+Fields/UI changed:
+
+- `frontend/features/customers/components/AddCustomerForm.tsx`: rendered a visible `Opening Balance (PKR)` number input bound to `form.openingBalance`, default `0`, `min=0`, `step=0.01`, clamped to non-negative values, submitted through the existing `openingBalance` API field.
+- `frontend/features/customers/components/CustomerProfileSummary.tsx`: replaced the unsupported frontend-derived `Total Paid` card with a backend-authoritative `Opening Balance` card using `customer.openingBalance`.
+- `frontend/features/customers/profile.ts`: removed the unused frontend-derived `totalPaid` calculation; retained the existing credit-limit exposure/headroom display.
+- `backend/test/customer-financials.test.js`: asserted `openingBalance` in the customer detail API response.
+
+No backend source, financial utility, payment, stock, lifecycle, or tenant logic was changed. Phase 4 uncommitted work and the untracked `.agents/` / `skills-lock.json` files were preserved.
+
+Verification evidence:
+
+- Frontend `npx tsc --noEmit`: passed.
+- Frontend `npm run lint`: passed with 0 errors; 8 pre-existing warnings in unrelated files.
+- Frontend `npm run build`: passed; 21 static pages generated successfully.
+- Backend `npx jest --runInBand test/customer-financials.test.js`: **1 suite / 13 tests passed**.
+- Full backend `npx jest --runInBand`: **25 suites / 258 tests passed**.
+- `git diff --check`: passed; only Git LF-to-CRLF normalization warnings were reported.
+- No commit or push was performed.
+
+- Final status: **COMPLETED** within the approved scope.

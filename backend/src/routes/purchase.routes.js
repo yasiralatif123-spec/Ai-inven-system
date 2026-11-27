@@ -1,5 +1,8 @@
 const express = require("express");
-const { enforceTenantAuth } = require("../middlewares/enforcement.middleware");
+const {
+  enforceTenantAuth,
+  requireRoleWhenEnforced,
+} = require("../middlewares/enforcement.middleware");
 const {
   getNextPurchaseCode,
   getPurchases,
@@ -14,6 +17,7 @@ const {
 } = require("../controllers/purchase.controller");
 
 const router = express.Router();
+const sensitive = requireRoleWhenEnforced("owner", "admin");
 
 router.use(enforceTenantAuth);
 
@@ -21,11 +25,11 @@ router.get("/next-code", getNextPurchaseCode);
 router.get("/", getPurchases);
 router.get("/number/:purchaseNumber", getPurchaseByNumber);
 router.get("/:id", getPurchaseById);
-router.post("/", createPurchase);
-router.put("/:id", updatePurchase);
-router.patch("/:id/status", updatePurchaseStatus);
-router.post("/:id/receive", receivePurchase);
-router.post("/:id/payment", recordPurchasePayment);
-router.delete("/:id", deletePurchase);
+router.post("/", sensitive, createPurchase);
+router.put("/:id", sensitive, updatePurchase);
+router.patch("/:id/status", sensitive, updatePurchaseStatus);
+router.post("/:id/receive", sensitive, receivePurchase);
+router.post("/:id/payment", sensitive, recordPurchasePayment);
+router.delete("/:id", sensitive, deletePurchase);
 
 module.exports = router;

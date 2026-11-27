@@ -1,7 +1,23 @@
-const { authenticate } = require("./auth.middleware");
+const { authenticate, requireRole } = require("./auth.middleware");
 
 function isEnabled(value) {
   return String(value).toLowerCase() === "true";
+}
+
+function hasValidBusinessContext(req) {
+  const businessId = req?.auth?.businessId;
+  if (!businessId) return false;
+  const normalized = String(businessId).toLowerCase();
+  return normalized !== "null" && normalized !== "undefined";
+}
+
+// Sensitive lifecycle routes use this instead of requireRole directly so the
+// existing unauthenticated development/single-tenant mode remains unchanged.
+function requireRoleWhenEnforced(...roles) {
+  return (req, res, next) => {
+    if (!isEnabled(process.env.AUTH_ENFORCEMENT)) return next();
+    return requireRole(...roles)(req, res, next);
+  };
 }
 
 /**
@@ -21,9 +37,17 @@ function enforceTenantAuth(req, res, next) {
 
   return authenticate(req, res, (err) => {
     if (err) return next(err);
-    req.tenantEnforced = tenantEnforced && Boolean(req.auth?.businessId);
+    if (!hasValidBusinessContext(req)) {
+      return res.status(403).json({ message: "A valid business context is required" });
+    }
+    req.tenantEnforced = tenantEnforced;
     return next();
   });
 }
 
-module.exports = { enforceTenantAuth, isEnabled };
+module.exports = {
+  enforceTenantAuth,
+  requireRoleWhenEnforced,
+  hasValidBusinessContext,
+  isEnabled,
+};

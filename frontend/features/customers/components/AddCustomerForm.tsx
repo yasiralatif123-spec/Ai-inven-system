@@ -520,14 +520,36 @@ export function AddCustomerForm() {
 
         <SectionCard
           number="3"
-          title="Internal Ledger Notes & Guarantees"
-          description="Security cheques, guarantor references, or specialized billing instructions."
+          title="Opening Ledger Position & Internal Notes"
+          description="Carry-forward balance, security references, and specialized billing instructions."
           badge={
             <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
               (Optional)
             </span>
           }
         >
+          <Field
+            label="Opening Balance (PKR)"
+            hint="Amount already owed before StockFlow. Fixed at account creation and cannot be edited later."
+          >
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-2.5 select-none font-mono-data-sm text-mono-data-sm font-medium text-on-surface-variant">
+                Rs.
+              </span>
+              <input
+                className={`${INPUT_CLASS} pl-10 pr-2.5 text-right font-mono-data`}
+                value={form.openingBalance || ""}
+                onChange={(event) =>
+                  update("openingBalance", Math.max(0, Number(event.target.value) || 0))
+                }
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                type="number"
+              />
+            </div>
+          </Field>
+
           <Field label="Internal Remarks" hint="Strictly invisible to customer invoices and shipping slips">
             <textarea
               className={`${TEXTAREA_CLASS} resize-none`}

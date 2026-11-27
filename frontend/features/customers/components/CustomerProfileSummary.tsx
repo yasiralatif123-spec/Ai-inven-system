@@ -14,7 +14,7 @@ type CustomerProfileSummaryProps = {
 };
 
 export function CustomerProfileSummary({ customer }: CustomerProfileSummaryProps) {
-  const { totalPaid, headroom, exposure, overLimit, warning } = getCustomerFinancials(customer);
+  const { headroom, exposure, overLimit, warning } = getCustomerFinancials(customer);
 
   return (
     <div className="flex flex-col gap-3">
@@ -26,9 +26,9 @@ export function CustomerProfileSummary({ customer }: CustomerProfileSummaryProps
             caption={`${formatNumber(customer.orders)} orders recorded to date`}
           />
           <ProfileMetric
-            label="Total Paid"
-            value={formatRs(totalPaid)}
-            caption="Reconciled bank & cash"
+            label="Opening Balance"
+            value={formatRs(customer.openingBalance)}
+            caption="Carry-forward balance at account creation"
             valueTone="primary"
           />
           <ProfileMetric

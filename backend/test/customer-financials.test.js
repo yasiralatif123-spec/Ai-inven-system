@@ -245,12 +245,12 @@ describe("customer financial integrity", () => {
     expect(await SaleOrder.countDocuments()).toBe(0);
   });
 
-  test("repeated status updates never double-count the same sale", async () => {
+  test("repeated valid status updates never double-count the same sale", async () => {
     const product = await createProduct();
     const customer = await createCustomer({ openingBalance: 0 });
     const order = await createSale(customer, product);
 
-    for (const status of ["Processing", "Packed", "Dispatched", "Delivered", "Processing"]) {
+    for (const status of ["Processing", "Packed", "Dispatched", "Delivered", "Delivered"]) {
       const response = await request(app)
         .patch(`/api/sale-orders/${order._id}/status`)
         .send({ status });
@@ -309,6 +309,7 @@ describe("customer financial integrity", () => {
     const detail = await request(app).get(`/api/customers/${customer._id}`);
     expect(detail.status).toBe(200);
     expect(detail.body.customer).toMatchObject({
+      openingBalance: saved.openingBalance,
       orders: saved.orders,
       totalPurchases: saved.totalPurchases,
       outstanding: saved.outstanding,

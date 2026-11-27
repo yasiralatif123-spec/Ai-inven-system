@@ -1,5 +1,8 @@
 const express = require("express");
-const { enforceTenantAuth } = require("../middlewares/enforcement.middleware");
+const {
+  enforceTenantAuth,
+  requireRoleWhenEnforced,
+} = require("../middlewares/enforcement.middleware");
 const {
   createSaleOrder,
   updateSaleOrder,
@@ -12,16 +15,17 @@ const {
 } = require("../controllers/sale-order.controller");
 
 const router = express.Router();
+const sensitive = requireRoleWhenEnforced("owner", "admin");
 
 router.use(enforceTenantAuth);
 
 router.get("/", getSaleOrders);
 router.get("/number/:orderNumber", getSaleOrderByNumber);
 router.get("/:id", getSaleOrderById);
-router.post("/", createSaleOrder);
-router.put("/:id", updateSaleOrder);
-router.patch("/:id/status", updateSaleOrderStatus);
-router.post("/:id/payment", recordSaleOrderPayment);
-router.delete("/:id", deleteSaleOrder);
+router.post("/", sensitive, createSaleOrder);
+router.put("/:id", sensitive, updateSaleOrder);
+router.patch("/:id/status", sensitive, updateSaleOrderStatus);
+router.post("/:id/payment", sensitive, recordSaleOrderPayment);
+router.delete("/:id", sensitive, deleteSaleOrder);
 
 module.exports = router;

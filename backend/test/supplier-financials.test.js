@@ -262,12 +262,12 @@ describe("supplier financial integrity", () => {
     expect(await Purchase.countDocuments()).toBe(0);
   });
 
-  test("reverting a purchase status never double-counts it", async () => {
+  test("repeated valid status updates never double-count the same purchase", async () => {
     const product = await createProduct();
     const supplier = await createSupplier();
     const purchase = await createPurchase(supplier, product);
 
-    for (const status of ["Ordered", "Draft", "Ordered", "Draft"]) {
+    for (const status of ["Ordered", "Ordered", "Ordered"]) {
       const response = await request(app)
         .patch(`/api/purchases/${purchase._id}/status`)
         .send({ status });

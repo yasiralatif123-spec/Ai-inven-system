@@ -18,6 +18,7 @@ const {
   sumPayments,
 } = require("../utils/payment-accounting");
 const { tenantFilter } = require("../utils/tenant");
+const { isAllowedSaleTransition } = require("../utils/lifecycle");
 const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
   normalizeUnit,
@@ -231,13 +232,15 @@ async function findProductForItem(item, session = null, req = null) {
 }
 
 function stockKey(item) {
-  const sku = cleanString(item?.sku);
-  if (sku) return `sku:${sku.toLowerCase()}`;
-
+  // Stock is keyed by the resolved catalog product. The submitted SKU is only
+  // display/history data and must never decide which product is adjusted.
   const productId = cleanString(item?.productId);
   if (productId && mongoose.isValidObjectId(productId)) {
     return `id:${productId.toLowerCase()}`;
   }
+
+  const sku = cleanString(item?.sku);
+  if (sku) return `sku:${sku.toLowerCase()}`;
   return "";
 }
 
@@ -299,6 +302,15 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
   // PATCH /:id/status is the only endpoint allowed to assign it.
   if (status === "Cancelled") {
     throw new ValidationError("Use the Cancel action to cancel a sale order");
+  }
+  if (
+    existingOrder &&
+    existingOrder.status !== status &&
+    !isAllowedSaleTransition(existingOrder.status, status)
+  ) {
+    throw new ValidationError(
+      `Invalid sale status transition: ${existingOrder.status} -> ${status}`
+    );
   }
 
   const previousItems = existingOrder?.items || [];
@@ -405,9 +417,14 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
   if (requestedPaymentStatus === "paid") {
     requestedPaid = total;
   } else if (requestedPaymentStatus === "partial") {
-    requestedPaid = clamp(requireMoney(body.amountReceived, "Amount received"), 0, total);
+    requestedPaid = requireMoney(body.amountReceived, "Amount received");
     if (requestedPaid <= 0) {
       throw new ValidationError("amountReceived is required for partial payments");
+    }
+    if (requestedPaid > total) {
+      throw new ValidationError(
+        `amountReceived (${requestedPaid}) cannot exceed the sale total (${total})`
+      );
     }
   }
 
@@ -820,6 +837,14 @@ async function updateSaleOrderStatus(req, res, next) {
     if (existing.status === "Cancelled" && status === "Cancelled") {
       return res.status(200).json({ message: "Sale order already cancelled", order: existing });
     }
+    if (
+      existing.status !== status &&
+      !isAllowedSaleTransition(existing.status, status)
+    ) {
+      throw new ValidationError(
+        `Invalid sale status transition: ${existing.status} -> ${status}`
+      );
+    }
 
     if (status === "Cancelled" && existing.status !== "Cancelled") {
       const updated = await runWithSession(async (session, useTransaction) => {
@@ -997,7 +1022,9 @@ async function recordSaleOrderPayment(req, res, next) {
           if (roundMoney(replay.amount) !== amount) {
             throw new ConflictError("This idempotency key was already used for a different payment");
           }
-          await refreshCustomerFinancials([customerIdOf(current)], req, session);
+          // The payment itself is already recorded. A summary refresh failure
+          // must not turn a successful replay into a 500 response.
+          await refreshCustomerFinancials([customerIdOf(current)], req, session).catch(() => {});
           return current;
         }
 
@@ -1123,11 +1150,21 @@ async function deleteSaleOrder(req, res, next) {
     if (!existing) {
       return res.status(404).json({ message: "Sale order not found" });
     }
+    if (existing.status === "Delivered") {
+      throw new ValidationError(
+        "Delivered sale orders cannot be deleted; cancel the order to archive it"
+      );
+    }
 
     await runWithSession(async (session, useTransaction) => {
       const order = await SaleOrder.findOne(scopedFilter(req, { _id: existing._id })).session(session);
       if (!order) {
         throw new NotFoundError("Sale order not found");
+      }
+      if (order.status === "Delivered") {
+        throw new ValidationError(
+          "Delivered sale orders cannot be deleted; cancel the order to archive it"
+        );
       }
 
       const customerId = customerIdOf(order);

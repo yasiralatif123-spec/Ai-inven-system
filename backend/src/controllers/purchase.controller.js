@@ -17,6 +17,7 @@ const {
   roundMoney: roundPaymentMoney,
 } = require("../utils/payment-accounting");
 const { tenantFilter } = require("../utils/tenant");
+const { isAllowedPurchaseTransition } = require("../utils/lifecycle");
 const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
   normalizeUnit,
@@ -246,6 +247,15 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
   if (status === "Received" && existingPurchase?.status === "Cancelled") {
     throw new ValidationError("Cancelled purchases cannot be received");
   }
+  if (
+    existingPurchase &&
+    existingPurchase.status !== status &&
+    !isAllowedPurchaseTransition(existingPurchase.status, status)
+  ) {
+    throw new ValidationError(
+      `Invalid purchase status transition: ${existingPurchase.status} -> ${status}`
+    );
+  }
 
   if (!Array.isArray(body.items) || body.items.length === 0) {
     throw new ValidationError("At least one purchase item is required");
@@ -256,6 +266,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
   const receiptNotes = cleanString(body.receiptNotes) || STATUS_RECEIPT_NOTES;
   const performedBy = resolveActorName(req);
   const existingItems = Array.isArray(existingPurchase?.items) ? existingPurchase.items : [];
+  const matchedExistingIndexes = new Set();
   const items = [];
   const stockUpdates = [];
 
@@ -295,6 +306,9 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
     }
 
     const existingItem = findExistingItem(rawItem, index, existingItems);
+    if (existingItem) {
+      matchedExistingIndexes.add(existingItems.indexOf(existingItem));
+    }
     const catalogBasePrice = product
       ? requireMoney(product.purchasePrice, `Catalog price for ${product.title}`)
       : null;
@@ -460,6 +474,21 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       taxAmount,
       lineTotal,
     });
+  }
+
+  // A received line owns stock that was already added and receipt history that
+  // must stay attached to this purchase. Removing it would orphan that stock.
+  const missingReceivedItems = existingItems.filter((item, index) => {
+    const hasReceipts = Array.isArray(item?.receipts) && item.receipts.length > 0;
+    return (
+      !matchedExistingIndexes.has(index) &&
+      (receivedBaseQuantityOf(item) > 0 || hasReceipts)
+    );
+  });
+  if (missingReceivedItems.length > 0) {
+    throw new ValidationError(
+      "Received purchase items cannot be removed; reverse or cancel the purchase instead"
+    );
   }
 
   const subtotal = round(items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
@@ -1019,6 +1048,14 @@ async function updatePurchaseStatus(req, res, next) {
         "Use the Receive Goods action to update partial or full receiving status"
       );
     }
+    if (
+      purchase.status !== status &&
+      !isAllowedPurchaseTransition(purchase.status, status)
+    ) {
+      throw new ValidationError(
+        `Invalid purchase status transition: ${purchase.status} -> ${status}`
+      );
+    }
 
     if (status === "Cancelled" && purchase.status !== "Cancelled") {
       const businessId = tenantBusinessId(req);
@@ -1300,7 +1337,7 @@ async function receivePurchase(req, res, next) {
       const noOp = changedUpdates.length === 0 && nextStatus === previousStatus;
 
       if (noOp) {
-        return Purchase.findById(purchase._id).session(session);
+        return findPurchase(purchase._id, req, session);
       }
 
       const indexForUpdate = (update) =>
@@ -1354,7 +1391,7 @@ async function receivePurchase(req, res, next) {
         });
 
         if (claim.matchedCount !== 1) {
-          const current = await Purchase.findById(purchase._id).session(session).lean();
+          const current = await findPurchase(purchase._id, req, session);
           const alreadyApplied =
             current &&
             current.status === nextStatus &&
@@ -1423,7 +1460,7 @@ async function receivePurchase(req, res, next) {
         }
 
         await refreshSupplierFinancials([supplierIdOf(purchase)], req, session);
-        return Purchase.findById(purchase._id).session(session);
+        return findPurchase(purchase._id, req, session);
       } catch (error) {
         if (!useTransaction) {
           await runCompensations(compensations);
@@ -1479,7 +1516,9 @@ async function recordPurchasePayment(req, res, next) {
           if (roundPaymentMoney(replay.amount) !== amount) {
             throw new ConflictError("This idempotency key was already used for a different payment");
           }
-          await refreshSupplierFinancials([supplierIdOf(current)], req, session);
+          // The payment itself is already recorded. A summary refresh failure
+          // must not turn a successful replay into a 500 response.
+          await refreshSupplierFinancials([supplierIdOf(current)], req, session).catch(() => {});
           return current;
         }
 
