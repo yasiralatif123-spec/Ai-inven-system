@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "skills": {
+    "redesign-existing-projects": {
+      "source": "FrancoStino/opencode-skills-collection",
+      "commit": "fc35b0495a0d0080fc97e43b379e7df8b7d6d424",
+      "sourceType": "github",
+      "skillPath": "bundled-skills/redesign-existing-projects/SKILL.md",
+      "computedHash": "b6d323a1f4f039a2cb01e371b57c1259068f8a95f9800afe429425d98f03f09f"
+    }
+  }
+}
