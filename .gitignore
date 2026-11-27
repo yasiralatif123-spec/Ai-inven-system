@@ -5,3 +5,9 @@
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Graphify transient build state and dated graph backups
+graphify-out/.graphify_build_state.json
+graphify-out/.graphify_labels.pending.json
+graphify-out/2026-11-27/
+graphify-out/2026-11-28/
