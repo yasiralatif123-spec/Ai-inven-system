@@ -9,6 +9,9 @@ const StockMovement = require("../src/models/StockMovement");
 const RefreshSession = require("../src/models/RefreshSession");
 const { createBusiness, createUser } = require("./helpers/auth");
 const { connectTestDB, clearTestDB, disconnectTestDB } = require("./helpers/test-db");
+const { seedCustomer } = require("./helpers/customers");
+
+let defaultCustomer = null;
 
 function randomSuffix(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
@@ -54,9 +57,11 @@ async function seedSupplier() {
 }
 
 function salePayload(product, quantity, overrides = {}) {
+  const customerRef = defaultCustomer || { name: "Walk-in Customer", phone: "+92 3001234567" };
   return {
-    customer: "Walk-in Customer",
-    phone: "+92 3001234567",
+    ...(defaultCustomer ? { customerId: String(defaultCustomer._id) } : {}),
+    customer: customerRef.name,
+    phone: customerRef.phone,
     paymentStatus: "unpaid",
     paymentMethod: "Cash",
     status: "Pending Approval",
@@ -151,6 +156,10 @@ describe("Phase 4 - sale lifecycle integrity", () => {
 
   afterEach(async () => {
     await clearTestDB();
+  });
+
+  beforeEach(async () => {
+    defaultCustomer = await seedCustomer();
   });
 
   afterAll(async () => {
@@ -426,6 +435,8 @@ describe("Phase 4 - lifecycle authorization and tenant isolation", () => {
     await createUser({ business: businessA, email: "user-a@example.com", role: "user", name: "User A" });
     await createUser({ business: businessB, email: "owner-b@example.com", role: "owner", name: "Owner B" });
     return {
+      businessA,
+      businessB,
       ownerA: await loginAs("owner-a@example.com"),
       userA: await loginAs("user-a@example.com"),
       ownerB: await loginAs("owner-b@example.com"),
@@ -433,14 +444,20 @@ describe("Phase 4 - lifecycle authorization and tenant isolation", () => {
   }
 
   test("user-role mutations are rejected with 403 while owners can mutate", async () => {
-    const { ownerA, userA } = await seedAuth();
+    const { businessA, ownerA, userA } = await seedAuth();
     const product = await createApiProduct(ownerA);
     const supplier = await createApiSupplier(ownerA);
+    const customerA = await seedCustomer({ businessId: businessA._id });
+    const saleForA = {
+      customerId: String(customerA._id),
+      customer: customerA.name,
+      phone: customerA.phone,
+    };
 
     const saleAsUser = await request(app)
       .post("/api/sale-orders")
       .set("Cookie", userA)
-      .send(salePayload(product, 1));
+      .send(salePayload(product, 1, saleForA));
     expect(saleAsUser.status).toBe(403);
 
     const purchaseAsUser = await request(app)
@@ -452,19 +469,26 @@ describe("Phase 4 - lifecycle authorization and tenant isolation", () => {
     const saleAsOwner = await request(app)
       .post("/api/sale-orders")
       .set("Cookie", ownerA)
-      .send(salePayload(product, 1));
+      .send(salePayload(product, 1, saleForA));
     expect(saleAsOwner.status).toBe(201);
   });
 
   test("cross-tenant lifecycle mutations are rejected and leave records unchanged", async () => {
-    const { ownerA, ownerB } = await seedAuth();
+    const { businessB, ownerA, ownerB } = await seedAuth();
     const productB = await createApiProduct(ownerB);
     const supplierB = await createApiSupplier(ownerB);
+    const customerB = await seedCustomer({ businessId: businessB._id });
 
     const saleB = await request(app)
       .post("/api/sale-orders")
       .set("Cookie", ownerB)
-      .send(salePayload(productB, 2));
+      .send(
+        salePayload(productB, 2, {
+          customerId: String(customerB._id),
+          customer: customerB.name,
+          phone: customerB.phone,
+        })
+      );
     expect(saleB.status).toBe(201);
     const purchaseB = await request(app)
       .post("/api/purchases")

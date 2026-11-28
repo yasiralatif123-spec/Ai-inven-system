@@ -119,7 +119,10 @@ The request accepts the same `name`, `businessName`, `phone`, `altPhone`,
 
 ### `DELETE /api/customers/:id`
 
-Deletes a customer by Mongo `_id`.
+Deletes a customer by Mongo `_id`. A customer linked to any sale order —
+including a cancelled order — cannot be deleted, so its sale and embedded
+payment history stays intact. Customers without sale history can still be
+deleted.
 
 **200 response**
 
@@ -131,6 +134,12 @@ Deletes a customer by Mongo `_id`.
 
 ```json
 { "message": "Customer not found" }
+```
+
+**409 response**
+
+```json
+{ "message": "Customer has sale/payment history and cannot be deleted" }
 ```
 
 ## Create request

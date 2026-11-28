@@ -9,5 +9,7 @@ desktop.ini
 # Graphify transient build state and dated graph backups
 graphify-out/.graphify_build_state.json
 graphify-out/.graphify_labels.pending.json
+graphify-out/.graphify_python
+graphify-out/cache/semantic/
 graphify-out/2026-11-27/
 graphify-out/2026-11-28/

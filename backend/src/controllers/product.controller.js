@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Brand = require("../models/Brand");
+const Purchase = require("../models/Purchase");
+const SaleOrder = require("../models/SaleOrder");
 const StockMovement = require("../models/StockMovement");
 const { ensureCloudinaryConfigured } = require("../config/cloudinary");
 const { tenantFilter, findOwned } = require("../utils/tenant");
@@ -664,6 +666,16 @@ async function deleteProduct(req, res, next) {
     const product = await findOwnedProduct(id, req);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
+    }
+
+    const [hasSaleHistory, hasPurchaseHistory] = await Promise.all([
+      SaleOrder.exists(productFilter(req, { "items.productId": product._id })),
+      Purchase.exists(productFilter(req, { "items.productId": String(product._id) })),
+    ]);
+    if (hasSaleHistory || hasPurchaseHistory) {
+      throw new ConflictError(
+        "Product has sale or purchase history and cannot be deleted"
+      );
     }
 
     const publicId = product.imagePublicId || "";

@@ -124,7 +124,10 @@ IDs submitted in the request must still exist in the catalog.
 
 ### `DELETE /api/suppliers/:id`
 
-Deletes a supplier by Mongo `_id`.
+Deletes a supplier by Mongo `_id`. A supplier linked to any purchase order —
+including a cancelled order — cannot be deleted, so its purchase and embedded
+payment history stays intact. Suppliers without purchase history can still be
+deleted.
 
 **200 response**
 
@@ -136,6 +139,12 @@ Deletes a supplier by Mongo `_id`.
 
 ```json
 { "message": "Supplier not found" }
+```
+
+**409 response**
+
+```json
+{ "message": "Supplier has purchase/payment history and cannot be deleted" }
 ```
 
 ## Create request

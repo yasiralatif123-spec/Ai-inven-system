@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Customer = require("../models/Customer");
+const SaleOrder = require("../models/SaleOrder");
 const { tenantFilter } = require("../utils/tenant");
 const { resolveActorName } = require("../utils/actor");
 const { withAuthoritativeCustomerFinancials } = require("../utils/financials");
@@ -339,6 +340,15 @@ async function deleteCustomer(req, res, next) {
     const id = req.params.id;
     if (!mongoose.isValidObjectId(id)) {
       return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const hasHistory = await SaleOrder.exists(
+      scopedFilter(req, { "customer.customerId": id })
+    );
+    if (hasHistory) {
+      return res.status(409).json({
+        message: "Customer has sale/payment history and cannot be deleted",
+      });
     }
 
     const customer = await Customer.findOneAndDelete(scopedFilter(req, { _id: id }));

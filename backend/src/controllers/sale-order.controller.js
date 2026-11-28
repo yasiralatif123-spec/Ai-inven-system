@@ -290,9 +290,13 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
     typeof customer === "string" ? body.location : customer?.location ?? body.location
   );
   const matchedCustomer = await resolveCustomer(body, session, req);
+  const isCreate = !existingOrder;
 
   if (!customerName) {
     throw new ValidationError("Customer name is required");
+  }
+  if (isCreate && !matchedCustomer) {
+    throw new ValidationError("Select a customer from the saved customer list");
   }
   if (!Array.isArray(body.items) || body.items.length === 0) {
     throw new ValidationError("At least one order item is required");
@@ -364,7 +368,7 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
       req
     );
 
-    if ((requestedProductId || sku) && !product) {
+    if ((isCreate || requestedProductId || sku) && !product) {
       throw new ValidationError(
         `The product linked to ${name} was not found in this business`
       );

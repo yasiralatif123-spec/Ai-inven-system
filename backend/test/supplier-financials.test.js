@@ -262,6 +262,26 @@ describe("supplier financial integrity", () => {
     expect(await Purchase.countDocuments()).toBe(0);
   });
 
+  test("supplier with purchase history cannot be deleted", async () => {
+    const product = await createProduct();
+    const supplier = await createSupplier();
+    const purchase = await createPurchase(supplier, product);
+
+    const response = await request(app).delete(`/api/suppliers/${supplier._id}`);
+    expect(response.status).toBe(409);
+    expect(response.body.message).toMatch(/purchase\/payment history/i);
+    expect(await Supplier.findById(supplier._id)).not.toBeNull();
+    expect(await Purchase.findById(purchase._id)).not.toBeNull();
+  });
+
+  test("supplier without purchase history can still be deleted", async () => {
+    const supplier = await createSupplier();
+
+    const response = await request(app).delete(`/api/suppliers/${supplier._id}`);
+    expect(response.status).toBe(200);
+    expect(await Supplier.findById(supplier._id)).toBeNull();
+  });
+
   test("repeated valid status updates never double-count the same purchase", async () => {
     const product = await createProduct();
     const supplier = await createSupplier();

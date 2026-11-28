@@ -5,6 +5,18 @@ Base path: `/api/inventory`
 The service follows the existing backend convention: JSON bodies and a stable
 `{ "message": string }` error shape.
 
+## Product deletion
+
+`DELETE /api/products/:id` removes a catalog product only when no sale or
+purchase order references it. A product used by any `SaleOrder` or `Purchase`
+item — including a cancelled order — is kept with its stock balance and
+movement ledger unchanged. Deleting a product without history still clears its
+remaining stock and records the compensating adjustment as before.
+
+```json
+{ "message": "Product has sale or purchase history and cannot be deleted" }
+```
+
 ## Endpoints
 
 ### `GET /api/inventory/movements`

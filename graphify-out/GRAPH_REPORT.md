@@ -1,108 +1,161 @@
 # Graph Report - inv_system  (2026-11-28)
 
 ## Corpus Check
-- 277 files · ~173,503 words
+- 279 files · ~175,999 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 6 file(s) not represented in the graph (top: (none) 3, .example 1, .ico 1)
+- Unclassified: 5 file(s) not represented in the graph (top: (none) 3, .example 1, .ico 1)
 
 ## Summary
-- 1912 nodes · 5636 edges · 83 communities (80 shown, 3 thin omitted)
-- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 209 edges (avg confidence: 0.85)
+- 2246 nodes · 5978 edges · 136 communities (104 shown, 32 thin omitted)
+- Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 224 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c3ffbaef`
+- Built from commit: `47513fea`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- brands/index.ts
-- apiFetch
-- auth.service.ts
-- supplier.controller.js
-- purchase.controller.js
-- sale-order.controller.js
-- SalesOrdersView
-- PurchasesView.tsx
-- mongoose
-- frontend/package.json
-- product.controller.js
-- createBusiness
-- inventory/utils.ts
-- dashboard/utils.ts
-- SalesOrdersView.tsx
-- customer.controller.js
-- units.js
-- next
-- CustomerProfile.tsx
-- customers/utils.ts
-- apiFetch
-- payment-accounting.js
-- supplierProfile.ts
-- inventory.controller.js
-- auth.js
-- migrate-auth-tenancy.js
-- purchases/utils.ts
-- react
-- suppliers/utils.ts
-- auth.routes.js
-- invite.controller.js
-- SaleOrder.js
-- AddCustomerForm
-- AddSupplierForm.tsx
-- token.service.js
-- AddCustomerForm.tsx
+- Auth Service
+- Profile Ui
+- Purchase Controller
+- Test Db
+- Sale Order Controller
+- sales-orders/types.ts
+- Suppliers View
+- Customer Controller
+- Edit Product Modal
+- Create Owner
+- Sales Orders View
+- Cancel Order Dialog
+- Product Controller
+- Purchase Data
+- Package Group
+- Inventory Page
+- Purchases Utilities
+- Edit Supplier Dialog
+- Dashboard Types
+- Brand Controller
+- EditProductModal.tsx
+- Suppliers Types
+- Supplier Controller
+- Data Group
+- Supplier Detail Data
+- Auth Controller
+- Customers View
+- Dashboard Utilities
+- Inventory Controller
+- SupplierDetailPage.tsx
+- Invite Service
+- Auth Validator
+- Pricing Contract Test
+- Brands View
+- api.ts
 - CreatePurchaseView.tsx
-- OrderFormDialog.tsx
 - customers/types.ts
-- formatRs
-- payment-integrity.test.js
-- sales-orders/utils.ts
-- migrate-indexes.js
-- profile.ts
-- CustomerOrdersLedger.tsx
-- CreatePurchaseView
-- AddSupplierForm
-- suppliers/types.ts
-- compilerOptions
-- password-reset.controller.js
-- SuppliersView
-- app
-- CustomersView
-- dependencies
 - app.js
-- lifecycle-integrity.test.js
-- react
-- SupplierPurchaseLedger.tsx
-- PurchasesView
-- middlewares.test.js
-- SalesOverview.tsx
-- setup-dotenv.test.js
-- supplier-financials.test.js
-- backend/package.json
-- customer-financials.test.js
+- Payment Integrity Test
+- products/types.ts
+- apiFetch
+- Brands Utilities
+- Brand Service
+- Supplier Service
+- Tsconfig Group
+- Units Group
+- Create Purchase View
+- Password Reset Service
+- Payment Accounting
+- App Shell
+- Brand Filters
+- CustomersFooter.tsx
+- CustomerAutocompleteProps
+- Brand Detail Dialog
+- Lifecycle Integrity Test
+- Product Utils
+- Auth Api
+- Package Group
+- User Controller
 - stock-integrity.test.js
-- ReceivePurchaseDialog.tsx
-- customers/index.ts
-- toUserDto
+- Brand Autocomplete
+- Customers Utilities
+- EditCustomerDialogProps
+- devDependencies
+- mongoose
+- Migrate Indexes
+- Origin Middleware
+- fetchCustomers
+- Setup Dotenv Test
+- Supplier Financials Test
+- Product Autocomplete
+- Receive Purchase Dialog
+- OrderFormDialog.tsx
+- AddSupplierForm
 - rate-limit.middleware.js
-- brand-product.test.js
-- scripts
-- templates.js
-- RecordPaymentDialog.tsx
-- AdjustStockPanel
-- upload.middleware.js
-- cors
-- profile-ui.tsx
+- Customer Financials Test
+- Date Text Input
+- Inventory Api
+- Implementation Progress
+- Agents Group
+- Stock Table
+- Sales Overview
+- Skill Group
+- Sales Orders Api
+- Purchases Api
+- Tenancy Group
+- product.routes.js
+- Brand Select
+- Customers Table
+- Supplier Filters
+- Suppliers Table
+- Readme Group
+- Package Group
+- Templates Group
+- Project Memory
+- Brands Api
+- Implementation Progress
+- PurchaseItemsTableProps
+- Customer Actions Menu
+- Customer Filters
+- Purchases Toolbar
+- Supplier Actions Menu
+- Customers Api
+- PurchasesHeaderProps
+- Purchase Context Card
+- Purchases Table
+- Purchase Summary Card
+- SalesOrder
 - proxy.ts
-- enforcement.middleware.js
+- Sales Filters
+- Suppliers Header
+- Suppliers Api
 - lifecycle.js
+- Project Memory
+- Agents Group
+- Product Detail Modal
+- Implementation Progress
+- CreatePurchaseHeaderProps
+- Customer Invoices
+- DeleteCustomerDialogProps
+- EditOrderDialog.tsx
+- NewOrderDialog.tsx
+- DeleteSupplierDialogProps
+- RecordPaymentDialog.tsx
 - cloudinary
+- Window Group
+- backend/package.json
+- cors
+- Globe Group
+- Next Group
+- Project Memory
+- File Group
+- Vercel Group
+- Readme Group
+- Project Memory
 
 ## God Nodes (most connected - your core abstractions)
 1. `react` - 75 edges
 2. `apiFetch()` - 60 edges
-3. `CreatePurchaseView()` - 38 edges
+3. `CreatePurchaseView()` - 37 edges
 4. `SalesOrdersView()` - 37 edges
 5. `mongoose` - 36 edges
 6. `next` - 35 edges
@@ -112,359 +165,473 @@
 10. `CustomerProfile()` - 29 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `submit()` --calls--> `apiFetch()`  [EXTRACTED]
-  frontend/app/products/components/EditProductModal.tsx → frontend/app/lib/api.ts
-- `handleDelete()` --calls--> `apiFetch()`  [EXTRACTED]
-  frontend/app/products/components/ProductDetailModal.tsx → frontend/app/lib/api.ts
-- `load()` --calls--> `apiFetch()`  [EXTRACTED]
-  frontend/app/products/page.tsx → frontend/app/lib/api.ts
-- `handleCreateSale()` --calls--> `createSaleOrder()`  [EXTRACTED]
-  frontend/features/customers/components/CustomerProfile.tsx → frontend/features/sales-orders/services/sale-order.service.ts
-- `handleDeleteCustomer()` --calls--> `deleteCustomer()`  [EXTRACTED]
-  frontend/features/customers/components/CustomerProfile.tsx → frontend/features/customers/services/customer.service.ts
+- `Purchase Standalone Compensation` --semantically_similar_to--> `Standalone Compensation Rollback`  [INFERRED] [semantically similar]
+  backend/docs/purchases-api.md → IMPLEMENTATION_PROGRESS.md
+- `Preserve Existing Behavior During Redesign` --semantically_similar_to--> `Plan Then Approval Workflow`  [INFERRED] [semantically similar]
+  .agents/skills/redesign-existing-projects/SKILL.md → PROJECT_MEMORY.md
+- `Goods Receipt Idempotency` --semantically_similar_to--> `Payment Idempotency Key`  [INFERRED] [semantically similar]
+  backend/docs/purchases-api.md → IMPLEMENTATION_PROGRESS.md
+- `Public Business API Decision` --conceptually_related_to--> `Brands Enforce Tenant Auth`  [AMBIGUOUS]
+  PROJECT_MEMORY.md → backend/docs/brands-api.md
+- `Movement Deletion Contract` --conceptually_related_to--> `Compensating Stock Movement Reversal`  [AMBIGUOUS]
+  backend/docs/inventory-api.md → IMPLEMENTATION_PROGRESS.md
 
 ## Import Cycles
 - None detected.
 
-## Communities (83 total, 3 thin omitted)
+## Hyperedges (group relationships)
+- **Window icon visual elements** — frontend_public_window_icon, frontend_public_window_window_frame, frontend_public_window_control_dots [EXTRACTED 1.00]
+- **Auth And Tenancy Rollout Stack** — backend_docs_auth_api_contract, backend_docs_tenancy_foundation, backend_readme_rollout_flags, backend_docs_brands_api_enforce_tenant_auth, implementation_progress_tenant_fail_closed [INFERRED 0.85]
+- **Integrity Phase Progression** — implementation_progress_phase1_financial_records, implementation_progress_phase2_payment_accounting, implementation_progress_phase3_stock_integrity, implementation_progress_phase4_lifecycle_integrity [INFERRED 0.85]
+- **Payment Integrity Mechanisms** — implementation_progress_payment_record_schema, implementation_progress_idempotency_key, implementation_progress_conditional_atomic_updates, implementation_progress_opening_balance_immutability [INFERRED 0.85]
 
-### Community 0 - "brands/index.ts"
-Cohesion: 0.05
-Nodes (71): BrandsPage(), BrandAutocomplete(), handleKeyDown(), selectBrand(), BrandAutocompleteProps, DropdownPosition, BrandDetailDialog(), BrandDetailDialogProps (+63 more)
+## Communities (136 total, 32 thin omitted)
 
-### Community 1 - "apiFetch"
-Cohesion: 0.05
-Nodes (69): AppShell(), intelligenceMenu, mainMenu, NavGroup(), NavItem, roleLabel(), SidebarIcon(), sidebarIcons (+61 more)
-
-### Community 2 - "auth.service.ts"
+### Community 0 - "Auth Service"
 Cohesion: 0.06
 Nodes (46): ForgotPasswordPage(), metadata, inter, jetbrainsMono, metadata, RootLayout(), LoginPage(), metadata (+38 more)
 
-### Community 3 - "supplier.controller.js"
-Cohesion: 0.08
-Nodes (55): cleanString(), ConflictError, createBrand(), escapeRegex(), findOwnedBrand(), getBrandById(), handleControllerError(), isTenantEnforced() (+47 more)
-
-### Community 4 - "purchase.controller.js"
-Cohesion: 0.14
-Nodes (46): applyStockReceipt(), basePurchasePrice(), buildPurchaseChanges(), clamp(), cleanString(), ConflictError, createPurchase(), createReceiptEntry() (+38 more)
-
-### Community 5 - "sale-order.controller.js"
-Cohesion: 0.15
-Nodes (39): applyStockAdjustments(), buildOrderChanges(), clamp(), cleanString(), ConflictError, createSaleOrder(), customerIdOf(), deleteSaleOrder() (+31 more)
-
-### Community 6 - "SalesOrdersView"
-Cohesion: 0.12
-Nodes (29): SalesOrdersPage(), useCustomerProfile(), load(), applyCustomerOrderMetrics(), customerMatchesOrder(), findCustomerForOrder(), phoneDigits(), SalesFilters() (+21 more)
-
-### Community 7 - "PurchasesView.tsx"
-Cohesion: 0.10
-Nodes (31): DeletePurchaseDialog(), DeletePurchaseDialogProps, ACTIONS, PurchaseActionsMenu(), PurchaseActionsMenuProps, PurchasesFooter(), PurchasesFooterProps, PurchasesHeader() (+23 more)
-
-### Community 8 - "mongoose"
-Cohesion: 0.09
-Nodes (24): authTokenSchema, mongoose, mongoose, refreshSessionSchema, request, clearTestDB(), connectTestDB(), databaseNameFromUri() (+16 more)
-
-### Community 9 - "frontend/package.json"
-Cohesion: 0.10
-Nodes (26): eslintConfig, devDependencies, eslint@^9, eslint-config-next@16.4.6, tailwindcss@4.3.3, @tailwindcss/turbopack@4.3.3, @types/node@^20, @types/react@^19 (+18 more)
-
-### Community 10 - "product.controller.js"
-Cohesion: 0.17
-Nodes (24): ensureCloudinaryConfigured(), getCloudinaryConfig(), buildProductMovement(), ConflictError, createProduct(), deleteProduct(), destroyCloudinaryImage(), findOwnedProduct() (+16 more)
-
-### Community 11 - "createBusiness"
-Cohesion: 0.17
-Nodes (21): cookieHeader(), loginAs(), request, seed(), bcrypt, createBusiness(), createUser(), seedAuth() (+13 more)
-
-### Community 12 - "inventory/utils.ts"
+### Community 1 - "Profile Ui"
 Cohesion: 0.07
-Nodes (42): AdjustStockPanelProps, Direction, InventoryEmptyState(), InventoryEmptyStateProps, InventoryKpis(), InventoryKpisProps, FILTERS, MOVEMENT_BADGE_CLASS (+34 more)
+Nodes (65): CustomerProfilePage(), priceBasisLabel(), CustomerAccountDossier(), CustomerAccountDossierProps, DetailRow(), TONE_CLASSES, CustomerInvoices(), CustomerNotes() (+57 more)
 
-### Community 13 - "dashboard/utils.ts"
-Cohesion: 0.17
-Nodes (26): load(), fetchDashboardSnapshot(), PERIODS, SalesPeriod, ActivitySeed, addDays(), collectLowStockRows(), getActivityItems() (+18 more)
+### Community 2 - "Purchase Controller"
+Cohesion: 0.13
+Nodes (45): applyStockReceipt(), basePurchasePrice(), buildPurchaseChanges(), clamp(), cleanString(), ConflictError, createPurchase(), createReceiptEntry() (+37 more)
 
-### Community 14 - "SalesOrdersView.tsx"
-Cohesion: 0.19
-Nodes (19): SalesFiltersProps, STATUS_TABS, DATE_OPTIONS, HUB_OPTIONS, ORDER_STATUS_OPTIONS, PAYMENT_OPTIONS, PAYMENT_STATUS_OPTIONS, DateFilter (+11 more)
+### Community 3 - "Test Db"
+Cohesion: 0.08
+Nodes (45): mongoose, refreshSessionSchema, mongoose, userSchema, cookieHeader(), loginAs(), request, seed() (+37 more)
 
-### Community 15 - "customer.controller.js"
+### Community 4 - "Sale Order Controller"
+Cohesion: 0.15
+Nodes (37): applyStockAdjustments(), buildOrderChanges(), clamp(), cleanString(), ConflictError, createSaleOrder(), customerIdOf(), deleteSaleOrder() (+29 more)
+
+### Community 5 - "sales-orders/types.ts"
+Cohesion: 0.21
+Nodes (18): STATUS_TABS, DATE_OPTIONS, HUB_OPTIONS, PAYMENT_OPTIONS, formatOrderTime(), pad(), DateFilter, DateGroup (+10 more)
+
+### Community 6 - "Suppliers View"
+Cohesion: 0.09
+Nodes (26): SuppliersPage(), DeleteSupplierDialog(), SupplierActionsMenu(), SupplierFilters(), SupplierKpis(), SupplierKpisProps, SuppliersHeader(), PayableCell() (+18 more)
+
+### Community 7 - "Customer Controller"
 Cohesion: 0.10
 Nodes (41): buildCustomerChanges(), CITIES, cleanString(), createCustomer(), CUSTOMER_TYPES, customerResponse(), deleteCustomer(), financialBusinessId() (+33 more)
 
-### Community 16 - "units.js"
+### Community 8 - "Edit Product Modal"
+Cohesion: 0.16
+Nodes (17): AddProductForm(), resetForm(), setPriceUnit(), submit(), AddProductPage(), blankForm(), emptyCanonicalPrices(), initialForm (+9 more)
+
+### Community 9 - "Create Owner"
+Cohesion: 0.10
+Nodes (20): bcrypt, main(), mongoose, normalizeEmail(), parseArgs(), path, runCreateOwner(), slugify() (+12 more)
+
+### Community 10 - "Sales Orders View"
+Cohesion: 0.11
+Nodes (28): SalesOrdersPage(), handleCreateSale(), handleRecordPayment(), SalesFilters(), SalesOrdersHeader(), SalesOrdersHeaderProps, SalesOrdersView(), handleCancelConfirm() (+20 more)
+
+### Community 11 - "Cancel Order Dialog"
+Cohesion: 0.13
+Nodes (15): CancelOrderDialog(), CancelOrderDialogProps, DeleteOrderDialog(), DeleteOrderDialogProps, SalesKpis(), SalesKpisProps, filterOrders(), formatNumber() (+7 more)
+
+### Community 12 - "Product Controller"
+Cohesion: 0.13
+Nodes (30): ensureCloudinaryConfigured(), getCloudinaryConfig(), buildProductMovement(), ConflictError, createProduct(), deleteProduct(), destroyCloudinaryImage(), findOwnedProduct() (+22 more)
+
+### Community 13 - "Purchase Data"
+Cohesion: 0.08
+Nodes (28): DeletePurchaseDialog(), DeletePurchaseDialogProps, ACTIONS, PurchaseActionsMenu(), PurchaseActionsMenuProps, PurchasesFooter(), PurchasesFooterProps, PurchasesSummary() (+20 more)
+
+### Community 14 - "Package Group"
+Cohesion: 0.10
+Nodes (26): eslintConfig, devDependencies, eslint@^9, eslint-config-next@16.4.6, tailwindcss@4.3.3, @tailwindcss/turbopack@4.3.3, @types/node@^20, @types/react@^19 (+18 more)
+
+### Community 15 - "Inventory Page"
+Cohesion: 0.11
+Nodes (24): InventoryEmptyState(), InventoryEmptyStateProps, InventoryKpis(), InventoryKpisProps, MovementsLedger(), StockTable(), InventoryPage(), handleAdjusted() (+16 more)
+
+### Community 16 - "Purchases Utilities"
+Cohesion: 0.13
+Nodes (29): CANONICAL_PRICE_DECIMALS, convertPrice(), formatStockWithPieces(), fromBasePieces(), normalizeUnit(), PIECES_PER_UNIT, pricePerPiece(), roundCanonicalPrice() (+21 more)
+
+### Community 17 - "Edit Supplier Dialog"
+Cohesion: 0.13
+Nodes (18): EMPTY_FORM, FieldProps, EditSupplierDialog(), handleSubmit(), EditSupplierDialogProps, Field(), SelectShell(), toInput() (+10 more)
+
+### Community 18 - "Dashboard Types"
+Cohesion: 0.13
+Nodes (25): DashboardPage(), CriticalLowStock(), DashboardQuickActions(), DashboardView(), DataSourceStrip(), ICON, OperationalActivity(), TONE_CLASS (+17 more)
+
+### Community 19 - "Brand Controller"
+Cohesion: 0.22
+Nodes (23): cleanString(), ConflictError, createBrand(), escapeRegex(), findOwnedBrand(), getBrandById(), handleControllerError(), isTenantEnforced() (+15 more)
+
+### Community 20 - "EditProductModal.tsx"
+Cohesion: 0.15
+Nodes (14): setPrice(), buildInitialForm(), CatalogStatus, EditProductModal(), setPrice(), setPriceUnit(), EditProductModalProps, Field() (+6 more)
+
+### Community 21 - "Suppliers Types"
 Cohesion: 0.23
-Nodes (17): resolvePricing(), assertPositiveQuantity(), CANONICAL_UNITS, cleanString(), convertPrice(), formatStock(), fromBasePieces(), isSupportedUnit() (+9 more)
+Nodes (14): PAYABLE_TABS, REGION_FILTER_OPTIONS, STATUS_FILTER_OPTIONS, CreateSupplierInput, PayableFilter, PayableTone, RegionFilter, SortOption (+6 more)
 
-### Community 17 - "next"
-Cohesion: 0.14
-Nodes (23): DashboardPage(), CriticalLowStock(), DashboardQuickActions(), DashboardView(), DataSourceStrip(), ICON, OperationalActivity(), TONE_CLASS (+15 more)
+### Community 22 - "Supplier Controller"
+Cohesion: 0.18
+Nodes (24): buildSupplierChanges(), cleanString(), createSupplier(), deleteSupplier(), findOwnedSupplier(), generateSupplierCode(), getNextSupplierCode(), getSupplierByCode() (+16 more)
 
-### Community 18 - "CustomerProfile.tsx"
-Cohesion: 0.13
-Nodes (21): CustomerProfilePage(), SupplierProfilePage(), CustomerProfile(), handleCreateSale(), handleDeleteCustomer(), handleRecordPayment(), PROFILE_BUTTON_PRIMARY, PROFILE_BUTTON_QUIET (+13 more)
+### Community 23 - "Data Group"
+Cohesion: 0.09
+Nodes (26): AdjustStockPanel(), changeDirection(), changeQuantity(), changeUnit(), clampQuantity(), handleSubmit(), stepQuantity(), AdjustStockPanelProps (+18 more)
 
-### Community 19 - "customers/utils.ts"
-Cohesion: 0.14
-Nodes (22): CustomerActionsMenu(), CustomerKpis(), CustomerKpisProps, CustomersFooter(), CustomersFooterProps, CustomersHeader(), CustomersHeaderProps, CustomersTable() (+14 more)
+### Community 24 - "Supplier Detail Data"
+Cohesion: 0.12
+Nodes (24): DOT_CLASSES, SupplierActivityTimelineProps, MasterProfileRow, Purchase, PurchaseDelivery, PurchaseLine, PurchaseStatus, SupplierFinancials (+16 more)
 
-### Community 20 - "apiFetch"
-Cohesion: 0.27
-Nodes (19): apiFetch(), isAuthEndpoint(), isBrowser(), isPublicAuthPath(), redirectToExpiredSession(), refreshSession(), save(), assertOk() (+11 more)
-
-### Community 21 - "payment-accounting.js"
-Cohesion: 0.28
-Nodes (15): buildLegacyBalancePayment(), buildPaymentLabel(), buildPaymentRecord(), cleanString(), crypto, derivePurchasePaidAmount(), deriveSalePaymentState(), findPaymentByKey() (+7 more)
-
-### Community 22 - "supplierProfile.ts"
-Cohesion: 0.13
-Nodes (22): DOT_CLASSES, SupplierActivityTimelineProps, MasterProfileRow, PurchaseDelivery, PurchaseLine, PurchaseStatus, SupplierInvoiceRow, SupplierPaymentRow (+14 more)
-
-### Community 23 - "inventory.controller.js"
-Cohesion: 0.17
-Nodes (19): express@^4.21.2, adjustStock(), cleanString(), ConflictError, deleteStockMovement(), findOwnedMovement(), getMovements(), handleControllerError() (+11 more)
-
-### Community 24 - "auth.js"
-Cohesion: 0.14
-Nodes (18): bcrypt, main(), mongoose, normalizeEmail(), parseArgs(), path, runCreateOwner(), slugify() (+10 more)
-
-### Community 25 - "migrate-auth-tenancy.js"
-Cohesion: 0.11
-Nodes (21): applyBackfill(), collectCounts(), databaseNameFromUri(), main(), missingBusinessIdFilter(), mongoose, parseArgs(), path (+13 more)
-
-### Community 26 - "purchases/utils.ts"
-Cohesion: 0.19
-Nodes (20): formatStockWithPieces(), ProductPicker(), handleKeyDown(), selectProduct(), PurchaseDetailDialog(), PurchaseDetailDialogProps, PurchaseItemsTable(), PurchaseItemsTableProps (+12 more)
-
-### Community 27 - "react"
-Cohesion: 0.16
-Nodes (14): CancelOrderDialog(), CancelOrderDialogProps, DeleteOrderDialog(), DeleteOrderDialogProps, OrderActionsMenu(), OrderActionsMenuProps, itemLabel(), OrdersTable() (+6 more)
-
-### Community 28 - "suppliers/utils.ts"
-Cohesion: 0.15
-Nodes (17): SupplierActionsMenu(), SupplierActionsMenuProps, SupplierKpis(), SupplierKpisProps, PAGE_SIZES, SuppliersFooter(), SuppliersFooterProps, PayableCell() (+9 more)
-
-### Community 29 - "auth.routes.js"
-Cohesion: 0.15
-Nodes (21): bcrypt, clearAuthCookies(), cookieOptions(), DUMMY_PASSWORD_HASH, login(), logout(), me(), refresh() (+13 more)
-
-### Community 30 - "invite.controller.js"
-Cohesion: 0.17
-Nodes (19): acceptInvite(), bcrypt, businessIdFor(), createInvite(), listInvites(), revokeInvite(), validateInvite(), normalizeEmail() (+11 more)
-
-### Community 31 - "SaleOrder.js"
-Cohesion: 0.11
-Nodes (18): mongoose, paymentRecordSchema, paymentRecordsField, mongoose, purchaseItemSchema, purchaseReceiptSchema, purchaseSchema, mongoose (+10 more)
-
-### Community 32 - "AddCustomerForm"
-Cohesion: 0.16
-Nodes (13): AddCustomerForm(), handleSubmit(), loadCode(), resetForm(), Field(), SectionCard(), SelectShell(), EditCustomerDialog() (+5 more)
-
-### Community 33 - "AddSupplierForm.tsx"
-Cohesion: 0.14
-Nodes (20): EMPTY_FORM, FieldProps, EditSupplierDialog(), handleSubmit(), EditSupplierDialogProps, Field(), SelectShell(), toInput() (+12 more)
-
-### Community 34 - "token.service.js"
+### Community 25 - "Auth Controller"
 Cohesion: 0.21
 Nodes (17): authenticate(), getAccessToken(), createSession(), findActiveSessionBySid(), mongoose, rawId(), revokeSessionByRefreshToken(), rotateSession() (+9 more)
 
-### Community 35 - "AddCustomerForm.tsx"
-Cohesion: 0.18
-Nodes (19): EMPTY_FORM, CustomerFilters(), CustomerFiltersProps, EditCustomerDialogProps, BALANCE_TABS, CITY_OPTIONS, CUSTOMER_TYPE_OPTIONS, ROUTE_FILTER_OPTIONS (+11 more)
-
-### Community 36 - "CreatePurchaseView.tsx"
-Cohesion: 0.17
-Nodes (17): CreatePurchaseHeader(), CreatePurchaseHeaderProps, PurchasePreviewDialog(), PurchasePreviewDialogProps, PurchaseSummaryCard(), PurchaseSummaryCardProps, DEFAULT_TAX_RATE, PAYMENT_METHODS (+9 more)
-
-### Community 37 - "OrderFormDialog.tsx"
+### Community 26 - "Customers View"
 Cohesion: 0.10
-Nodes (28): CustomerAutocomplete(), handleKeyDown(), selectCustomer(), EditOrderDialog(), EditOrderDialogProps, NewOrderDialog(), NewOrderDialogProps, canonicalSalePrice() (+20 more)
+Nodes (9): CustomersHeader(), CustomersHeaderProps, CustomersView(), handleExport(), csvCell(), customersToCsv(), downloadCsv(), filterCustomers() (+1 more)
 
-### Community 38 - "customers/types.ts"
-Cohesion: 0.23
-Nodes (8): CustomerActionsMenuProps, DeleteCustomerDialogProps, Customer, GracePeriod, PaymentTerms, CustomerAutocompleteProps, useCustomerLookup(), load()
-
-### Community 39 - "formatRs"
-Cohesion: 0.18
-Nodes (13): DateTextInput(), commit(), DateTextInputProps, PurchaseContextCard(), PurchaseContextCardProps, PurchaseReceiptsDialog(), PurchaseReceiptsDialogProps, SupplierAutocomplete() (+5 more)
-
-### Community 40 - "payment-integrity.test.js"
-Cohesion: 0.18
-Nodes (15): cookieHeader(), createCustomer(), createProduct(), createPurchase(), createSale(), createSupplier(), customerPayload(), loginAs() (+7 more)
-
-### Community 41 - "sales-orders/utils.ts"
-Cohesion: 0.17
-Nodes (14): SalesKpis(), SalesKpisProps, SalesOrdersHeader(), SalesOrdersHeaderProps, handleExport(), downloadCsv(), escapeCsv(), filterOrders() (+6 more)
-
-### Community 42 - "migrate-indexes.js"
+### Community 27 - "Dashboard Utilities"
 Cohesion: 0.19
-Nodes (14): databaseNameFromUri(), findCompoundUniqueIndex(), findOldGlobalUniqueIndex(), getIndexes(), main(), mongoose, parseArgs(), path (+6 more)
+Nodes (24): fetchDashboardSnapshot(), PERIODS, ActivitySeed, addDays(), collectLowStockRows(), getActivityItems(), getDashboardKpis(), getLowStockRows() (+16 more)
 
-### Community 43 - "profile.ts"
-Cohesion: 0.20
-Nodes (15): CustomerAccountDossier(), CustomerAccountDossierProps, DetailRow(), TONE_CLASSES, CustomerNotes(), CustomerNotesProps, TONE_CLASSES, buildCustomerActivity() (+7 more)
-
-### Community 44 - "CustomerOrdersLedger.tsx"
-Cohesion: 0.16
-Nodes (23): CustomerInvoices(), CustomerInvoicesProps, CustomerOrdersLedger(), CustomerOrdersLedgerProps, exportOrders(), FILTERS, PaymentFilter, CustomerPayments() (+15 more)
-
-### Community 45 - "CreatePurchaseView"
-Cohesion: 0.23
-Nodes (19): availableStock(), CreatePurchaseView(), addProductRow(), handleBarcodeScan(), handleProductSelect(), handlePurchaseDateChange(), handleRemoveItem(), handleSupplierQueryChange() (+11 more)
-
-### Community 46 - "AddSupplierForm"
+### Community 28 - "Inventory Controller"
 Cohesion: 0.21
-Nodes (17): AddSupplierForm(), handleSubmit(), loadCode(), resetForm(), save(), Field(), SectionCard(), assertOk() (+9 more)
+Nodes (16): adjustStock(), cleanString(), ConflictError, deleteStockMovement(), findOwnedMovement(), getMovements(), handleControllerError(), isTenantEnforced() (+8 more)
 
-### Community 47 - "suppliers/types.ts"
-Cohesion: 0.16
-Nodes (21): DeleteSupplierDialogProps, PAYABLE_TABS, SupplierFilters(), SupplierFiltersProps, EMPTY_SUMMARY, REGION_FILTER_OPTIONS, SORT_OPTIONS, STATUS_FILTER_OPTIONS (+13 more)
+### Community 29 - "SupplierDetailPage.tsx"
+Cohesion: 0.15
+Nodes (15): SupplierProfilePage(), DetailTab, SupplierDetailPage(), load(), SupplierDetailPageProps, TABS, SupplierDetailSummary(), SupplierDetailSummaryProps (+7 more)
 
-### Community 48 - "compilerOptions"
+### Community 30 - "Invite Service"
+Cohesion: 0.17
+Nodes (19): acceptInvite(), bcrypt, businessIdFor(), createInvite(), listInvites(), revokeInvite(), validateInvite(), normalizeEmail() (+11 more)
+
+### Community 31 - "Auth Validator"
+Cohesion: 0.15
+Nodes (21): bcrypt, clearAuthCookies(), cookieOptions(), DUMMY_PASSWORD_HASH, login(), logout(), me(), refresh() (+13 more)
+
+### Community 32 - "Pricing Contract Test"
+Cohesion: 0.12
+Nodes (20): mongoose, paymentRecordSchema, paymentRecordsField, mongoose, purchaseItemSchema, purchaseReceiptSchema, purchaseSchema, mongoose (+12 more)
+
+### Community 33 - "Brands View"
 Cohesion: 0.11
-Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+10 more)
+Nodes (10): BrandsPage(), BrandFilters(), BrandsHeader(), BrandsHeaderProps, BrandStatusDialog(), BrandsView(), confirmStatus(), FormState (+2 more)
 
-### Community 49 - "password-reset.controller.js"
-Cohesion: 0.23
-Nodes (14): bcrypt, forgotPassword(), resetPassword(), isConfigured(), { Resend }, resendClient(), sendEmail(), consumePasswordResetToken() (+6 more)
+### Community 34 - "api.ts"
+Cohesion: 0.53
+Nodes (5): isAuthEndpoint(), isBrowser(), isPublicAuthPath(), redirectToExpiredSession(), refreshSession()
 
-### Community 50 - "SuppliersView"
-Cohesion: 0.12
-Nodes (12): SuppliersPage(), DeleteSupplierDialog(), SuppliersHeader(), SuppliersHeaderProps, SuppliersView(), applySupplierList(), confirmSupplierDelete(), handleExport() (+4 more)
+### Community 35 - "CreatePurchaseView.tsx"
+Cohesion: 0.19
+Nodes (13): CreatePurchaseHeader(), PurchasePreviewDialog(), PurchasePreviewDialogProps, PurchaseSummaryCard(), PURCHASE_FORM_STATUSES, UNIT_OPTIONS, CreatePurchasePayload, CreatePurchaseStatus (+5 more)
 
-### Community 51 - "app"
-Cohesion: 0.16
-Nodes (10): app, connectDB(), mongoose, isPlaceholder(), REQUIRED_SECRETS, validateAuthEnv(), http, path (+2 more)
+### Community 36 - "customers/types.ts"
+Cohesion: 0.17
+Nodes (25): EMPTY_FORM, CustomerFilters(), BALANCE_TABS, CITY_OPTIONS, CUSTOMER_TYPE_OPTIONS, ROUTE_FILTER_OPTIONS, ROUTE_OPTIONS, SORT_OPTIONS (+17 more)
 
-### Community 52 - "CustomersView"
-Cohesion: 0.12
-Nodes (6): CustomersView(), confirmCustomerDelete(), handleExport(), load(), DeleteCustomerDialog(), downloadCsv()
-
-### Community 53 - "dependencies"
-Cohesion: 0.18
-Nodes (11): dependencies, bcryptjs@^2.4.3, cookie-parser@^1.4.7, helmet@^8.3.0, mongoose@^8.9.5, resend@^6.39.0, zod@^4.6.7, cookie-parser (+3 more)
-
-### Community 54 - "app.js"
+### Community 37 - "app.js"
 Cohesion: 0.14
 Nodes (13): allowedOrigins, cookieParser, cors, express, helmet, errorHandler(), router, router (+5 more)
 
-### Community 55 - "lifecycle-integrity.test.js"
+### Community 38 - "Payment Integrity Test"
+Cohesion: 0.18
+Nodes (15): cookieHeader(), createCustomer(), createProduct(), createPurchase(), createSale(), createSupplier(), customerPayload(), loginAs() (+7 more)
+
+### Community 39 - "products/types.ts"
+Cohesion: 0.24
+Nodes (6): StockUnit, DisplayPrices, PRICE_FIELDS, Product, DropdownPosition, ProductPickerProps
+
+### Community 40 - "apiFetch"
+Cohesion: 0.16
+Nodes (26): apiFetch(), PurchasesPage(), save(), PurchasesView(), applyUpdatedPurchase(), handleAction(), handleDeleteConfirm(), handleExport() (+18 more)
+
+### Community 41 - "Brands Utilities"
+Cohesion: 0.19
+Nodes (15): BrandFormDialog(), submit(), BrandFormDialogProps, BRAND_DESCRIPTION_MAX_LENGTH, BRAND_NAME_MAX_LENGTH, CreateBrandInput, asBoolean(), asNumber() (+7 more)
+
+### Community 42 - "Brand Service"
+Cohesion: 0.22
+Nodes (18): useBrands(), load(), UseBrandsOptions, assertOk(), BrandQueryOptions, BrandSearchResult, createBrand(), extractBrand() (+10 more)
+
+### Community 43 - "Supplier Service"
+Cohesion: 0.27
+Nodes (15): fetchInventoryProducts(), usePurchaseLookups(), loadProducts(), loadSuppliers(), loadProducts(), assertOk(), createSupplier(), deleteSupplier() (+7 more)
+
+### Community 44 - "Tsconfig Group"
+Cohesion: 0.11
+Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+10 more)
+
+### Community 45 - "Units Group"
+Cohesion: 0.21
+Nodes (20): canonicalPriceFromBody(), resolvePricing(), assertPositiveQuantity(), CANONICAL_UNITS, cleanString(), convertPrice(), formatStock(), fromBasePieces() (+12 more)
+
+### Community 46 - "Create Purchase View"
+Cohesion: 0.22
+Nodes (18): CreatePurchasePage(), availableStock(), CreatePurchaseView(), addProductRow(), handleBarcodeScan(), handleProductSelect(), handlePurchaseDateChange(), handleRemoveItem() (+10 more)
+
+### Community 47 - "Password Reset Service"
+Cohesion: 0.23
+Nodes (14): bcrypt, forgotPassword(), resetPassword(), isConfigured(), { Resend }, resendClient(), sendEmail(), consumePasswordResetToken() (+6 more)
+
+### Community 48 - "Payment Accounting"
+Cohesion: 0.32
+Nodes (17): recordPurchasePayment(), recordSaleOrderPayment(), buildLegacyBalancePayment(), buildPaymentLabel(), buildPaymentRecord(), cleanString(), crypto, derivePurchasePaidAmount() (+9 more)
+
+### Community 49 - "App Shell"
+Cohesion: 0.19
+Nodes (12): AppShell(), intelligenceMenu, mainMenu, NavGroup(), NavItem, roleLabel(), SidebarIcon(), sidebarIcons (+4 more)
+
+### Community 50 - "Brand Filters"
+Cohesion: 0.18
+Nodes (8): BrandFiltersProps, BrandsFooter(), BrandsFooterProps, PAGE_SIZES, SORT_OPTIONS, STATUS_FILTER_OPTIONS, BrandSort, BrandStatusFilter
+
+### Community 51 - "CustomersFooter.tsx"
+Cohesion: 0.33
+Nodes (3): CustomersFooter(), CustomersFooterProps, PAGE_SIZES
+
+### Community 53 - "Brand Detail Dialog"
+Cohesion: 0.17
+Nodes (7): BrandDetailDialog(), BrandDetailDialogProps, DetailItem(), BrandsTable(), BrandsTableProps, formatBrandDate(), formatProductCount()
+
+### Community 54 - "Lifecycle Integrity Test"
 Cohesion: 0.23
 Nodes (9): cookieHeader(), createApiProduct(), createApiSupplier(), loginAs(), purchasePayload(), randomSuffix(), request, seedProduct() (+1 more)
 
-### Community 56 - "react"
-Cohesion: 0.11
-Nodes (26): load(), AdjustStockPayload, AdjustStockResult, deleteStockMovement(), DeleteStockMovementResult, fetchInventoryProducts(), fetchStockMovements(), readJson() (+18 more)
-
-### Community 57 - "SupplierPurchaseLedger.tsx"
-Cohesion: 0.25
-Nodes (10): priceBasisLabel(), PROFILE_BUTTON_SECONDARY, exportPurchases(), FILTERS, PurchaseRow(), STATUS_TONES, StatusFilter, SupplierPurchaseLedger() (+2 more)
-
-### Community 58 - "PurchasesView"
-Cohesion: 0.20
-Nodes (11): PurchasesPage(), PurchasesView(), applyUpdatedPurchase(), handleAction(), handleDeleteConfirm(), handleExport(), handlePaymentConfirm(), handleReceiveConfirm() (+3 more)
-
-### Community 59 - "middlewares.test.js"
-Cohesion: 0.22
-Nodes (10): requireRole(), allowedOrigins(), checkOrigin(), requestOrigin(), UNSAFE_METHODS, validate(), express, { ipKeyGenerator } (+2 more)
-
-### Community 60 - "SalesOverview.tsx"
-Cohesion: 0.36
-Nodes (8): formatCompactRs(), formatRs(), DashboardKpis(), Trend(), PERIODS, SalesOverview(), SalesOverviewProps, chartGeometry()
-
-### Community 61 - "setup-dotenv.test.js"
-Cohesion: 0.17
-Nodes (9): dotenv@^16.6.1, backendDir, dotenv, envPath, { execFileSync }, fs, path, setupPath (+1 more)
-
-### Community 62 - "supplier-financials.test.js"
-Cohesion: 0.33
-Nodes (10): cookieHeader(), createProduct(), createPurchase(), createSupplier(), item(), loginAs(), purchasePayload(), randomSuffix() (+2 more)
-
-### Community 63 - "backend/package.json"
-Cohesion: 0.18
-Nodes (10): express-rate-limit@^8.7.5, jsonwebtoken@^9.0.2, nodemon@^3.1.9, main, name, private, version, express-rate-limit (+2 more)
-
-### Community 64 - "customer-financials.test.js"
+### Community 55 - "Product Utils"
 Cohesion: 0.35
-Nodes (9): cookieHeader(), createCustomer(), createProduct(), createSale(), customerPayload(), loginAs(), randomSuffix(), request (+1 more)
+Nodes (13): parseMoneyInput(), DetailItem(), Flag(), ProductDetailModal(), handleDelete(), ProductsPage(), load(), formatDate() (+5 more)
 
-### Community 65 - "stock-integrity.test.js"
-Cohesion: 0.16
-Nodes (12): devDependencies, jest@^30.5.2, supertest@^7.3.2, moveCount(), movementsFor(), productApiPayload(), randomSku(), request (+4 more)
+### Community 56 - "Auth Api"
+Cohesion: 0.14
+Nodes (14): Auth API Contract, Auth Identity Model, Invite Role Rules, Auth OpenAPI Contract, Origin And Referer Check, Password Reset Flow, Auth Phase 3 Endpoints, Auth Rate Limits (+6 more)
 
-### Community 66 - "ReceivePurchaseDialog.tsx"
-Cohesion: 0.31
-Nodes (8): initialValues(), itemKey(), ReceivedValues, ReceivePurchaseDialog(), handleSubmit(), receiveAll(), ReceivePurchaseDialogProps, PurchaseReceiveInput
+### Community 57 - "Package Group"
+Cohesion: 0.17
+Nodes (12): dependencies, bcryptjs@^2.4.3, cookie-parser@^1.4.7, express@^4.21.2, helmet@^8.3.0, mongoose@^8.9.5, multer@^1.4.5-lts.1, zod@^4.6.7 (+4 more)
 
-### Community 67 - "customers/index.ts"
-Cohesion: 0.42
-Nodes (12): assertOk(), createCustomer(), deleteCustomer(), fetchCustomer(), fetchCustomers(), fetchNextCustomerCode(), readJson(), toCustomer() (+4 more)
-
-### Community 68 - "toUserDto"
+### Community 58 - "User Controller"
 Cohesion: 0.50
 Nodes (7): businessIdFor(), canManage(), changeRole(), deactivateUser(), listUsers(), revokeAllSessionsForUser(), toUserDto()
 
-### Community 69 - "rate-limit.middleware.js"
+### Community 59 - "stock-integrity.test.js"
+Cohesion: 0.10
+Nodes (18): customerSeed(), seedCustomer(), clearTestDB(), createProduct(), createSupplier(), productApiPayload(), randomSku(), request (+10 more)
+
+### Community 60 - "Brand Autocomplete"
+Cohesion: 0.19
+Nodes (9): BrandAutocomplete(), handleKeyDown(), selectBrand(), BrandAutocompleteProps, DropdownPosition, BRAND_SEARCH_LIMIT, dedupeBrands(), useBrandSearch() (+1 more)
+
+### Community 61 - "Customers Utilities"
+Cohesion: 0.18
+Nodes (18): CustomerActionsMenu(), CustomerKpis(), CustomerKpisProps, CustomersTable(), OutstandingCell(), useCustomerProfile(), load(), fetchCustomer() (+10 more)
+
+### Community 63 - "devDependencies"
+Cohesion: 0.33
+Nodes (6): devDependencies, jest@^30.5.2, nodemon@^3.1.9, supertest@^7.3.2, jest, nodemon
+
+### Community 64 - "mongoose"
+Cohesion: 0.09
+Nodes (26): applyBackfill(), collectCounts(), databaseNameFromUri(), main(), missingBusinessIdFilter(), mongoose, parseArgs(), path (+18 more)
+
+### Community 65 - "Migrate Indexes"
+Cohesion: 0.21
+Nodes (14): databaseNameFromUri(), findCompoundUniqueIndex(), findOldGlobalUniqueIndex(), getIndexes(), main(), mongoose, parseArgs(), path (+6 more)
+
+### Community 66 - "Origin Middleware"
+Cohesion: 0.22
+Nodes (10): requireRole(), allowedOrigins(), checkOrigin(), requestOrigin(), UNSAFE_METHODS, validate(), express, { ipKeyGenerator } (+2 more)
+
+### Community 67 - "fetchCustomers"
+Cohesion: 0.11
+Nodes (26): AddCustomerForm(), handleSubmit(), loadCode(), resetForm(), Field(), SectionCard(), SelectShell(), handleDeleteCustomer() (+18 more)
+
+### Community 68 - "Setup Dotenv Test"
+Cohesion: 0.17
+Nodes (9): dotenv@^16.6.1, backendDir, dotenv, envPath, { execFileSync }, fs, path, setupPath (+1 more)
+
+### Community 69 - "Supplier Financials Test"
+Cohesion: 0.33
+Nodes (10): cookieHeader(), createProduct(), createPurchase(), createSupplier(), item(), loginAs(), purchasePayload(), randomSuffix() (+2 more)
+
+### Community 70 - "Product Autocomplete"
+Cohesion: 0.14
+Nodes (11): DropdownPosition, formatPrice(), ProductAutocomplete(), handleKeyDown(), selectProduct(), ProductAutocompleteProps, dependencies, next@16.4.6 (+3 more)
+
+### Community 71 - "Receive Purchase Dialog"
+Cohesion: 0.24
+Nodes (8): initialValues(), itemKey(), ReceivedValues, ReceivePurchaseDialog(), handleSubmit(), receiveAll(), ReceivePurchaseDialogProps, PurchaseReceiveInput
+
+### Community 72 - "OrderFormDialog.tsx"
+Cohesion: 0.11
+Nodes (24): priceForUnit(), roundMoney(), CustomerAutocomplete(), handleKeyDown(), selectCustomer(), canonicalSalePrice(), EditableItem, emptyItem() (+16 more)
+
+### Community 73 - "AddSupplierForm"
+Cohesion: 0.18
+Nodes (11): AddSupplierForm(), handleSubmit(), loadCode(), resetForm(), save(), Field(), SectionCard(), ProductMultiSelect() (+3 more)
+
+### Community 74 - "rate-limit.middleware.js"
 Cohesion: 0.28
 Nodes (8): clientIp(), createLimiter(), forgotPasswordLimiter, inviteValidateLimiter, loginLimiter, optionsFor(), { rateLimit, ipKeyGenerator }, refreshLimiter
 
-### Community 70 - "brand-product.test.js"
-Cohesion: 0.29
-Nodes (7): brandSchema, mongoose, cookieHeader(), createBrandAs(), loginAs(), request, seedTwoBusinesses()
+### Community 75 - "Customer Financials Test"
+Cohesion: 0.35
+Nodes (9): cookieHeader(), createCustomer(), createProduct(), createSale(), customerPayload(), loginAs(), randomSuffix(), request (+1 more)
 
-### Community 71 - "scripts"
+### Community 76 - "Date Text Input"
+Cohesion: 0.15
+Nodes (12): DateTextInput(), commit(), DateTextInputProps, PurchaseContextCard(), PurchaseReceiptsDialog(), PurchaseReceiptsDialogProps, SupplierAutocomplete(), handleKeyDown() (+4 more)
+
+### Community 77 - "Inventory Api"
+Cohesion: 0.20
+Nodes (10): Adjust Stock Endpoint, Inventory API Contract, Movement Flavor Breakdown, Movement Deletion Contract, Stock Movement Ledger, Movement Party Name Snapshot, Compensating Stock Movement Reversal, Immutable Stock Movements (+2 more)
+
+### Community 78 - "Implementation Progress"
+Cohesion: 0.20
+Nodes (9): Purchase Standalone Compensation, Centralized Financial Recalculation, Standalone Compensation Rollback, Opening Balance Immutability, Phase 1 Customer And Supplier Financial Records, roundMoney Helper, runWithSession Helper, Serialized Recomputation Queue (+1 more)
+
+### Community 79 - "Agents Group"
+Cohesion: 0.20
+Nodes (8): Cloudinary Upload Requirements, Feature Based Architecture, Next.js Breaking Changes Notice, Frontend Agent Rules, API Service Layer Rules, State Management Priority, TypeScript Rules, Cloudinary Configuration
+
+### Community 80 - "Stock Table"
+Cohesion: 0.20
+Nodes (8): SEVERITY_ORDER, SortKey, STATUS_BADGE_CLASS, STATUS_BAR_CLASS, STATUS_ROW_CLASS, STATUS_VALUE_CLASS, StockTableProps, STOCK_STATUS_META
+
+### Community 81 - "Sales Overview"
+Cohesion: 0.36
+Nodes (8): formatCompactRs(), formatRs(), DashboardKpis(), Trend(), PERIODS, SalesOverview(), SalesOverviewProps, chartGeometry()
+
+### Community 82 - "Skill Group"
+Cohesion: 0.22
+Nodes (6): Design Audit, Fix Priority, Redesign Skill, Scan Diagnose Fix Workflow, Upgrade Techniques, Read Memory First Workflow
+
+### Community 83 - "Sales Orders Api"
+Cohesion: 0.22
+Nodes (6): Brand Status Endpoint, Base Piece Stock Behavior, Sale Order Cancellation Behavior, Sales Orders API Contract, Sale Order Pricing Behavior, Piece Box Carton Conversion
+
+### Community 84 - "Purchases Api"
+Cohesion: 0.22
+Nodes (9): Purchase Server Actor Names, Purchases API Contract, Purchase Payment Endpoint, Purchase Price Basis, Purchase Pricing Behavior, Purchase Number Generator, Goods Receipt Idempotency, Purchase Stock Receiving (+1 more)
+
+### Community 85 - "Tenancy Group"
+Cohesion: 0.22
+Nodes (8): businessId Isolation Boundary, Planned Compound Unique Indexes, Tenancy Foundation Phase 5, Tenant Helpers, Index Migration Script, Auth Tenancy Migration, Planned Number Generator Scoping, Tenant Migration Operator Checklist
+
+### Community 86 - "product.routes.js"
+Cohesion: 0.19
+Nodes (12): enforceTenantAuth(), hasValidBusinessContext(), isEnabled(), requireRoleWhenEnforced(), multer, storage, upload, express (+4 more)
+
+### Community 87 - "Brand Select"
+Cohesion: 0.22
+Nodes (4): BrandSelect(), BrandSelectProps, BrandStatusDialogProps, Brand
+
+### Community 91 - "Readme Group"
+Cohesion: 0.25
+Nodes (8): First Owner Bootstrap Contract, Auth Phase 8 Deferrals, Auth Foundation Phase 2, First Owner Bootstrap, Backend Phase 8 Deferrals, Backend Rollout Flags, Backend StockFlow API, Test Database Guard
+
+### Community 92 - "Package Group"
 Cohesion: 0.25
 Nodes (8): scripts, create-owner, dev, migrate:auth-tenancy, migrate:indexes, start, test, test:watch
 
-### Community 72 - "templates.js"
+### Community 93 - "Templates Group"
 Cohesion: 0.61
 Nodes (7): APP_URL(), escapeHtml(), formatDate(), invitationEmail(), layout(), passwordChangedEmail(), passwordResetEmail()
 
-### Community 73 - "RecordPaymentDialog.tsx"
-Cohesion: 0.40
-Nodes (4): newPaymentKey(), RecordPaymentDialog(), RecordPaymentDialogProps, PAYMENT_METHODS
+### Community 94 - "Project Memory"
+Cohesion: 0.25
+Nodes (7): Products And Inventory Under app, Auth And Tenancy State, Verified Current State Snapshot, Known Bugs Issues And Risks, Business Models Overview, Stale Documentation Risk, StockFlow Tech Stack
 
-### Community 74 - "AdjustStockPanel"
-Cohesion: 0.36
-Nodes (9): AdjustStockPanel(), changeDirection(), changeQuantity(), changeUnit(), clampQuantity(), handleSubmit(), stepQuantity(), adjustStock() (+1 more)
+### Community 95 - "Brands Api"
+Cohesion: 0.29
+Nodes (7): Brand DTO, Brands API Contract, Cross Business Brand Returns 404, Brands Enforce Tenant Auth, Brand Product Relationship, Brand Search And Pagination, Phase 6A Product And Inventory Enforcement
 
-### Community 75 - "upload.middleware.js"
+### Community 96 - "Implementation Progress"
+Cohesion: 0.29
+Nodes (6): Sale Order Endpoints, Sale Payment Stock Invariance, Conditional Atomic Payment Updates, Legacy Paid Balance Migration, Embedded Payment Record Schema, Phase 2 Internal Payment Accounting
+
+### Community 102 - "Customers Api"
 Cohesion: 0.33
-Nodes (5): multer@^1.4.5-lts.1, multer, storage, upload, multer
+Nodes (6): Customers API Contract, Customer Create Rules, Customer DTO, Customer Ledger Code, Customer Phone Normalization, Customer Update Preservation
 
-### Community 77 - "profile-ui.tsx"
-Cohesion: 0.19
-Nodes (13): CustomerProfileSummaryProps, BADGE_TONES, METRIC_SURFACES, PROFILE_CARD, PROFILE_METRIC_GRID, ProfileMetric(), ProfileTabItem, ProfileTone (+5 more)
+### Community 107 - "SalesOrder"
+Cohesion: 0.11
+Nodes (6): OrderActionsMenu(), OrderActionsMenuProps, itemLabel(), OrdersTable(), OrdersTableProps, SalesOrder
 
-### Community 79 - "proxy.ts"
+### Community 108 - "proxy.ts"
 Cohesion: 0.47
 Nodes (5): config, hasAuthCookie(), isPublicPath(), proxy(), PUBLIC_PATHS
 
-### Community 80 - "enforcement.middleware.js"
-Cohesion: 0.70
-Nodes (4): enforceTenantAuth(), hasValidBusinessContext(), isEnabled(), requireRoleWhenEnforced()
+### Community 111 - "Suppliers Api"
+Cohesion: 0.40
+Nodes (5): Supplier Code Generator, Suppliers API Contract, Supplier DTO, Supplier Product ID Pruning, Supplier Update Preservation
 
-### Community 81 - "lifecycle.js"
+### Community 112 - "lifecycle.js"
 Cohesion: 0.40
 Nodes (4): PURCHASE_FLOW, PURCHASE_STATUSES, SALE_FLOW, SALE_STATUSES
 
+### Community 113 - "Project Memory"
+Cohesion: 0.40
+Nodes (5): Auth Phases 1 And 2, Invite Only Registration, JWT Refresh Session Lifecycle, Phase 8 Auth Deferrals, Auth And Tenant Rollout Flags
+
+### Community 116 - "Implementation Progress"
+Cohesion: 0.50
+Nodes (4): Conditional Role Authorization, Lifecycle Transition Rules, Phase 4 Sales And Purchase Lifecycle Integrity, Tenant Fail Closed
+
+### Community 120 - "EditOrderDialog.tsx"
+Cohesion: 0.40
+Nodes (3): EditOrderDialog(), EditOrderDialogProps, draftOrderFromSalesOrder()
+
+### Community 121 - "NewOrderDialog.tsx"
+Cohesion: 0.40
+Nodes (3): NewOrderDialog(), NewOrderDialogProps, createEmptyDraftOrder()
+
+### Community 123 - "RecordPaymentDialog.tsx"
+Cohesion: 0.29
+Nodes (4): newPaymentKey(), RecordPaymentDialog(), RecordPaymentDialogProps, PAYMENT_METHODS
+
+### Community 125 - "Window Group"
+Cohesion: 1.00
+Nodes (3): Three window-control dots depicted in the icon, Window Icon SVG (16x16 gray line-art), Window frame glyph depicted in the icon
+
+### Community 126 - "backend/package.json"
+Cohesion: 0.18
+Nodes (10): express-rate-limit@^8.7.5, jsonwebtoken@^9.0.2, resend@^6.39.0, main, name, private, version, express-rate-limit (+2 more)
+
+## Ambiguous Edges - Review These
+- `Movement Deletion Contract` → `Compensating Stock Movement Reversal`  [AMBIGUOUS]
+  backend/docs/inventory-api.md · relation: conceptually_related_to
+- `Public Business API Decision` → `Brands Enforce Tenant Auth`  [AMBIGUOUS]
+  PROJECT_MEMORY.md · relation: conceptually_related_to
+
 ## Knowledge Gaps
-- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **79 isolated node(s):** `Customer DTO`, `Customer Ledger Code`, `Customer Phone Normalization`, `Customer Update Preservation`, `Supplier Code Generator` (+74 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 688 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **32 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `react` to `brands/index.ts`, `apiFetch`, `auth.service.ts`, `SalesOrdersView`, `PurchasesView.tsx`, `frontend/package.json`, `inventory/utils.ts`, `SalesOrdersView.tsx`, `next`, `CustomerProfile.tsx`, `customers/utils.ts`, `purchases/utils.ts`, `react`, `suppliers/utils.ts`, `AddSupplierForm.tsx`, `AddCustomerForm.tsx`, `CreatePurchaseView.tsx`, `OrderFormDialog.tsx`, `customers/types.ts`, `formatRs`, `sales-orders/utils.ts`, `CustomerOrdersLedger.tsx`, `suppliers/types.ts`, `SupplierPurchaseLedger.tsx`, `SalesOverview.tsx`, `ReceivePurchaseDialog.tsx`, `RecordPaymentDialog.tsx`, `profile-ui.tsx`?**
-  _High betweenness centrality (0.127) - this node is a cross-community bridge._
-- **Should `brands/index.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.0537714712471994 - nodes in this community are weakly interconnected._
-- **Why does `mongoose` connect `mongoose` to `token.service.js`, `supplier.controller.js`, `purchase.controller.js`, `sale-order.controller.js`, `brand-product.test.js`, `migrate-indexes.js`, `product.controller.js`, `createBusiness`, `customer.controller.js`, `app`, `dependencies`, `inventory.controller.js`, `auth.js`, `migrate-auth-tenancy.js`, `SaleOrder.js`, `invite.controller.js`, `backend/package.json`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
-- **Should `apiFetch` be split into smaller, more focused modules?**
-  _Cohesion score 0.05067920585161965 - nodes in this community are weakly interconnected._
-- **Why does `next` connect `next` to `brands/index.ts`, `apiFetch`, `auth.service.ts`, `AddCustomerForm.tsx`, `CreatePurchaseView.tsx`, `AddSupplierForm.tsx`, `PurchasesView.tsx`, `sales-orders/utils.ts`, `frontend/package.json`, `CustomerOrdersLedger.tsx`, `suppliers/types.ts`, `proxy.ts`, `CustomerProfile.tsx`, `customers/utils.ts`, `react`?**
-  _High betweenness centrality (0.036) - this node is a cross-community bridge._
-- **Should `auth.service.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.06105834464043419 - nodes in this community are weakly interconnected._
-- **Should `supplier.controller.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.08158508158508158 - nodes in this community are weakly interconnected._
+- **Why does `react` connect `Edit Supplier Dialog` to `Auth Service`, `Profile Ui`, `sales-orders/types.ts`, `Suppliers View`, `Edit Product Modal`, `Sales Orders View`, `Cancel Order Dialog`, `Purchase Data`, `Package Group`, `Inventory Page`, `Purchases Utilities`, `Dashboard Types`, `EditProductModal.tsx`, `Suppliers Types`, `Data Group`, `SupplierDetailPage.tsx`, `Brands View`, `CreatePurchaseView.tsx`, `customers/types.ts`, `products/types.ts`, `Brands Utilities`, `Brand Service`, `Supplier Service`, `Create Purchase View`, `App Shell`, `Brand Filters`, `Brand Detail Dialog`, `Product Utils`, `Brand Autocomplete`, `Customers Utilities`, `Product Autocomplete`, `Receive Purchase Dialog`, `OrderFormDialog.tsx`, `Date Text Input`, `Stock Table`, `Sales Overview`, `Brand Select`, `SalesOrder`, `RecordPaymentDialog.tsx`?**
+  _High betweenness centrality (0.151) - this node is a cross-community bridge._
+- **What connects `Customer DTO`, `Customer Ledger Code`, `Customer Phone Normalization` to the rest of the system?**
+  _79 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Auth Service` be split into smaller, more focused modules?**
+  _Cohesion score 0.05714285714285714 - nodes in this community are weakly interconnected._
+- **Why does `mongoose` connect `mongoose` to `Pricing Contract Test`, `Migrate Indexes`, `Purchase Controller`, `Test Db`, `Sale Order Controller`, `Customer Controller`, `Create Owner`, `Product Controller`, `Brand Controller`, `Auth Controller`, `Supplier Controller`, `Invite Service`, `Package Group`, `Inventory Controller`, `backend/package.json`?**
+  _High betweenness centrality (0.032) - this node is a cross-community bridge._
+- **Should `Profile Ui` be split into smaller, more focused modules?**
+  _Cohesion score 0.0653417645287564 - nodes in this community are weakly interconnected._
+
+### Low-confidence Hints
+_AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._
+
+- **What is the exact relationship between `Movement Deletion Contract` and `Compensating Stock Movement Reversal`?**
+  _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._
+- **What is the exact relationship between `Public Business API Decision` and `Brands Enforce Tenant Auth`?**
+  _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._

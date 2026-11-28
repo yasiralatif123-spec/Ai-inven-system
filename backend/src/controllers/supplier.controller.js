@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
+const Purchase = require("../models/Purchase");
 const Supplier = require("../models/Supplier");
 const { tenantFilter, findOwned } = require("../utils/tenant");
 const { resolveActorName } = require("../utils/actor");
@@ -350,6 +351,15 @@ async function deleteSupplier(req, res, next) {
     const id = req.params.id;
     if (!mongoose.isValidObjectId(id)) {
       return res.status(404).json({ message: "Supplier not found" });
+    }
+
+    const hasHistory = await Purchase.exists(
+      scopedFilter(req, { "supplier.id": String(id) })
+    );
+    if (hasHistory) {
+      return res.status(409).json({
+        message: "Supplier has purchase/payment history and cannot be deleted",
+      });
     }
 
     const supplier = await Supplier.findOneAndDelete(scopedFilter(req, { _id: id }));

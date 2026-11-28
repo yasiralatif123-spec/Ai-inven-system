@@ -6,6 +6,9 @@ const SaleOrder = require("../src/models/SaleOrder");
 const Purchase = require("../src/models/Purchase");
 const StockMovement = require("../src/models/StockMovement");
 const { connectTestDB, clearTestDB, disconnectTestDB } = require("./helpers/test-db");
+const { seedCustomer } = require("./helpers/customers");
+
+let defaultCustomer = null;
 
 function randomSku(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
@@ -63,8 +66,9 @@ async function seedSupplier() {
 
 function salePayload(product, quantity, overrides = {}) {
   return {
-    customer: "Walk-in Customer",
-    phone: "+92 3001234567",
+    customerId: String(defaultCustomer._id),
+    customer: defaultCustomer.name,
+    phone: defaultCustomer.phone,
     paymentStatus: "unpaid",
     paymentMethod: "Cash",
     status: "Pending Approval",
@@ -131,6 +135,10 @@ describe("Phase 3 - stock integrity and immutable movements", () => {
 
   afterEach(async () => {
     await clearTestDB();
+  });
+
+  beforeEach(async () => {
+    defaultCustomer = await seedCustomer();
   });
 
   afterAll(async () => {
@@ -848,5 +856,51 @@ describe("Phase 3 - stock integrity and immutable movements", () => {
     expect(changed.status).toBe(400);
     expect(await stockOf(product._id)).toBe(13);
     expect(await movementsFor(product._id, { type: "purchase", direction: "out" })).toHaveLength(0);
+  });
+
+  test("product with sale history cannot be deleted and keeps the stock ledger", async () => {
+    const product = await seedProduct({ openingStock: 20 });
+    const created = await request(app)
+      .post("/api/sale-orders")
+      .send(salePayload(product, 2));
+    expect(created.status).toBe(201);
+
+    const stockBefore = await stockOf(product._id);
+    const saleMovementsBefore = await movementsFor(product._id, {
+      type: "sale",
+      direction: "out",
+    });
+    expect(saleMovementsBefore).toHaveLength(1);
+
+    const response = await request(app).delete(`/api/products/${product._id}`);
+    expect(response.status).toBe(409);
+    expect(response.body.message).toMatch(/sale or purchase history/i);
+    expect(await Product.findById(product._id)).not.toBeNull();
+    expect(await SaleOrder.findById(created.body.order._id)).not.toBeNull();
+    expect(await stockOf(product._id)).toBe(stockBefore);
+    expect(await movementsFor(product._id, { type: "sale", direction: "out" })).toHaveLength(1);
+  });
+
+  test("product with purchase history cannot be deleted", async () => {
+    const supplier = await seedSupplier();
+    const product = await seedProduct({ openingStock: 10 });
+    const created = await request(app)
+      .post("/api/purchases")
+      .send(purchasePayload(supplier, product, 3));
+    expect(created.status).toBe(201);
+
+    const response = await request(app).delete(`/api/products/${product._id}`);
+    expect(response.status).toBe(409);
+    expect(response.body.message).toMatch(/sale or purchase history/i);
+    expect(await Product.findById(product._id)).not.toBeNull();
+    expect(await Purchase.findById(created.body.purchase._id)).not.toBeNull();
+  });
+
+  test("product without sale or purchase history can still be deleted", async () => {
+    const product = await seedProduct({ openingStock: 4 });
+
+    const response = await request(app).delete(`/api/products/${product._id}`);
+    expect(response.status).toBe(200);
+    expect(await Product.findById(product._id)).toBeNull();
   });
 });

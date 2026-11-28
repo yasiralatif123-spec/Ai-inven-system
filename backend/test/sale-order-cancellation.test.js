@@ -4,6 +4,9 @@ const Product = require("../src/models/Product");
 const SaleOrder = require("../src/models/SaleOrder");
 const StockMovement = require("../src/models/StockMovement");
 const { connectTestDB, clearTestDB, disconnectTestDB } = require("./helpers/test-db");
+const { seedCustomer } = require("./helpers/customers");
+
+let defaultCustomer = null;
 
 async function createProduct(overrides = {}) {
   return Product.create({
@@ -21,8 +24,9 @@ async function createProduct(overrides = {}) {
 
 function salePayload(product, overrides = {}) {
   return {
-    customer: "Walk-in Customer",
-    phone: "+92 3001234567",
+    customerId: String(defaultCustomer._id),
+    customer: defaultCustomer.name,
+    phone: defaultCustomer.phone,
     paymentStatus: "unpaid",
     paymentMethod: "Cash",
     status: "Pending Approval",
@@ -73,6 +77,10 @@ describe("sale order cancellation", () => {
 
   afterEach(async () => {
     await clearTestDB();
+  });
+
+  beforeEach(async () => {
+    defaultCustomer = await seedCustomer();
   });
 
   afterAll(async () => {

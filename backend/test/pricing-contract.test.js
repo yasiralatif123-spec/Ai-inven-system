@@ -6,6 +6,9 @@ const SaleOrder = require("../src/models/SaleOrder");
 const Purchase = require("../src/models/Purchase");
 const StockMovement = require("../src/models/StockMovement");
 const { connectTestDB, clearTestDB, disconnectTestDB } = require("./helpers/test-db");
+const { seedCustomer } = require("./helpers/customers");
+
+let defaultCustomer = null;
 
 function randomSku(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
@@ -57,8 +60,9 @@ async function createSupplier() {
 
 function salePayload(items, overrides = {}) {
   return {
-    customer: "Walk-in Customer",
-    phone: "+92 3001234567",
+    customerId: String(defaultCustomer._id),
+    customer: defaultCustomer.name,
+    phone: defaultCustomer.phone,
     paymentStatus: "unpaid",
     paymentMethod: "Cash",
     status: "Pending Approval",
@@ -89,6 +93,10 @@ describe("unit-based pricing contract", () => {
 
   afterEach(async () => {
     await clearTestDB();
+  });
+
+  beforeEach(async () => {
+    defaultCustomer = await seedCustomer();
   });
 
   afterAll(async () => {
@@ -381,19 +389,20 @@ describe("unit-based pricing contract", () => {
       expect(pieces.body.order.financials.total).toBe(900);
     });
 
-    test("accepts decimal unit prices on manual sale lines", async () => {
+    test("accepts decimal unit prices on catalog sale lines", async () => {
+      const product = await createProduct({ wholesalePrice: 62.5, uom: "Piece" });
       const response = await request(app)
         .post("/api/sale-orders")
         .send(
           salePayload(
             [
               {
-                name: "Custom Service",
-                sku: "",
-                productId: "",
+                name: product.title,
+                sku: product.sku,
+                productId: String(product._id),
                 quantity: 1,
                 unitLabel: "Piece",
-                unitPrice: 62.5,
+                unitPrice: 999,
               },
             ],
             { discount: 2.5, freight: 1.25 }
@@ -402,7 +411,7 @@ describe("unit-based pricing contract", () => {
 
       expect(response.status).toBe(201);
       const [item] = response.body.order.items;
-      expect(item.priceBasis).toBe("manual");
+      expect(item.priceBasis).toBe("catalog");
       expect(item.unitPrice).toBe(62.5);
       expect(item.lineTotal).toBe(62.5);
       expect(response.body.order.financials.subtotal).toBe(62.5);
@@ -477,6 +486,7 @@ describe("unit-based pricing contract", () => {
 
     test("preserves an explicitly saved zero catalog price", async () => {
       const product = await createProduct({ wholesalePrice: 0, uom: "Carton" });
+      const otherProduct = await createProduct({ wholesalePrice: 5, uom: "Piece" });
       const items = [
         {
           name: product.title,
@@ -487,9 +497,9 @@ describe("unit-based pricing contract", () => {
           unitPrice: 999,
         },
         {
-          name: "Custom Service",
-          sku: "",
-          productId: "",
+          name: otherProduct.title,
+          sku: otherProduct.sku,
+          productId: String(otherProduct._id),
           quantity: 1,
           unitLabel: "Piece",
           unitPrice: 50,
@@ -566,7 +576,7 @@ describe("unit-based pricing contract", () => {
       });
     });
 
-    test("manual items keep their explicit price contract", async () => {
+    test("rejects sale lines without a saved catalog product", async () => {
       const response = await request(app)
         .post("/api/sale-orders")
         .send(
@@ -582,13 +592,9 @@ describe("unit-based pricing contract", () => {
           ])
         );
 
-      expect(response.status).toBe(201);
-      const [item] = response.body.order.items;
-      expect(item).toMatchObject({
-        priceBasis: "manual",
-        unitPrice: 75,
-        lineTotal: 225,
-      });
+      expect(response.status).toBe(400);
+      expect(response.body.message).toMatch(/not found in this business/i);
+      expect(await SaleOrder.countDocuments()).toBe(0);
     });
 
     test("rejects malformed manual item prices", async () => {

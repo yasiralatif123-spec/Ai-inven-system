@@ -268,6 +268,31 @@ describe("manual payment integrity", () => {
       expect(await customerFromDb(customer._id)).toMatchObject({ totalPurchases: 20, outstanding: 0 });
     });
 
+    test("a customer with a paid sale cannot be deleted and keeps the payment record", async () => {
+      const product = await createProduct();
+      const customer = await createCustomer();
+      const order = await createSale(customer, product);
+
+      const paid = await request(app)
+        .post(`/api/sale-orders/${order._id}/payment`)
+        .send({ amount: 20, method: "Cash", idempotencyKey: "sale-delete-guard-1" });
+      expect(paid.status).toBe(200);
+      const before = await saleFromDb(order._id);
+
+      const response = await request(app).delete(`/api/customers/${customer._id}`);
+      expect(response.status).toBe(409);
+      expect(response.body.message).toMatch(/sale\/payment history/i);
+
+      expect(await customerFromDb(customer._id)).not.toBeNull();
+      const after = await saleFromDb(order._id);
+      expect(after.financials).toMatchObject(before.financials);
+      expect(after.payments).toHaveLength(1);
+      expect(after.payments[0]).toMatchObject({
+        amount: 20,
+        idempotencyKey: "sale-delete-guard-1",
+      });
+    });
+
     test("partial sale payments accumulate until the order is settled", async () => {
       const product = await createProduct();
       const customer = await createCustomer();
@@ -600,6 +625,31 @@ describe("manual payment integrity", () => {
       });
       expect(sumRecords(saved.payments)).toBe(saved.paidAmount);
       expect(await supplierFromDb(supplier._id)).toMatchObject({ totalPurchases: 20, outstanding: 0 });
+    });
+
+    test("a supplier with a paid purchase cannot be deleted and keeps the payment record", async () => {
+      const product = await createProduct();
+      const supplier = await createSupplier();
+      const purchase = await createPurchase(supplier, product);
+
+      const paid = await request(app)
+        .post(`/api/purchases/${purchase._id}/payment`)
+        .send({ amount: 20, method: "Cash", idempotencyKey: "purchase-delete-guard-1" });
+      expect(paid.status).toBe(200);
+      const before = await purchaseFromDb(purchase._id);
+
+      const response = await request(app).delete(`/api/suppliers/${supplier._id}`);
+      expect(response.status).toBe(409);
+      expect(response.body.message).toMatch(/purchase\/payment history/i);
+
+      expect(await supplierFromDb(supplier._id)).not.toBeNull();
+      const after = await purchaseFromDb(purchase._id);
+      expect(after.financials).toMatchObject(before.financials);
+      expect(after.payments).toHaveLength(1);
+      expect(after.payments[0]).toMatchObject({
+        amount: 20,
+        idempotencyKey: "purchase-delete-guard-1",
+      });
     });
 
     test("partial purchase payments accumulate against the supplier balance", async () => {

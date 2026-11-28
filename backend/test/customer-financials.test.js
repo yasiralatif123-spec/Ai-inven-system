@@ -245,6 +245,26 @@ describe("customer financial integrity", () => {
     expect(await SaleOrder.countDocuments()).toBe(0);
   });
 
+  test("customer with sale history cannot be deleted", async () => {
+    const product = await createProduct();
+    const customer = await createCustomer();
+    const order = await createSale(customer, product);
+
+    const response = await request(app).delete(`/api/customers/${customer._id}`);
+    expect(response.status).toBe(409);
+    expect(response.body.message).toMatch(/sale\/payment history/i);
+    expect(await Customer.findById(customer._id)).not.toBeNull();
+    expect(await SaleOrder.findById(order._id)).not.toBeNull();
+  });
+
+  test("customer without sale history can still be deleted", async () => {
+    const customer = await createCustomer();
+
+    const response = await request(app).delete(`/api/customers/${customer._id}`);
+    expect(response.status).toBe(200);
+    expect(await Customer.findById(customer._id)).toBeNull();
+  });
+
   test("repeated valid status updates never double-count the same sale", async () => {
     const product = await createProduct();
     const customer = await createCustomer({ openingBalance: 0 });
@@ -263,7 +283,7 @@ describe("customer financial integrity", () => {
     expect(saved.outstanding).toBe(20);
   });
 
-  test("a sale without a valid customer does not corrupt another customer", async () => {
+  test("a sale without a valid customer is rejected and does not corrupt another customer", async () => {
     const product = await createProduct();
     const customer = await createCustomer();
     const before = await customerFromDb(customer._id);
@@ -277,8 +297,9 @@ describe("customer financial integrity", () => {
           phone: "+92 3999999999",
         })
       );
-    expect(orphan.status).toBe(201);
-    expect(orphan.body.order.customer.customerId).toBeNull();
+    expect(orphan.status).toBe(400);
+    expect(orphan.body.message).toMatch(/saved customer list/i);
+    expect(await SaleOrder.countDocuments()).toBe(0);
 
     const after = await customerFromDb(customer._id);
     expect(after.orders).toBe(before.orders);
