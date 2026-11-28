@@ -4,7 +4,6 @@ import type {
   RegionFilter,
   SortOption,
   StatusFilter,
-  TaxStatus,
 } from "./types";
 
 export const STATUS_FILTER_OPTIONS: Array<{ value: StatusFilter; label: string }> = [
@@ -37,12 +36,6 @@ export const HUB_OPTIONS: Array<{ value: HubKey; label: string }> = [
   { value: "faisalabad", label: "Faisalabad Central" },
   { value: "multan", label: "Multan Industrial" },
   { value: "rawalpindi", label: "Rawalpindi Grain Market" },
-];
-
-export const TAX_STATUS_OPTIONS: Array<{ value: TaxStatus; label: string }> = [
-  { value: "standard", label: "Standard Active Filer (Full WHT)" },
-  { value: "exempt", label: "Exempt / Reduced Rate 153(1)(a)" },
-  { value: "non-filer", label: "Non-Filer (Subject to 200% WHT)" },
 ];
 
 export const PAYMENT_TERM_OPTIONS: Array<{ value: PaymentTerms; label: string }> = [

@@ -1,4 +1,5 @@
 import { apiFetch } from "../../../app/lib/api";
+import type { OpeningBalancePaymentInput } from "../../profiles/types";
 import type {
   CreateCustomerInput,
   Customer,
@@ -34,8 +35,18 @@ function toCustomer(dto: CustomerDto): Customer {
     routeLabel: dto.routeLabel || dto.route,
     ntn: dto.ntn || "",
     creditLimit: Number(dto.creditLimit || 0),
+    availableCredit: Number(dto.availableCredit ?? Math.max(Number(dto.creditLimit || 0) - Number(dto.outstanding || 0), 0)),
+    creditExposurePercent: Number(dto.creditExposurePercent || 0),
+    creditStatus: dto.creditStatus || "no-limit",
+    nearCreditLimit: Boolean(dto.nearCreditLimit),
+    creditLimitExceeded: Boolean(dto.creditLimitExceeded),
     paymentTerms: dto.paymentTerms,
     openingBalance: Number(dto.openingBalance || 0),
+    openingBalancePaid: Number(dto.openingBalancePaid || 0),
+    remainingOpeningBalance: Number(dto.remainingOpeningBalance || 0),
+    openingBalancePayments: Array.isArray(dto.openingBalancePayments)
+      ? dto.openingBalancePayments
+      : [],
     gracePeriod: dto.gracePeriod,
     notes: dto.notes || "",
     orders: Number(dto.orders || 0),
@@ -90,6 +101,57 @@ export async function updateCustomer(
   });
   const data = await readJson(response);
   assertOk(response, data, "Failed to update customer");
+  return toCustomer(data.customer as CustomerDto);
+}
+
+export async function recordCustomerOpeningBalancePayment(
+  id: string,
+  input: OpeningBalancePaymentInput
+): Promise<Customer> {
+  const response = await apiFetch(
+    `/api/customers/${encodeURIComponent(id)}/opening-balance-payments`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": input.idempotencyKey,
+      },
+      body: JSON.stringify({
+        amount: input.amount,
+        method: input.method,
+        reference: input.reference,
+      }),
+    }
+  );
+  const data = await readJson(response);
+  assertOk(response, data, "Failed to record the opening balance payment");
+  return toCustomer(data.customer as CustomerDto);
+}
+
+export async function reverseCustomerOpeningBalancePayment(
+  id: string,
+  paymentId: string,
+  input: OpeningBalancePaymentInput
+): Promise<Customer> {
+  const response = await apiFetch(
+    `/api/customers/${encodeURIComponent(id)}/opening-balance-payments/${encodeURIComponent(
+      paymentId
+    )}/reversal`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": input.idempotencyKey,
+      },
+      body: JSON.stringify({
+        amount: input.amount,
+        method: input.method,
+        reference: input.reference,
+      }),
+    }
+  );
+  const data = await readJson(response);
+  assertOk(response, data, "Failed to reverse the opening balance payment");
   return toCustomer(data.customer as CustomerDto);
 }
 

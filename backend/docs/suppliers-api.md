@@ -42,12 +42,27 @@ Returns all supplier records, newest first.
       "ntn": "2489102-7",
       "paymentTerms": "net-15",
       "openingBalance": 165000,
+      "openingBalancePaid": 15000,
+      "remainingOpeningBalance": 150000,
+      "openingBalancePayments": [
+        {
+          "_id": "650...",
+          "amount": 15000,
+          "method": "Cheque",
+          "reference": "OB-77",
+          "paidAt": "2026-11-20T10:00:00.000Z",
+          "createdBy": "Owner Name",
+          "idempotencyKey": "sup-ob-77",
+          "kind": "payment",
+          "reversesPaymentId": ""
+        }
+      ],
       "graceDays": 5,
       "notes": "Bi-weekly delivery via bilty.",
       "productIds": ["650...", "651..."],
       "status": "Active",
       "totalPurchases": 0,
-      "outstanding": 165000,
+      "outstanding": 150000,
       "payableNote": "Opening Payable",
       "payableTone": "danger",
       "lastPurchaseAt": null,
@@ -122,9 +137,71 @@ product was later deleted from the catalog. This allows unrelated supplier
 details or remaining product links to be edited without an error. New product
 IDs submitted in the request must still exist in the catalog.
 
+### `POST /api/suppliers/:id/opening-balance-payments`
+
+Appends an opening-balance payment to the supplier's embedded, append-only
+ledger. It never touches purchase payments or purchase financials. `createdBy`
+is resolved from the authenticated user. Send an `Idempotency-Key` header (or
+`idempotencyKey` in the body) so retries replay instead of appending twice.
+Writes are conditional on the observed `__v`, so concurrent overpayments are
+blocked and concurrent duplicates produce one record.
+
+**Request body**
+
+| Field | Required | Rules |
+| --- | --- | --- |
+| `amount` | Yes | Finite number > 0 and <= remaining opening balance |
+| `method` | No | `Cash`, `Bank Transfer`, `Cheque`, `Online Transfer`; defaults to `Cash` |
+| `reference` | No | String, max 120 characters |
+| `idempotencyKey` | No | Header preferred; used to replay identical requests |
+
+**200 response**
+
+```json
+{
+  "message": "Opening balance payment recorded",
+  "supplier": { "...": "SupplierDto with updated payable summary" }
+}
+```
+
+**400 / 409 / 404 responses**
+
+```json
+{ "message": "Payment cannot exceed the remaining opening balance (150000)" }
+```
+
+```json
+{ "message": "This supplier changed while the payment was being recorded" }
+```
+
+```json
+{ "message": "Supplier not found" }
+```
+
+### `POST /api/suppliers/:id/opening-balance-payments/:paymentId/reversal`
+
+Appends an append-only reversal for an existing opening-balance payment. Total
+reversals for one payment cannot exceed its original amount. There are no edit
+or delete endpoints for individual ledger records.
+
+**200 response**
+
+```json
+{
+  "message": "Opening balance payment reversed",
+  "supplier": { "...": "SupplierDto" }
+}
+```
+
 ### `DELETE /api/suppliers/:id`
 
-Deletes a supplier by Mongo `_id`.
+Deletes a supplier by Mongo `_id`. A supplier linked to any purchase order —
+including a cancelled order — cannot be deleted, so its purchase and embedded
+payment history stays intact. A supplier with `openingBalance > 0` is also
+protected, even when it has no purchase history, because the opening balance is
+part of its payable history. In both cases the stored balance and financial
+records are left unchanged. Only suppliers with no purchase history and a zero
+opening balance can be deleted.
 
 **200 response**
 
@@ -136,6 +213,16 @@ Deletes a supplier by Mongo `_id`.
 
 ```json
 { "message": "Supplier not found" }
+```
+
+**409 responses**
+
+```json
+{ "message": "Supplier has purchase/payment history and cannot be deleted" }
+```
+
+```json
+{ "message": "Supplier has an opening balance and cannot be deleted" }
 ```
 
 ## Create request
@@ -157,8 +244,11 @@ Deletes a supplier by Mongo `_id`.
 | `productIds` | No | Array of Mongo product IDs from the `products` collection; each must exist in the catalog |
 | `createdBy` | No | Ignored; server sets the authenticated user's name from the `User` collection (`System` when unauthenticated) |
 
-`supplierCode`, `region`, `status`, `totalPurchases`, `outstanding`,
+`supplierCode`, `region`, `status`, `totalPurchases`, `openingBalancePaid`,
+`remainingOpeningBalance`, `openingBalancePayments`, `outstanding`,
 `payableNote`, and `payableTone` are server-derived and ignore client input.
+`outstanding` is `remainingOpeningBalance + purchasePayable`, where purchase
+payments never reduce the opening-balance portion.
 
 ## Error examples
 

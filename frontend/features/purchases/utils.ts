@@ -1,5 +1,11 @@
 import type { Product } from "../../app/products/types";
-import { formatStockWithPieces, normalizeUnit, parseMoneyInput, priceForUnit } from "../../app/lib/units";
+import {
+  formatStockWithPieces,
+  normalizeUnit,
+  parseCanonicalPrice,
+  priceForUnit,
+  toBasePieces,
+} from "../../app/lib/units";
 import type {
   HubKey,
   PaymentTerms,
@@ -87,7 +93,7 @@ export function roundAmount(value: number): number {
 
 /** Catalog purchase prices are canonical per Piece. */
 export function purchaseBasePrice(product: Product): number {
-  return parseMoneyInput(product.purchasePrice) ?? 0;
+  return parseCanonicalPrice(product.purchasePrice) ?? 0;
 }
 
 /** Derives the catalog price into the unit selected on the purchase line. */
@@ -107,19 +113,20 @@ function effectiveLineUnitPrice(item: PurchaseLineItem): number {
   return roundAmount(Math.max(Number(item.unitPrice) || 0, 0));
 }
 
-export function calculateLineTotal(item: PurchaseLineItem): number {
-  const subtotal = roundAmount(Math.max(Number(item.quantity) || 0, 0) * effectiveLineUnitPrice(item));
-  const discount = Math.min(Math.max(Number(item.discount) || 0, 0), subtotal);
-  const taxRate = Math.min(Math.max(Number(item.taxRate) || 0, 0), 100);
-  const tax = roundAmount(((subtotal - discount) * taxRate) / 100);
-  return roundAmount(subtotal - discount + tax);
+/** Pre-discount line amount, from canonical pricing for catalog lines. */
+function lineSubtotal(item: PurchaseLineItem): number {
+  const quantity = Math.max(Number(item.quantity) || 0, 0);
+  const basePrice = Math.max(Number(item.basePrice) || 0, 0);
+  if (item.priceBasis === "catalog" && basePrice > 0) {
+    return roundAmount(basePrice * toBasePieces(quantity, item.unit));
+  }
+  return roundAmount(quantity * effectiveLineUnitPrice(item));
 }
 
-export function calculateLineTax(item: PurchaseLineItem): number {
-  const subtotal = roundAmount(Math.max(Number(item.quantity) || 0, 0) * effectiveLineUnitPrice(item));
+export function calculateLineTotal(item: PurchaseLineItem): number {
+  const subtotal = lineSubtotal(item);
   const discount = Math.min(Math.max(Number(item.discount) || 0, 0), subtotal);
-  const taxRate = Math.min(Math.max(Number(item.taxRate) || 0, 0), 100);
-  return roundAmount(((subtotal - discount) * taxRate) / 100);
+  return roundAmount(subtotal - discount);
 }
 
 export function calculatePurchaseTotals(
@@ -127,23 +134,18 @@ export function calculatePurchaseTotals(
   freight: number
 ): PurchaseFinancials {
   const subtotal = roundAmount(
-    items.reduce(
-      (sum, item) => sum + Math.max(Number(item.quantity) || 0, 0) * effectiveLineUnitPrice(item),
-      0
-    )
+    items.reduce((sum, item) => sum + lineSubtotal(item), 0)
   );
   const discount = roundAmount(
     items.reduce((sum, item) => sum + Math.min(Math.max(Number(item.discount) || 0, 0), subtotal), 0)
   );
-  const tax = roundAmount(items.reduce((sum, item) => sum + calculateLineTax(item), 0));
   const safeFreight = Math.max(Number(freight) || 0, 0);
 
   return {
     subtotal,
     discount,
-    tax,
     freight: safeFreight,
-    total: roundAmount(subtotal - discount + tax + safeFreight),
+    total: roundAmount(subtotal - discount + safeFreight),
   };
 }
 
@@ -156,13 +158,6 @@ export function paymentTermsLabel(value: string): string {
     advance: "Advance Payment",
   };
   return labels[value] || value || "Standard Terms";
-}
-
-export function taxRateFromBracket(value?: string): number {
-  const match = String(value || "").match(/(\d+(?:\.\d+)?)/);
-  if (!match) return 18;
-  const rate = Number(match[1]);
-  return Number.isFinite(rate) && rate >= 0 && rate <= 100 ? rate : 18;
 }
 
 export function purchaseItemsSummary(dto: PurchaseDto): string {
@@ -247,11 +242,13 @@ export function purchaseSupplierToSupplier(dto: PurchaseDto): Supplier {
     region: regionFromHub(dto.supplier?.hub || ""),
     phone: dto.supplier?.phone || "",
     email: "",
-    taxStatus: "standard",
     address: dto.supplier?.address || "",
     ntn: dto.supplier?.ntn || "",
     paymentTerms: validTerms.includes(terms) ? terms : "net-15",
     openingBalance: 0,
+    openingBalancePaid: 0,
+    remainingOpeningBalance: 0,
+    openingBalancePayments: [],
     graceDays: 5,
     notes: "",
     createdBy: dto.createdBy || "",

@@ -88,10 +88,11 @@ describe("Phase 6 Part B - supplier/customer/purchase/sale tenant enforcement", 
     await request(app).get("/api/sale-orders").expect(401);
   });
 
-  test("A cannot read/update/delete B supplier/customer; lists return own rows", async () => {
+  test("A cannot read/update/delete B supplier/customer/product; lists return own rows", async () => {
     const { cookieA, cookieB } = await seed();
     const supB = await createSupplier(cookieB, { name: "SupB" });
     const cusB = await createCustomer(cookieB, { name: "CusB", businessName: "CusB Biz" });
+    const prodB = await createProduct(cookieB, { sku: "B-SKU" });
 
     await request(app).get(`/api/suppliers/${supB._id}`).set("Cookie", cookieA).expect(404);
     await request(app).get(`/api/suppliers/code/${supB.supplierCode}`).set("Cookie", cookieA).expect(404);
@@ -101,6 +102,9 @@ describe("Phase 6 Part B - supplier/customer/purchase/sale tenant enforcement", 
     await request(app).get(`/api/customers/${cusB._id}`).set("Cookie", cookieA).expect(404);
     await request(app).get(`/api/customers/code/${cusB.ledgerCode}`).set("Cookie", cookieA).expect(404);
     await request(app).delete(`/api/customers/${cusB._id}`).set("Cookie", cookieA).expect(404);
+
+    await request(app).get(`/api/products/${prodB._id}`).set("Cookie", cookieA).expect(404);
+    await request(app).delete(`/api/products/${prodB._id}`).set("Cookie", cookieA).expect(404);
 
     const supListA = await request(app).get("/api/suppliers").set("Cookie", cookieA);
     const cusListA = await request(app).get("/api/customers").set("Cookie", cookieA);
@@ -165,17 +169,73 @@ describe("Phase 6 Part B - supplier/customer/purchase/sale tenant enforcement", 
       customer: { customerId: cusB._id, name: cusB.name, phone: cusB.phone }, paymentStatus: "unpaid", status: "Pending Approval",
       items: [{ productId: prodA._id, sku: prodA.sku, name: prodA.title, quantity: 1, unitPrice: 100 }],
     });
-    expect([400, 404, 422]).toContain(saleBadCus.status);
+    expect(saleBadCus.status).toBe(404);
+    expect(saleBadCus.body.message).toMatch(/customer no longer exists/i);
 
     const saleBadProd = await request(app).post("/api/sale-orders").set("Cookie", cookieA).send({
       customer: { customerId: cusA._id, name: cusA.name, phone: cusA.phone }, paymentStatus: "unpaid", status: "Pending Approval",
       items: [{ productId: prodB._id, sku: prodB.sku, name: prodB.title, quantity: 1, unitPrice: 100 }],
     });
-    expect([400, 404, 422]).toContain(saleBadProd.status);
+    expect(saleBadProd.status).toBe(400);
+    expect(saleBadProd.body.message).toMatch(/not found in this business/i);
+    expect(await SaleOrder.countDocuments()).toBe(0);
 
     // B's stock untouched
     const prodBAfter = await request(app).get(`/api/products/${prodB._id}`).set("Cookie", cookieB);
     expect(prodBAfter.body.product.openingStock).toBe(10);
+  });
+
+  test("cross-tenant delete attempts return 404 before history guards and preserve B's records", async () => {
+    const { cookieA, cookieB } = await seed();
+    const prodB = await createProduct(cookieB, { sku: "B-HIST-SKU", openingStock: 20 });
+    const supB = await createSupplier(cookieB, { name: "SupBHistory" });
+    const cusB = await createCustomer(cookieB, { name: "CusBHistory", businessName: "CusB Biz" });
+
+    const saleRes = await request(app).post("/api/sale-orders").set("Cookie", cookieB).send({
+      customer: { customerId: cusB._id, name: cusB.name, phone: cusB.phone },
+      paymentStatus: "unpaid",
+      status: "Pending Approval",
+      items: [{ productId: prodB._id, sku: prodB.sku, name: prodB.title, quantity: 1, unitPrice: 100 }],
+    });
+    expect(saleRes.status).toBe(201);
+
+    const purRes = await request(app).post("/api/purchases").set("Cookie", cookieB).send({
+      supplierId: supB._id, purchaseDate: new Date().toISOString(), expectedDelivery: new Date().toISOString(),
+      status: "Draft",
+      items: [{ productId: prodB._id, name: prodB.title, sku: prodB.sku, quantity: 2, unitPrice: 80, discount: 0, taxRate: 0 }],
+    });
+    expect(purRes.status).toBe(201);
+
+    await request(app).delete(`/api/customers/${cusB._id}`).set("Cookie", cookieA).expect(404);
+    await request(app).delete(`/api/suppliers/${supB._id}`).set("Cookie", cookieA).expect(404);
+    await request(app).delete(`/api/products/${prodB._id}`).set("Cookie", cookieA).expect(404);
+
+    expect(await Customer.findById(cusB._id)).not.toBeNull();
+    expect(await Supplier.findById(supB._id)).not.toBeNull();
+    expect(await Product.findById(prodB._id)).not.toBeNull();
+    expect(await SaleOrder.findById(saleRes.body.order._id)).not.toBeNull();
+    expect(await Purchase.findById(purRes.body.purchase._id)).not.toBeNull();
+  });
+
+  test("cross-tenant opening balances stay hidden and deletion by the other business is rejected", async () => {
+    const { cookieA, cookieB } = await seed();
+    const cusB = await createCustomer(cookieB, {
+      name: "CusBBalance",
+      businessName: "CusB Biz",
+      openingBalance: 500,
+    });
+    const supB = await createSupplier(cookieB, {
+      name: "SupBBalance",
+      openingBalance: 500,
+    });
+
+    await request(app).delete(`/api/customers/${cusB._id}`).set("Cookie", cookieA).expect(404);
+    await request(app).delete(`/api/suppliers/${supB._id}`).set("Cookie", cookieA).expect(404);
+
+    const savedCustomer = await Customer.findById(cusB._id).lean();
+    const savedSupplier = await Supplier.findById(supB._id).lean();
+    expect(savedCustomer).toMatchObject({ openingBalance: 500 });
+    expect(savedSupplier).toMatchObject({ openingBalance: 500 });
   });
 
   test("numbers/codes generated per business and duplicates allowed across businesses; lists return own rows only", async () => {

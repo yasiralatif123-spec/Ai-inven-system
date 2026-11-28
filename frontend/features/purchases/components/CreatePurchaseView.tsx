@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Product } from "../../../app/products/types";
 import { normalizeUnit } from "../../../app/lib/units";
 import type { Supplier } from "../../suppliers/types";
-import { DEFAULT_TAX_RATE } from "../constants";
 import { usePurchaseLookups } from "../hooks/usePurchaseLookups";
 import {
   createPurchase,
@@ -23,7 +22,6 @@ import {
   purchaseBasePrice,
   purchaseSupplierToSupplier,
   purchaseUnitPrice,
-  taxRateFromBracket,
   toIsoDate,
 } from "../utils";
 import { CreatePurchaseHeader } from "./CreatePurchaseHeader";
@@ -49,7 +47,6 @@ function createRow(): PurchaseLineItem {
     basePrice: 0,
     unitPrice: 0,
     discount: 0,
-    taxRate: DEFAULT_TAX_RATE,
   };
 }
 
@@ -226,7 +223,6 @@ export function CreatePurchaseView() {
               basePrice: item.basePrice,
               unitPrice: item.unitPrice,
               discount: item.discount || 0,
-              taxRate: item.taxRate,
             };
           })
         );
@@ -301,7 +297,6 @@ export function CreatePurchaseView() {
           priceBasis: "catalog",
           unitPrice: purchaseUnitPrice(product, normalizeUnit(product.uom) || "Carton"),
           unit: normalizeUnit(product.uom) || "Carton",
-          taxRate: taxRateFromBracket(product.taxBracket),
         };
         return [prefilled, ...current.slice(1)];
       });
@@ -410,7 +405,6 @@ export function CreatePurchaseView() {
       row.priceBasis = "catalog";
       row.unitPrice = purchaseUnitPrice(product, unit);
       row.unit = unit;
-      row.taxRate = taxRateFromBracket(product.taxBracket);
     }
     setItems((current) => [...current, row]);
   }
@@ -424,7 +418,6 @@ export function CreatePurchaseView() {
       quantity: 0,
       lowStock: false,
       unit: normalizeUnit(product.uom) || "Carton",
-      taxRate: taxRateFromBracket(product.taxBracket),
     });
   }
 
@@ -478,7 +471,6 @@ export function CreatePurchaseView() {
             unitPrice: 0,
             unit: "Carton",
             priceBasis: "manual",
-            taxRate: DEFAULT_TAX_RATE,
           };
         }
 
@@ -588,7 +580,6 @@ export function CreatePurchaseView() {
           basePrice: item.basePrice ?? 0,
           unitPrice: item.unitPrice,
           discount: item.discount,
-          taxRate: item.taxRate,
         })),
       };
 

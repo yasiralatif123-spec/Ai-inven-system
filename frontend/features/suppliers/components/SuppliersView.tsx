@@ -305,18 +305,6 @@ export function SuppliersView() {
             Karachi &amp; Lahore Clearing House automated reconciliation synced at 04:30 PM today.
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <span className="font-mono-data-sm text-mono-data-sm text-on-surface-variant">
-            TAX STATUS: FBR SALES TAX REGISTERED (100%)
-          </span>
-          <button
-            type="button"
-            onClick={() => setNotice("WHT ledger download is not connected yet.")}
-            className="rounded font-body-dense text-body-dense font-medium text-primary transition duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            Download Withholding Tax (WHT) Ledger →
-          </button>
-        </div>
       </div>
 
       {editingSupplier ? (

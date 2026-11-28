@@ -143,12 +143,6 @@ export function LoginForm() {
         </div>
       </form>
 
-      <div className="mt-8 border-t border-border/70 pt-5">
-        <div className="flex items-center gap-2 text-[11.5px] text-secondary">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
-          <span>256-bit encrypted ledger · FBR Sales Tax Integrated</span>
-        </div>
-      </div>
     </div>
   );
 }

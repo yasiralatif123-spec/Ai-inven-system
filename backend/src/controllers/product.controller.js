@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
 const Brand = require("../models/Brand");
+const Purchase = require("../models/Purchase");
+const SaleOrder = require("../models/SaleOrder");
 const StockMovement = require("../models/StockMovement");
 const { ensureCloudinaryConfigured } = require("../config/cloudinary");
 const { tenantFilter, findOwned } = require("../utils/tenant");
@@ -9,10 +11,10 @@ const { resolveActorName, DEFAULT_ACTOR_NAME } = require("../utils/actor");
 const {
   normalizeUnit,
   isSupportedUnit,
+  parseCanonicalPrice,
   parseMoneyInput,
   parseWholeQuantity,
   pricePerPiece,
-  roundMoney,
 } = require("../utils/units");
 
 function uploadBufferToCloudinary(buffer, folder = "inv_system/products") {
@@ -68,6 +70,18 @@ function resolveProductUom(value) {
   return normalized;
 }
 
+function canonicalPriceFromBody(body, field) {
+  const flatKey = `canonical${field[0].toUpperCase()}${field.slice(1)}`;
+  if (body[flatKey] !== undefined) return body[flatKey];
+
+  const nested = body.canonicalPrices;
+  if (nested && typeof nested === "object" && Object.prototype.hasOwnProperty.call(nested, field)) {
+    return nested[field];
+  }
+
+  return undefined;
+}
+
 function resolvePricing(body) {
   const priceUnit = normalizeUnit(body.priceUnit ?? "Piece");
   if (!priceUnit || !isSupportedUnit(priceUnit)) {
@@ -77,15 +91,31 @@ function resolvePricing(body) {
   const fields = ["purchasePrice", "wholesalePrice", "retailPrice"];
   const canonical = {};
   for (const field of fields) {
-    const amount = parseMoneyInput(body[field]);
-    if (amount === null) {
-      throw new ProductValidationError(`${field} must be a finite, non-negative number`);
+    const suppliedCanonical = canonicalPriceFromBody(body, field);
+    let perPiece;
+
+    if (suppliedCanonical !== undefined) {
+      // Canonical prices from the form are authoritative. Display strings can
+      // be rounded for smaller units, so converting them back would lose data.
+      perPiece = parseCanonicalPrice(suppliedCanonical);
+      if (perPiece === null) {
+        throw new ProductValidationError(
+          `${field} canonical price must be a finite, non-negative number`
+        );
+      }
+    } else {
+      // Legacy clients still send display prices plus priceUnit.
+      const amount = parseMoneyInput(body[field]);
+      if (amount === null) {
+        throw new ProductValidationError(`${field} must be a finite, non-negative number`);
+      }
+      perPiece = pricePerPiece(amount, priceUnit);
+      if (perPiece === null) {
+        throw new ProductValidationError(`${field} could not be converted per Piece`);
+      }
     }
-    const perPiece = pricePerPiece(amount, priceUnit);
-    if (perPiece === null) {
-      throw new ProductValidationError(`${field} could not be converted per Piece`);
-    }
-    canonical[field] = roundMoney(perPiece);
+
+    canonical[field] = perPiece;
   }
 
   return { priceUnit, ...canonical };
@@ -223,7 +253,6 @@ async function createProduct(req, res, next) {
       brand,
       brandId,
       description,
-      taxBracket,
       uom,
       openingStock,
       reorderThreshold,
@@ -289,7 +318,6 @@ async function createProduct(req, res, next) {
       wholesalePrice: pricing.wholesalePrice,
       retailPrice: pricing.retailPrice,
       priceUnit: pricing.priceUnit,
-      taxBracket: taxBracket ? String(taxBracket).trim() : "",
       uom: normalizedUom,
       openingStock: openingStockPieces,
       reorderThreshold: reorderThresholdNum,
@@ -441,7 +469,6 @@ async function updateProduct(req, res, next) {
       brand,
       brandId,
       description,
-      taxBracket,
       uom,
       openingStock,
       reorderThreshold,
@@ -513,7 +540,6 @@ async function updateProduct(req, res, next) {
       wholesalePrice: pricing.wholesalePrice,
       retailPrice: pricing.retailPrice,
       priceUnit: pricing.priceUnit,
-      taxBracket: taxBracket ? String(taxBracket).trim() : "",
       uom: normalizedUom,
       reorderThreshold: reorderThresholdNum,
       warehouse: warehouse ? String(warehouse).trim() : "",
@@ -640,6 +666,16 @@ async function deleteProduct(req, res, next) {
     const product = await findOwnedProduct(id, req);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
+    }
+
+    const [hasSaleHistory, hasPurchaseHistory] = await Promise.all([
+      SaleOrder.exists(productFilter(req, { "items.productId": product._id })),
+      Purchase.exists(productFilter(req, { "items.productId": String(product._id) })),
+    ]);
+    if (hasSaleHistory || hasPurchaseHistory) {
+      throw new ConflictError(
+        "Product has sale or purchase history and cannot be deleted"
+      );
     }
 
     const publicId = product.imagePublicId || "";

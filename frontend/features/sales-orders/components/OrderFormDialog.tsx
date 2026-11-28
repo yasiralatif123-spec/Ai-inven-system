@@ -5,8 +5,9 @@ import type { Product } from "../../../app/products/types";
 import {
   formatStockWithPieces,
   normalizeUnit,
-  parseMoneyInput,
+  parseCanonicalPrice,
   priceForUnit,
+  roundMoney,
   STOCK_UNITS,
   toBasePieces,
 } from "../../../app/lib/units";
@@ -81,7 +82,7 @@ function emptyItem(): EditableItem {
 }
 
 function canonicalSalePrice(product: Product): number {
-  return parseMoneyInput(product.wholesalePrice) ?? 0;
+  return parseCanonicalPrice(product.wholesalePrice) ?? 0;
 }
 
 function saleUnitPrice(product: Product, unit: string): number {
@@ -124,11 +125,17 @@ export function OrderFormDialog({
     error: productsError,
   } = useProductLookup();
 
-  const subtotal = items.reduce((sum, item) => {
-    const quantity = Number(item.quantity) || 0;
-    const unitPrice = Number(item.unitPrice) || 0;
-    return sum + Math.max(quantity, 0) * Math.max(unitPrice, 0);
-  }, 0);
+  const subtotal = roundMoney(
+    items.reduce((sum, item) => {
+      const quantity = Math.max(Number(item.quantity) || 0, 0);
+      const unitPrice = Math.max(Number(item.unitPrice) || 0, 0);
+      const basePrice = Math.max(Number(item.basePrice) || 0, 0);
+      if (item.priceBasis === "catalog" && basePrice > 0) {
+        return sum + basePrice * toBasePieces(quantity, item.unitLabel);
+      }
+      return sum + quantity * unitPrice;
+    }, 0)
+  );
   const discountValue = Math.max(Number(discount) || 0, 0);
   const freightValue = Math.max(Number(freight) || 0, 0);
   const total = Math.max(subtotal - discountValue, 0) + freightValue;
@@ -455,8 +462,9 @@ export function OrderFormDialog({
                               value={item.unitPrice}
                               onChange={(event) => updateItem(index, { unitPrice: event.target.value })}
                               type="number"
+                              inputMode="decimal"
                               min="0"
-                              step="1"
+                              step="0.01"
                               placeholder="Unit price"
                               aria-label={`Item ${index + 1} unit price`}
                               className={`${NEW_ITEM_INPUT_CLASS} placeholder:text-on-surface-variant/70`}
@@ -564,8 +572,9 @@ export function OrderFormDialog({
               <span className={FIELD_LABEL_CLASS}>Amount Received</span>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
-                step="1"
+                step="0.01"
                 value={amountReceived}
                 onChange={(event) => setAmountReceived(event.target.value)}
                 disabled={paymentStatus !== "partial"}
@@ -576,8 +585,9 @@ export function OrderFormDialog({
               <span className={FIELD_LABEL_CLASS}>Discount</span>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
-                step="1"
+                step="0.01"
                 value={discount}
                 onChange={(event) => setDiscount(event.target.value)}
                 className={NEW_ITEM_INPUT_CLASS}
@@ -587,8 +597,9 @@ export function OrderFormDialog({
               <span className={FIELD_LABEL_CLASS}>Freight</span>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
-                step="1"
+                step="0.01"
                 value={freight}
                 onChange={(event) => setFreight(event.target.value)}
                 className={NEW_ITEM_INPUT_CLASS}

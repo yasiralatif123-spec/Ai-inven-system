@@ -25,9 +25,12 @@ and converted `baseQuantity`:
   and writes an immutable `StockMovement` with `type: "sale"`,
   `direction: "out"`, `reference: "<orderNumber> - SALE"`, and the original
   quantity/unit plus base-piece quantity.
-- Items whose `sku`/`productId` does not match a catalog product are saved but do
-  not change stock. Duplicate catalog SKUs in one order are aggregated before
-  validation so two rows cannot oversell the same product.
+- On create, every item must resolve to a catalog product in the caller's
+  business by `productId`/`sku`; an unresolved item is rejected with `400` and
+  saves neither the order nor a movement. On update, legacy manual items that
+  were already saved may remain and never change stock. Duplicate catalog SKUs
+  in one order are aggregated before validation so two rows cannot oversell the
+  same product.
 - Insufficient stock returns `400` and saves neither the order nor a movement.
 - Updating an order applies only the difference between saved and new
   `baseQuantity` values: a reduction restores stock (`in` movement), an increase
@@ -84,13 +87,30 @@ Each item records its immutable `priceBasis`, `basePrice` (per Piece), and
   when an edit keeps the same product and unit, even if catalog prices change.
 - Changing the product or unit reprices a catalog line from current canonical
   prices. Changing quantity alone never changes the price.
-- `priceBasis: "manual"` items have no matching catalog product. They must submit
-  a finite, non-negative `unitPrice`, which is stored as submitted.
+- `priceBasis: "manual"` items have no matching catalog product. They are no
+  longer accepted on create; they can only remain on legacy orders when an edit
+  does not introduce an unresolvable `productId`/`sku`. They must submit a
+  finite, non-negative `unitPrice`, which is stored as submitted.
 - Malformed, negative, `NaN`, or `Infinity` prices are rejected with `400`.
 
 `financials.tax` is stored as an embedded 18% amount but is not included in
 `total`. Unpaid orders use `dueDate: "Due on receipt"` and
 `paymentLabel: "Unpaid (Due on receipt)"`.
+
+## Reference rules
+
+On `POST`, `customerId` (or `customer.customerId`) must identify a saved customer
+in the caller's business. A missing or invalid id returns `400 Select a customer
+from the saved customer list`; a well-formed id from another business returns
+`404 The selected customer no longer exists` when tenant enforcement is on.
+Free-text walk-in customer names are no longer accepted for new orders. Editing
+an existing legacy order still tolerates a customer link that cannot be
+resolved.
+
+Every new item must resolve to a catalog product in the same business by
+`productId`/`sku`. An unknown or cross-tenant reference returns `400 The product
+linked to <item name> was not found in this business`. The whole create is
+rejected before any order, stock movement, or customer ledger update is written.
 
 ## Endpoints
 
@@ -112,6 +132,16 @@ MongoDB deployment supports transactions. `status: "Cancelled"` is rejected.
 
 ```json
 { "message": "Insufficient stock for Coca-Cola. Available: 4, requested: 10" }
+```
+
+Reference failures use the same status:
+
+```json
+{ "message": "Select a customer from the saved customer list" }
+```
+
+```json
+{ "message": "The product linked to Coca-Cola was not found in this business" }
 ```
 
 ### `PUT /api/sale-orders/:id`

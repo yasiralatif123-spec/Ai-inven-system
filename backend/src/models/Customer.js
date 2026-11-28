@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { paymentRecordsField } = require("./PaymentRecord");
 require("./Business");
 require("./User");
 
@@ -33,13 +34,16 @@ const customerSchema = new mongoose.Schema(
     route: { type: String, default: "unassigned", trim: true, index: true },
     routeLabel: { type: String, default: "", trim: true },
     ntn: { type: String, default: "", trim: true },
-    creditLimit: { type: Number, required: true, min: 0 },
+    creditLimit: { type: Number, default: 0, min: 0 },
     paymentTerms: {
       type: String,
       required: true,
       enum: ["cod", "7days", "15days", "30days", "45days"],
     },
     openingBalance: { type: Number, default: 0, min: 0 },
+    openingBalancePaid: { type: Number, default: 0, min: 0 },
+    remainingOpeningBalance: { type: Number, default: 0, min: 0 },
+    openingBalancePayments: paymentRecordsField,
     gracePeriod: {
       type: String,
       default: "none",

@@ -6,7 +6,6 @@ import type { Product } from "../../../app/products/types";
 import { UNIT_OPTIONS } from "../constants";
 import type { PurchaseLineItem } from "../types";
 import {
-  calculateLineTax,
   calculateLineTotal,
   formatUnitPrice,
   priceUnitLabel,
@@ -108,7 +107,6 @@ export function PurchaseItemsTable({
               <th className="w-28 px-3 py-3 font-medium">Unit</th>
               <th className="w-32 px-3 py-3 text-right font-medium">Unit Price</th>
               <th className="w-28 px-3 py-3 text-right font-medium">Discount</th>
-              <th className="w-32 px-3 py-3 font-medium">Tax (GST)</th>
               <th className="w-36 px-4 py-3 text-right font-medium">Line Total (Rs.)</th>
               <th className="w-9 py-3 pl-1 pr-5" />
             </tr>
@@ -116,7 +114,6 @@ export function PurchaseItemsTable({
           <tbody className="divide-y divide-border/70 font-body-default text-body-default text-on-surface">
             {items.map((item, index) => {
               const invalidQuantity = item.quantity < 0;
-              const lineTax = calculateLineTax(item);
               const lineTotal = calculateLineTotal(item);
               const product = products.find((candidate) => candidate._id === item.productId) || null;
                             
@@ -212,8 +209,9 @@ export function PurchaseItemsTable({
                       <div className="flex flex-col items-end gap-1">
                         <input
                           type="number"
+                          inputMode="decimal"
                           min={0}
-                          step="1"
+                          step="0.01"
                           value={item.unitPrice}
                           onChange={(event) =>
                             onItemChange(item.rowId, {
@@ -232,8 +230,9 @@ export function PurchaseItemsTable({
                   <td className="px-3 py-4">
                     <input
                       type="number"
+                      inputMode="decimal"
                       min={0}
-                      step="1"
+                      step="0.01"
                       value={item.discount}
                       onChange={(event) =>
                         onItemChange(item.rowId, {
@@ -243,16 +242,6 @@ export function PurchaseItemsTable({
                       aria-label={`Discount for line ${index + 1}`}
                       className={CELL_INPUT_CLASS}
                     />
-                  </td>
-                  <td className="px-3 py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-mono-data text-mono-data leading-tight text-on-surface">
-                        {item.taxRate}% GST
-                      </span>
-                      <span className="font-body-dense text-body-dense text-on-surface-variant">
-                        Rs. {lineTax.toLocaleString("en-PK")}
-                      </span>
-                    </div>
                   </td>
                   <td className="px-4 py-4 text-right">
                     <span

@@ -1,8 +1,16 @@
 const mongoose = require("mongoose");
 const Customer = require("../models/Customer");
+const SaleOrder = require("../models/SaleOrder");
 const { tenantFilter } = require("../utils/tenant");
 const { resolveActorName } = require("../utils/actor");
 const { withAuthoritativeCustomerFinancials } = require("../utils/financials");
+const { parseMoneyInput } = require("../utils/units");
+const {
+  recordOpeningBalancePayment,
+  OpeningBalancePaymentValidationError,
+  OpeningBalancePaymentConflictError,
+  OpeningBalancePaymentNotFoundError,
+} = require("../utils/opening-balance-payments");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -140,10 +148,12 @@ function buildCustomerChanges(body, req = null) {
   if (!paymentTerms) throw new ValidationError("Payment terms is required");
   if (!PAYMENT_TERMS.includes(paymentTerms)) throw new ValidationError("Invalid payment terms");
 
-  const creditLimit = parseNumber(body.creditLimit, {
-    message: "Trade credit limit is required",
-  });
-  if (creditLimit < 0) throw new ValidationError("Trade credit limit cannot be negative");
+  const creditLimit = parseMoneyInput(body.creditLimit);
+  if (creditLimit === null) {
+    throw new ValidationError(
+      "Trade credit limit must be a finite, non-negative number"
+    );
+  }
 
   const openingBalance = parseNumber(body.openingBalance, { fallback: 0 });
   if (openingBalance < 0) throw new ValidationError("Opening balance cannot be negative");
@@ -188,8 +198,14 @@ function buildCustomerChanges(body, req = null) {
 }
 
 function handleControllerError(error, res, next) {
-  if (error instanceof ValidationError) {
+  if (error instanceof ValidationError || error instanceof OpeningBalancePaymentValidationError) {
     return res.status(400).json({ message: error.message });
+  }
+  if (error instanceof OpeningBalancePaymentConflictError) {
+    return res.status(409).json({ message: error.message });
+  }
+  if (error instanceof OpeningBalancePaymentNotFoundError) {
+    return res.status(404).json({ message: error.message });
   }
   return next(error);
 }
@@ -300,11 +316,13 @@ async function updateCustomer(req, res, next) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
+    const body = req.body || {};
     const merged = {
       ...existing,
-      ...(req.body || {}),
+      ...body,
       ledgerCode: existing.ledgerCode,
-      creditLimit: existing.creditLimit,
+      creditLimit:
+        body.creditLimit === undefined ? existing.creditLimit : body.creditLimit,
       paymentTerms: existing.paymentTerms,
       openingBalance: existing.openingBalance,
       gracePeriod: existing.gracePeriod,
@@ -334,6 +352,51 @@ async function updateCustomer(req, res, next) {
   }
 }
 
+async function recordCustomerOpeningBalancePayment(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const customer = await recordOpeningBalancePayment({
+      Model: Customer,
+      type: "customer",
+      req,
+      id,
+    });
+    return res.status(200).json({
+      message: "Opening balance payment recorded",
+      customer: await customerResponse(customer, req),
+    });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
+async function reverseCustomerOpeningBalancePayment(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const customer = await recordOpeningBalancePayment({
+      Model: Customer,
+      type: "customer",
+      req,
+      id,
+      paymentId: req.params.paymentId,
+    });
+    return res.status(200).json({
+      message: "Opening balance payment reversed",
+      customer: await customerResponse(customer, req),
+    });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
 async function deleteCustomer(req, res, next) {
   try {
     const id = req.params.id;
@@ -341,8 +404,29 @@ async function deleteCustomer(req, res, next) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
-    const customer = await Customer.findOneAndDelete(scopedFilter(req, { _id: id }));
+    const hasHistory = await SaleOrder.exists(
+      scopedFilter(req, { "customer.customerId": id })
+    );
+    if (hasHistory) {
+      return res.status(409).json({
+        message: "Customer has sale/payment history and cannot be deleted",
+      });
+    }
+
+    const customer = await Customer.findOne(scopedFilter(req, { _id: id }))
+      .select("openingBalance")
+      .lean();
     if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    if (Number(customer.openingBalance) > 0) {
+      return res.status(409).json({
+        message: "Customer has an opening balance and cannot be deleted",
+      });
+    }
+
+    const deleted = await Customer.findOneAndDelete(scopedFilter(req, { _id: id }));
+    if (!deleted) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
@@ -359,5 +443,7 @@ module.exports = {
   getCustomerByCode,
   createCustomer,
   updateCustomer,
+  recordCustomerOpeningBalancePayment,
+  reverseCustomerOpeningBalancePayment,
   deleteCustomer,
 };

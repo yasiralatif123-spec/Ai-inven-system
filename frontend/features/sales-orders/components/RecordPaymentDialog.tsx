@@ -94,9 +94,10 @@ export function RecordPaymentDialog({ order, onClose, onSubmit }: RecordPaymentD
             <span className="font-label-caps text-label-caps uppercase text-secondary">Amount Received (Rs.)</span>
             <input
               type="number"
+              inputMode="decimal"
               min="1"
               max={order.financials.outstanding}
-              step="1"
+              step="0.01"
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
               className="h-9 rounded border border-outline-variant bg-surface px-2.5 font-mono-data text-mono-data text-on-surface focus:border-primary focus:outline-none"

@@ -5,6 +5,7 @@ import { apiFetch } from "../../lib/api";
 import type { StockUnit } from "../../lib/units";
 import { BrandSelect, useBrands } from "../../../features/brands";
 import {
+  appendCanonicalPrices,
   canonicalPriceFromDisplay,
   canonicalPricesFromProduct,
   displayPricesFromCanonical,
@@ -17,7 +18,6 @@ import {
   CATALOG_STATUSES,
   PRODUCT_CATEGORIES,
   STOCK_UNITS,
-  TAX_BRACKETS,
   WAREHOUSES,
 } from "../product-options";
 
@@ -35,7 +35,6 @@ type FormState = {
   wholesalePrice: string;
   retailPrice: string;
   priceUnit: StockUnit;
-  taxBracket: string;
   uom: string;
   openingStock: string;
   reorderThreshold: string;
@@ -81,7 +80,6 @@ function buildInitialForm(product: Product): FormState {
     description: product.description || "",
     ...displayPrices,
     priceUnit,
-    taxBracket: product.taxBracket || TAX_BRACKETS[0],
     uom: product.uom || STOCK_UNITS[0],
     openingStock: product.openingStock !== undefined ? String(product.openingStock) : "0",
     reorderThreshold: product.reorderThreshold !== undefined ? String(product.reorderThreshold) : "0",
@@ -238,6 +236,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
         if (Array.isArray(value)) value.forEach((entry) => body.append(key, String(entry)));
         else body.append(key, String(value));
       });
+      appendCanonicalPrices(body, canonicalPrices);
       body.append("removeImage", removeImage ? "true" : "false");
       if (image) body.append("image", image);
 
@@ -449,7 +448,7 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
               </Field>
             </Section>
 
-            <Section index="SEC #02" title="B. Pricing Tiers & FBR Taxation" subtitle="Cost, wholesale, retail, and tax regime">
+            <Section index="SEC #02" title="B. Pricing Tiers" subtitle="Cost, wholesale, and retail pricing">
               <Field label="Price Entry Unit" className="md:max-w-sm">
                 <select
                   value={form.priceUnit}
@@ -499,8 +498,8 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                   />
                 </Field>
               </div>
-              <div className="grid grid-cols-1 items-center gap-4 rounded-xl border border-outline-variant bg-surface-container p-4 md:grid-cols-12">
-                <div className="flex flex-wrap items-center gap-2 font-mono-data text-mono-data md:col-span-7">
+              <div className="rounded-xl border border-outline-variant bg-surface-container p-4">
+                <div className="flex flex-wrap items-center gap-2 font-mono-data text-mono-data">
                   <span className="rounded-lg border border-primary/20 bg-primary-fixed/20 px-3 py-1.5 font-semibold text-primary">
                     Wholesale Margin: +{margins.wholesalePct}% (Rs.{" "}
                     {margins.wholesaleAmount.toLocaleString()} / Piece)
@@ -509,17 +508,6 @@ export function EditProductModal({ product, onClose, onSaved }: EditProductModal
                     MSRP Spread: +{margins.retailPct}%
                   </span>
                 </div>
-                <Field label="FBR Sales Tax Regime" className="md:col-span-5">
-                  <select
-                    value={form.taxBracket}
-                    onChange={(event) => set("taxBracket", event.target.value)}
-                    className={inputClass}
-                  >
-                    {TAX_BRACKETS.map((option) => (
-                      <option key={option}>{option}</option>
-                    ))}
-                  </select>
-                </Field>
               </div>
             </Section>
 

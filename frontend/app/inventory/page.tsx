@@ -15,7 +15,7 @@ import {
   fetchStockMovements,
 } from "./services/inventory.service";
 import { formatNumber, movementToEntry, toStockRows } from "./utils";
-import { parseMoneyInput } from "../lib/units";
+import { parseCanonicalPrice } from "../lib/units";
 
 function isToday(value: string) {
   const date = new Date(value);
@@ -158,7 +158,7 @@ export default function InventoryPage() {
       (acc, row) => {
         acc.totalUnits += row.available;
         acc.reservedUnits += row.reserved;
-        acc.stockValue += row.available * (parseMoneyInput(row.purchasePrice) ?? 0);
+        acc.stockValue += row.available * (parseCanonicalPrice(row.purchasePrice) ?? 0);
         if (row.status === "critical") acc.criticalCount += 1;
         if (row.status === "low") acc.lowCount += 1;
         return acc;

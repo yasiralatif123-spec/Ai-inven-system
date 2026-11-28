@@ -29,7 +29,6 @@ export type OrderItem = {
 export type OrderFinancials = {
   subtotal: number;
   discount: number;
-  tax: number;
   freight: number;
   total: number;
   paid: number;

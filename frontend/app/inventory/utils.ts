@@ -1,6 +1,6 @@
 import type { Product } from "../products/types";
 import type { MovementEntry, StockMovementDto, StockRow, StockStatus } from "./data";
-import { formatStockWithPieces, normalizeUnit, parseMoneyInput } from "../lib/units";
+import { formatStockWithPieces, normalizeUnit, parseCanonicalPrice } from "../lib/units";
 
 export function formatRs(value: number) {
   return `Rs. ${Number(value || 0).toLocaleString("en-PK")}`;
@@ -62,7 +62,7 @@ export function toStockRows(product: Product): StockRow[] {
       stockDisplay: formatStockWithPieces(stock),
       minSafety: reorderThreshold,
       status: deriveStockStatus(stock, reorderThreshold),
-      purchasePrice: parseMoneyInput(product.purchasePrice) ?? 0,
+      purchasePrice: parseCanonicalPrice(product.purchasePrice) ?? 0,
     },
   ];
 }

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { paymentRecordsField } = require("./PaymentRecord");
 require("./Business");
 require("./User");
 
@@ -15,11 +16,6 @@ const supplierSchema = new mongoose.Schema(
     email: { type: String, default: "", trim: true },
     hub: { type: String, default: "", trim: true },
     region: { type: String, default: "", trim: true },
-    taxStatus: {
-      type: String,
-      enum: ["standard", "exempt", "non-filer"],
-      default: "standard",
-    },
     address: { type: String, required: true, trim: true },
     ntn: { type: String, default: "", trim: true },
     paymentTerms: {
@@ -28,6 +24,9 @@ const supplierSchema = new mongoose.Schema(
       enum: ["net-15", "net-30", "net-7", "cod", "advance"],
     },
     openingBalance: { type: Number, default: 0, min: 0 },
+    openingBalancePaid: { type: Number, default: 0, min: 0 },
+    remainingOpeningBalance: { type: Number, default: 0, min: 0 },
+    openingBalancePayments: paymentRecordsField,
     graceDays: { type: Number, default: 5, enum: [0, 5, 10, 15] },
     notes: { type: String, default: "", trim: true, maxlength: 500 },
     productIds: [

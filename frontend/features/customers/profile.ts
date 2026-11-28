@@ -40,15 +40,13 @@ export function formatShortDate(value: string): string {
 }
 
 export function getCustomerFinancials(customer: Customer) {
-  const headroom = customer.creditLimit - customer.outstanding;
-  const exposure =
-    customer.creditLimit > 0 ? Math.round((customer.outstanding / customer.creditLimit) * 1000) / 10 : 0;
-
   return {
-    headroom,
-    exposure,
-    overLimit: headroom < 0,
-    warning: exposure >= 80,
+    headroom: customer.creditLimit - customer.outstanding,
+    exposure: customer.creditExposurePercent,
+    availableCredit: customer.availableCredit,
+    creditStatus: customer.creditStatus,
+    overLimit: customer.creditLimitExceeded,
+    warning: customer.nearCreditLimit || customer.creditLimitExceeded,
   };
 }
 

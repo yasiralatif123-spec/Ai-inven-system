@@ -73,16 +73,6 @@ export function PurchaseSummaryCard({
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-on-surface">Sales Tax</span>
-            <span className="font-body-dense text-body-dense text-on-surface-variant">FBR GST (18%)</span>
-          </div>
-          <span className="font-mono-data text-mono-data font-medium text-on-surface">
-            {formatRs(totals.tax)}
-          </span>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
           <span className="text-on-surface">Shipping / Freight Inward</span>
           <input
             type="number"

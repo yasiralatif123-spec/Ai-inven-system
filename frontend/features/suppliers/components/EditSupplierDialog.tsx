@@ -5,16 +5,19 @@ import {
   GRACE_DAY_OPTIONS,
   HUB_OPTIONS,
   PAYMENT_TERM_OPTIONS,
-  TAX_STATUS_OPTIONS,
 } from "../constants";
-import { updateSupplier } from "../services/supplier.service";
+import { OpeningBalancePaymentSection } from "../../profiles/OpeningBalancePaymentSection";
+import type { OpeningBalancePaymentInput } from "../../profiles/types";
+import {
+  recordSupplierOpeningBalancePayment,
+  updateSupplier,
+} from "../services/supplier.service";
 import { useSupplierProducts } from "../hooks/useSupplierProducts";
 import { ProductMultiSelect } from "./ProductMultiSelect";
 import type {
   HubKey,
   PaymentTerms,
   Supplier,
-  TaxStatus,
   UpdateSupplierInput,
 } from "../types";
 import { formatRs } from "../utils";
@@ -39,7 +42,6 @@ function toInput(supplier: Supplier): UpdateSupplierInput {
     phone: supplier.phone,
     email: supplier.email,
     hub: supplier.hubKey,
-    taxStatus: supplier.taxStatus,
     address: supplier.address,
     ntn: supplier.ntn,
     paymentTerms: supplier.paymentTerms,
@@ -73,6 +75,7 @@ function SelectShell({ children }: { children: ReactNode }) {
 
 export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierDialogProps) {
   const [form, setForm] = useState<UpdateSupplierInput>(() => toInput(supplier));
+  const [paymentTarget, setPaymentTarget] = useState(supplier);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const {
@@ -156,6 +159,12 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
     }
   }
 
+  async function handleOpeningBalancePayment(input: OpeningBalancePaymentInput) {
+    const updated = await recordSupplierOpeningBalancePayment(supplier.id, input);
+    setPaymentTarget(updated);
+    onSaved(updated);
+  }
+
   return (
     <div className="fixed inset-0 z-[140] flex items-center justify-center bg-overlay/40 p-4">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
@@ -225,21 +234,6 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
                 >
                   {HUB_OPTIONS.map((option) => (
                     <option key={option.value || "none"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </SelectShell>
-            </Field>
-            <Field label="FBR Tax Status">
-              <SelectShell>
-                <select
-                  className={SELECT_CLASS}
-                  value={form.taxStatus}
-                  onChange={(event) => update("taxStatus", event.target.value as TaxStatus)}
-                >
-                  {TAX_STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
@@ -325,6 +319,14 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
               </Field>
             </div>
           </section>
+
+          <OpeningBalancePaymentSection
+            openingBalance={paymentTarget.openingBalance}
+            openingBalancePaid={paymentTarget.openingBalancePaid}
+            remainingOpeningBalance={paymentTarget.remainingOpeningBalance}
+            payments={paymentTarget.openingBalancePayments}
+            onSubmit={handleOpeningBalancePayment}
+          />
 
           {error ? (
             <div className="flex items-center gap-2 rounded-lg border border-error/20 bg-error-container/50 px-3 py-2 font-body-dense text-body-dense text-error">

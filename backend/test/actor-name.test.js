@@ -3,6 +3,7 @@ const app = require("../src/app");
 const { resolveActorName } = require("../src/utils/actor");
 const { createBusiness, createUser } = require("./helpers/auth");
 const { connectTestDB, clearTestDB, disconnectTestDB } = require("./helpers/test-db");
+const { seedCustomer } = require("./helpers/customers");
 
 function cookieHeader(response) {
   const cookies = response.headers["set-cookie"] || [];
@@ -97,7 +98,8 @@ describe("actor names on created records", () => {
   });
 
   test("stock movements and transaction receipts use the business name", async () => {
-    const { cookie } = await seed();
+    const { business, cookie } = await seed();
+    const customer = await seedCustomer({ businessId: business._id });
 
     const productResponse = await request(app)
       .post("/api/products")
@@ -160,8 +162,9 @@ describe("actor names on created records", () => {
       .post("/api/sale-orders")
       .set("Cookie", cookie)
       .send({
-        customer: "Walk-in Customer",
-        phone: "+92 3001234567",
+        customerId: String(customer._id),
+        customer: customer.name,
+        phone: customer.phone,
         paymentStatus: "unpaid",
         status: "Pending Approval",
         createdBy: "Spoofed Owner",

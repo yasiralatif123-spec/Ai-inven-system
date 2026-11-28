@@ -7,7 +7,12 @@ import {
   ROUTE_OPTIONS,
   STATUS_OPTIONS,
 } from "../constants";
-import { updateCustomer } from "../services/customer.service";
+import { OpeningBalancePaymentSection } from "../../profiles/OpeningBalancePaymentSection";
+import type { OpeningBalancePaymentInput } from "../../profiles/types";
+import {
+  recordCustomerOpeningBalancePayment,
+  updateCustomer,
+} from "../services/customer.service";
 import type {
   City,
   Customer,
@@ -43,6 +48,7 @@ function toInput(customer: Customer): UpdateCustomerInput {
     status: customer.status,
     route: customer.route,
     ntn: customer.ntn,
+    creditLimit: customer.creditLimit,
     notes: customer.notes,
   };
 }
@@ -71,6 +77,7 @@ function SelectShell({ children }: { children: ReactNode }) {
 
 export function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerDialogProps) {
   const [form, setForm] = useState<UpdateCustomerInput>(() => toInput(customer));
+  const [paymentTarget, setPaymentTarget] = useState(customer);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -129,6 +136,12 @@ export function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerD
     }
   }
 
+  async function handleOpeningBalancePayment(input: OpeningBalancePaymentInput) {
+    const updated = await recordCustomerOpeningBalancePayment(customer.id, input);
+    setPaymentTarget(updated);
+    onSaved(updated);
+  }
+
   return (
     <div className="fixed inset-0 z-[140] flex items-center justify-center bg-overlay/40 p-4">
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
@@ -145,7 +158,7 @@ export function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerD
               Edit Customer
             </h2>
             <div className="mt-0.5 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
-              #{customer.code} · credit settings and ledger totals are preserved
+              #{customer.code} · ledger totals are preserved, credit limit is editable
             </div>
           </div>
           <button
@@ -268,7 +281,7 @@ export function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerD
                 </select>
               </SelectShell>
             </Field>
-            <Field label="FBR NTN / STRN Number">
+            <Field label="NTN / STRN Number">
               <input
                 className={`${INPUT_CLASS} font-mono-data uppercase`}
                 value={form.ntn}
@@ -286,6 +299,43 @@ export function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerD
               </Field>
             </div>
           </section>
+
+          <section className="flex flex-col gap-3 border-t border-outline-variant/80 pt-4">
+            <h3 className="font-label-caps text-label-caps uppercase tracking-wider text-secondary">
+              Credit Limit
+            </h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field label="Credit Limit (PKR)">
+                <div className="relative flex items-center">
+                  <span className="pointer-events-none absolute left-2.5 select-none font-mono-data-sm text-mono-data-sm font-medium text-on-surface-variant">
+                    Rs.
+                  </span>
+                  <input
+                    className={`${INPUT_CLASS} pl-10 pr-2.5 text-right font-mono-data`}
+                    value={form.creditLimit || ""}
+                    onChange={(event) =>
+                      update("creditLimit", Math.max(0, Number(event.target.value) || 0))
+                    }
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    type="number"
+                  />
+                </div>
+              </Field>
+              <p className="self-end font-body-dense text-body-dense text-on-surface-variant">
+                Enter 0 for No Limit Set. Credit limits never block sales.
+              </p>
+            </div>
+          </section>
+
+          <OpeningBalancePaymentSection
+            openingBalance={paymentTarget.openingBalance}
+            openingBalancePaid={paymentTarget.openingBalancePaid}
+            remainingOpeningBalance={paymentTarget.remainingOpeningBalance}
+            payments={paymentTarget.openingBalancePayments}
+            onSubmit={handleOpeningBalancePayment}
+          />
 
           {error ? (
             <div className="flex items-center gap-2 rounded-lg border border-error/20 bg-error-container/50 px-3 py-2 font-body-dense text-body-dense text-error">

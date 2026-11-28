@@ -26,6 +26,7 @@ const {
   parseWholeQuantity,
   isSupportedUnit,
   priceForUnit,
+  parseCanonicalPrice,
   parseMoneyInput,
   parseStoredMoney,
 } = require("../utils/units");
@@ -136,7 +137,7 @@ async function findProductForPurchaseItem(item, req = null) {
 }
 
 function basePurchasePrice(product) {
-  return Math.max(toNumber(product?.purchasePrice), 0);
+  return parseCanonicalPrice(product?.purchasePrice) ?? 0;
 }
 
 
@@ -151,6 +152,14 @@ function clamp(value, min, max) {
 
 function requireMoney(value, label) {
   const amount = parseMoneyInput(value);
+  if (amount === null) {
+    throw new ValidationError(`${label} must be a finite, non-negative number`);
+  }
+  return amount;
+}
+
+function requireCanonicalPrice(value, label) {
+  const amount = parseCanonicalPrice(value);
   if (amount === null) {
     throw new ValidationError(`${label} must be a finite, non-negative number`);
   }
@@ -310,7 +319,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       matchedExistingIndexes.add(existingItems.indexOf(existingItem));
     }
     const catalogBasePrice = product
-      ? requireMoney(product.purchasePrice, `Catalog price for ${product.title}`)
+      ? requireCanonicalPrice(product.purchasePrice, `Catalog price for ${product.title}`)
       : null;
     const catalogUnitPrice = catalogBasePrice === null
       ? null
@@ -322,7 +331,7 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
         sameCatalogSnapshot(existingItem, product, productId, sku) &&
         normalizeUnit(existingItem.unit) === unit
     );
-    const savedBasePrice = keepSnapshot ? parseStoredMoney(existingItem.basePrice) : null;
+    const savedBasePrice = keepSnapshot ? parseCanonicalPrice(existingItem.basePrice) : null;
     const savedUnitPrice = keepSnapshot ? parseStoredMoney(existingItem.unitPrice) : null;
     const basePrice = product
       ? savedBasePrice !== null
@@ -443,17 +452,12 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
     }
     const receivedBaseQuantity = status === "Received" ? baseQuantity : previousReceivedBase;
 
-    const itemSubtotal = round(quantity * unitPrice);
+    // Catalog lines are priced from the canonical per-Piece value so 1 Carton
+    // and 24 Pieces always produce the same total. Manual lines keep the
+    // submitted unit price.
+    const itemSubtotal = round(product ? basePrice * baseQuantity : quantity * unitPrice);
     const discount = clamp(requireMoney(rawItem?.discount, `Item ${index + 1} discount`), 0, itemSubtotal);
-    const taxRate = clamp(
-      rawItem?.taxRate === undefined || rawItem?.taxRate === null || rawItem?.taxRate === ""
-        ? 18
-        : requireMoney(rawItem.taxRate, `Item ${index + 1} tax rate`),
-      0,
-      100
-    );
-    const taxAmount = round(((itemSubtotal - discount) * taxRate) / 100);
-    const lineTotal = round(itemSubtotal - discount + taxAmount);
+    const lineTotal = round(itemSubtotal - discount);
 
     items.push({
       productId: product?._id ? String(product._id) : productId,
@@ -470,8 +474,6 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       basePrice,
       unitPrice,
       discount,
-      taxRate,
-      taxAmount,
       lineTotal,
     });
   }
@@ -491,11 +493,12 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
     );
   }
 
-  const subtotal = round(items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
+  const subtotal = round(
+    items.reduce((sum, item) => sum + item.lineTotal + item.discount, 0)
+  );
   const discount = round(items.reduce((sum, item) => sum + item.discount, 0));
-  const tax = round(items.reduce((sum, item) => sum + item.taxAmount, 0));
   const freight = requireMoney(body.freight, "Freight");
-  const total = round(subtotal - discount + tax + freight);
+  const total = round(subtotal - discount + freight);
 
   if (total <= 0) {
     throw new ValidationError("Purchase total must be greater than zero");
@@ -595,7 +598,6 @@ async function buildPurchaseChanges(body, existingPurchase = null, req = null) {
       financials: {
         subtotal,
         discount,
-        tax,
         freight,
         total,
       },

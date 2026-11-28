@@ -1,8 +1,15 @@
 const mongoose = require("mongoose");
 const Product = require("../models/Product");
+const Purchase = require("../models/Purchase");
 const Supplier = require("../models/Supplier");
 const { tenantFilter, findOwned } = require("../utils/tenant");
 const { resolveActorName } = require("../utils/actor");
+const {
+  recordOpeningBalancePayment,
+  OpeningBalancePaymentValidationError,
+  OpeningBalancePaymentConflictError,
+  OpeningBalancePaymentNotFoundError,
+} = require("../utils/opening-balance-payments");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -49,7 +56,6 @@ const PAYMENT_TERMS = {
   advance: "Advance",
 };
 
-const TAX_STATUSES = ["standard", "exempt", "non-filer"];
 const GRACE_DAYS = [0, 5, 10, 15];
 
 class ValidationError extends Error {
@@ -150,9 +156,6 @@ async function buildSupplierChanges(body, options = {}, req = null) {
   const hubKey = cleanString(body.hub);
   if (hubKey && !HUBS[hubKey]) throw new ValidationError("Invalid distribution hub");
 
-  const taxStatus = cleanString(body.taxStatus) || "standard";
-  if (!TAX_STATUSES.includes(taxStatus)) throw new ValidationError("Invalid tax status");
-
   const email = cleanString(body.email);
   if (email && !isValidEmail(email)) throw new ValidationError("Enter a valid email address");
 
@@ -184,7 +187,6 @@ async function buildSupplierChanges(body, options = {}, req = null) {
     email,
     hub: hub.label,
     region: hub.region,
-    taxStatus,
     address,
     ntn: cleanString(body.ntn),
     paymentTerms,
@@ -202,8 +204,14 @@ async function buildSupplierChanges(body, options = {}, req = null) {
 }
 
 function handleControllerError(error, res, next) {
-  if (error instanceof ValidationError) {
+  if (error instanceof ValidationError || error instanceof OpeningBalancePaymentValidationError) {
     return res.status(400).json({ message: error.message });
+  }
+  if (error instanceof OpeningBalancePaymentConflictError) {
+    return res.status(409).json({ message: error.message });
+  }
+  if (error instanceof OpeningBalancePaymentNotFoundError) {
+    return res.status(404).json({ message: error.message });
   }
   return next(error);
 }
@@ -350,6 +358,51 @@ async function updateSupplier(req, res, next) {
   }
 }
 
+async function recordSupplierOpeningBalancePayment(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+
+    const supplier = await recordOpeningBalancePayment({
+      Model: Supplier,
+      type: "supplier",
+      req,
+      id,
+    });
+    return res.status(200).json({
+      message: "Opening balance payment recorded",
+      supplier,
+    });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
+async function reverseSupplierOpeningBalancePayment(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+
+    const supplier = await recordOpeningBalancePayment({
+      Model: Supplier,
+      type: "supplier",
+      req,
+      id,
+      paymentId: req.params.paymentId,
+    });
+    return res.status(200).json({
+      message: "Opening balance payment reversed",
+      supplier,
+    });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
 async function deleteSupplier(req, res, next) {
   try {
     const id = req.params.id;
@@ -357,8 +410,29 @@ async function deleteSupplier(req, res, next) {
       return res.status(404).json({ message: "Supplier not found" });
     }
 
-    const supplier = await Supplier.findOneAndDelete(scopedFilter(req, { _id: id }));
+    const hasHistory = await Purchase.exists(
+      scopedFilter(req, { "supplier.id": String(id) })
+    );
+    if (hasHistory) {
+      return res.status(409).json({
+        message: "Supplier has purchase/payment history and cannot be deleted",
+      });
+    }
+
+    const supplier = await Supplier.findOne(scopedFilter(req, { _id: id }))
+      .select("openingBalance")
+      .lean();
     if (!supplier) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+    if (Number(supplier.openingBalance) > 0) {
+      return res.status(409).json({
+        message: "Supplier has an opening balance and cannot be deleted",
+      });
+    }
+
+    const deleted = await Supplier.findOneAndDelete(scopedFilter(req, { _id: id }));
+    if (!deleted) {
       return res.status(404).json({ message: "Supplier not found" });
     }
 
@@ -375,5 +449,7 @@ module.exports = {
   getSupplierByCode,
   createSupplier,
   updateSupplier,
+  recordSupplierOpeningBalancePayment,
+  reverseSupplierOpeningBalancePayment,
   deleteSupplier,
 };

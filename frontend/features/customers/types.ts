@@ -1,3 +1,5 @@
+import type { OpeningBalancePaymentRecord } from "../profiles/types";
+
 export type CustomerStatus = "Active" | "Inactive" | "Blocked";
 
 export type CustomerType = "Wholesale" | "Retailer" | "Distributor" | "Other";
@@ -25,6 +27,8 @@ export type PaymentTerms = "cod" | "7days" | "15days" | "30days" | "45days";
 
 export type GracePeriod = "none" | "3days" | "5days" | "7days";
 
+export type CreditStatus = "no-limit" | "within" | "near" | "exceeded";
+
 export type Customer = {
   id: string;
   code: string;
@@ -42,8 +46,16 @@ export type Customer = {
   routeLabel: string;
   ntn: string;
   creditLimit: number;
+  availableCredit: number;
+  creditExposurePercent: number;
+  creditStatus: CreditStatus;
+  nearCreditLimit: boolean;
+  creditLimitExceeded: boolean;
   paymentTerms: PaymentTerms;
   openingBalance: number;
+  openingBalancePaid: number;
+  remainingOpeningBalance: number;
+  openingBalancePayments: OpeningBalancePaymentRecord[];
   gracePeriod: GracePeriod;
   notes: string;
   orders: number;
@@ -103,7 +115,7 @@ export type CreateCustomerInput = {
 
 export type UpdateCustomerInput = Omit<
   CreateCustomerInput,
-  "creditLimit" | "paymentTerms" | "openingBalance" | "gracePeriod"
+  "paymentTerms" | "openingBalance" | "gracePeriod"
 >;
 
 export type CustomerDto = {
@@ -123,8 +135,16 @@ export type CustomerDto = {
   routeLabel: string;
   ntn: string;
   creditLimit: number;
+  availableCredit: number;
+  creditExposurePercent: number;
+  creditStatus: CreditStatus;
+  nearCreditLimit: boolean;
+  creditLimitExceeded: boolean;
   paymentTerms: PaymentTerms;
   openingBalance: number;
+  openingBalancePaid: number;
+  remainingOpeningBalance: number;
+  openingBalancePayments: OpeningBalancePaymentRecord[];
   gracePeriod: GracePeriod;
   notes: string;
   orders: number;

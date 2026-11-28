@@ -178,11 +178,6 @@ export function ProductDetailModal({ product, onClose, onEdit, onDeleted }: Prod
                 <div className="mt-1 font-mono-data text-mono-data tabular-nums text-on-surface">{formatPricePerPiece(product.retailPrice)}</div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-lg border border-outline-variant bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
-                Tax: {product.taxBracket || "-"}
-              </span>
-            </div>
           </section>
 
           {/* Inventory */}

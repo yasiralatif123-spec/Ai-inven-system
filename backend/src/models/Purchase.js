@@ -40,8 +40,6 @@ const purchaseItemSchema = new mongoose.Schema({
   basePrice: { type: Number, default: 0, min: 0 },
   unitPrice: { type: Number, required: true, min: 0 },
   discount: { type: Number, default: 0, min: 0 },
-  taxRate: { type: Number, default: 18, min: 0, max: 100 },
-  taxAmount: { type: Number, default: 0, min: 0 },
   lineTotal: { type: Number, required: true, min: 0 },
 });
 
@@ -75,7 +73,6 @@ const purchaseSchema = new mongoose.Schema(
     financials: {
       subtotal: { type: Number, required: true, min: 0 },
       discount: { type: Number, default: 0, min: 0 },
-      tax: { type: Number, default: 0, min: 0 },
       freight: { type: Number, default: 0, min: 0 },
       total: { type: Number, required: true, min: 0 },
     },

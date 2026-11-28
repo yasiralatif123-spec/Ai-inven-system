@@ -1,9 +1,9 @@
 import {
   normalizeUnit,
+  parseCanonicalPrice,
   parseMoneyInput,
   priceForUnit,
   pricePerPiece,
-  roundMoney,
   type StockUnit,
 } from "../lib/units";
 import type { Product } from "./types";
@@ -21,7 +21,7 @@ export function priceUnitFromProduct(product?: Partial<Product> | null): StockUn
 /** Product prices are stored per Piece; null represents an unusable/invalid value. */
 export function canonicalPricesFromProduct(product?: Partial<Product> | null): CanonicalPrices {
   return PRICE_FIELDS.reduce((prices, field) => {
-    prices[field] = parseMoneyInput(product?.[field]);
+    prices[field] = parseCanonicalPrice(product?.[field]);
     return prices;
   }, {} as CanonicalPrices);
 }
@@ -32,7 +32,7 @@ export function displayPricesFromCanonical(
 ): DisplayPrices {
   return PRICE_FIELDS.reduce((prices, field) => {
     const perPiece = canonical[field];
-    prices[field] = perPiece === null ? "" : String(roundMoney(priceForUnit(perPiece, unit) ?? 0));
+    prices[field] = perPiece === null ? "" : String(priceForUnit(perPiece, unit) ?? 0);
     return prices;
   }, {} as DisplayPrices);
 }
@@ -42,4 +42,17 @@ export function canonicalPriceFromDisplay(value: string, unit: StockUnit): numbe
   const entered = parseMoneyInput(value);
   if (entered === null) return null;
   return pricePerPiece(entered, unit);
+}
+
+/**
+ * Canonical prices are sent alongside display values so switching the entry
+ * unit (especially to Piece) cannot round away per-Piece precision on save.
+ */
+export function appendCanonicalPrices(form: FormData, canonical: CanonicalPrices): void {
+  PRICE_FIELDS.forEach((field) => {
+    const value = canonical[field];
+    if (value === null) return;
+    const key = `canonical${field[0].toUpperCase()}${field.slice(1)}`;
+    form.append(key, String(value));
+  });
 }
