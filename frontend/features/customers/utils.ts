@@ -23,7 +23,7 @@ export function isValidCustomerPhone(value: string): boolean {
 }
 
 export function isOverLimit(customer: Customer): boolean {
-  return customer.outstanding > customer.creditLimit;
+  return customer.creditLimitExceeded;
 }
 
 function phoneDigits(value: string): string {

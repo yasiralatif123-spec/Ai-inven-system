@@ -5,6 +5,7 @@ const SaleOrder = require("../models/SaleOrder");
 const Purchase = require("../models/Purchase");
 const { roundMoney } = require("./units");
 const { sumOpeningBalancePayments } = require("./payment-accounting");
+const { evaluateCustomerCreditLimit } = require("./credit-limit-alerts");
 
 // Kept in sync with supplier.controller.js so payable notes stay consistent.
 const PAYMENT_TERMS_LABELS = {
@@ -111,13 +112,18 @@ async function aggregateCustomerFinancials({
 
 function deriveCustomerFinancialSummary(customer, summary) {
   const opening = openingBalanceFields(customer);
+  const outstanding = nonNegativeMoney(
+    opening.remainingOpeningBalance + nonNegativeMoney(summary?.orderOutstanding)
+  );
+  const creditLimit = nonNegativeMoney(customer?.creditLimit);
+
   return {
     ...opening,
     orders: Math.max(0, Number(summary?.orders) || 0),
     totalPurchases: nonNegativeMoney(summary?.totalPurchases),
-    outstanding: nonNegativeMoney(
-      opening.remainingOpeningBalance + nonNegativeMoney(summary?.orderOutstanding)
-    ),
+    outstanding,
+    creditLimit,
+    ...evaluateCustomerCreditLimit({ creditLimit, outstanding }),
   };
 }
 

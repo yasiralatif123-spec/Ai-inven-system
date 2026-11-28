@@ -4,6 +4,7 @@ const SaleOrder = require("../models/SaleOrder");
 const { tenantFilter } = require("../utils/tenant");
 const { resolveActorName } = require("../utils/actor");
 const { withAuthoritativeCustomerFinancials } = require("../utils/financials");
+const { parseMoneyInput } = require("../utils/units");
 const {
   recordOpeningBalancePayment,
   OpeningBalancePaymentValidationError,
@@ -147,10 +148,12 @@ function buildCustomerChanges(body, req = null) {
   if (!paymentTerms) throw new ValidationError("Payment terms is required");
   if (!PAYMENT_TERMS.includes(paymentTerms)) throw new ValidationError("Invalid payment terms");
 
-  const creditLimit = parseNumber(body.creditLimit, {
-    message: "Trade credit limit is required",
-  });
-  if (creditLimit < 0) throw new ValidationError("Trade credit limit cannot be negative");
+  const creditLimit = parseMoneyInput(body.creditLimit);
+  if (creditLimit === null) {
+    throw new ValidationError(
+      "Trade credit limit must be a finite, non-negative number"
+    );
+  }
 
   const openingBalance = parseNumber(body.openingBalance, { fallback: 0 });
   if (openingBalance < 0) throw new ValidationError("Opening balance cannot be negative");
@@ -313,11 +316,13 @@ async function updateCustomer(req, res, next) {
       return res.status(404).json({ message: "Customer not found" });
     }
 
+    const body = req.body || {};
     const merged = {
       ...existing,
-      ...(req.body || {}),
+      ...body,
       ledgerCode: existing.ledgerCode,
-      creditLimit: existing.creditLimit,
+      creditLimit:
+        body.creditLimit === undefined ? existing.creditLimit : body.creditLimit,
       paymentTerms: existing.paymentTerms,
       openingBalance: existing.openingBalance,
       gracePeriod: existing.gracePeriod,

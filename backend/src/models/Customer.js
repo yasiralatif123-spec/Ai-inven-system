@@ -34,7 +34,7 @@ const customerSchema = new mongoose.Schema(
     route: { type: String, default: "unassigned", trim: true, index: true },
     routeLabel: { type: String, default: "", trim: true },
     ntn: { type: String, default: "", trim: true },
-    creditLimit: { type: Number, required: true, min: 0 },
+    creditLimit: { type: Number, default: 0, min: 0 },
     paymentTerms: {
       type: String,
       required: true,

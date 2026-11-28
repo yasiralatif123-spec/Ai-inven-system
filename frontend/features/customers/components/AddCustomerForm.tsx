@@ -520,6 +520,39 @@ export function AddCustomerForm() {
 
         <SectionCard
           number="3"
+          title="Credit Limit"
+          description="Set an optional trade ceiling. Enter 0 for No Limit Set; credit limits never block sales."
+          badge={
+            <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+              Optional
+            </span>
+          }
+        >
+          <Field
+            label="Credit Limit (PKR)"
+            hint="0 means No Limit Set and disables credit-limit alerts for this account."
+          >
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-2.5 select-none font-mono-data-sm text-mono-data-sm font-medium text-on-surface-variant">
+                Rs.
+              </span>
+              <input
+                className={`${INPUT_CLASS} pl-10 pr-2.5 text-right font-mono-data`}
+                value={form.creditLimit || ""}
+                onChange={(event) =>
+                  update("creditLimit", Math.max(0, Number(event.target.value) || 0))
+                }
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                type="number"
+              />
+            </div>
+          </Field>
+        </SectionCard>
+
+        <SectionCard
+          number="4"
           title="Opening Ledger Position & Internal Notes"
           description="Carry-forward balance, security references, and specialized billing instructions."
           badge={

@@ -67,6 +67,12 @@ Returns all customer records, newest first.
       "orders": 0,
       "totalPurchases": 0,
       "outstanding": 20000,
+      "hasLimit": true,
+      "availableCredit": 80000,
+      "creditExposurePercent": 20,
+      "creditStatus": "within",
+      "nearCreditLimit": false,
+      "creditLimitExceeded": false,
       "createdBy": "Owner Name",
       "createdAt": "2026-11-17T15:00:00.000Z",
       "updatedAt": "2026-11-17T15:00:00.000Z"
@@ -109,9 +115,10 @@ list response. This is used by the customer profile page.
 
 ### `PUT /api/customers/:id`
 
-Updates the editable contact, classification, route, and notes fields of a
-customer. The server preserves `ledgerCode`, credit settings, opening balance,
-order counters, purchase totals, outstanding balance, and `createdBy`.
+Updates the editable contact, classification, route, notes, and `creditLimit`
+fields of a customer. The server preserves `ledgerCode`, `paymentTerms`, opening
+balance, order counters, purchase totals, outstanding balance, and `createdBy`.
+Omitting `creditLimit` keeps its saved value; sending `0` means No Limit Set.
 
 **200 response**
 
@@ -129,8 +136,9 @@ order counters, purchase totals, outstanding balance, and `createdBy`.
 ```
 
 The request accepts the same `name`, `businessName`, `phone`, `altPhone`,
-`email`, `city`, `address`, `customerType`, `status`, `route`, `ntn`, and
-`notes` rules as create. Omitted fields keep their stored values.
+`email`, `city`, `address`, `customerType`, `status`, `route`, `ntn`,
+`creditLimit`, and `notes` rules as create. Omitted fields keep their stored
+values.
 
 ### `POST /api/customers/:id/opening-balance-payments`
 
@@ -237,7 +245,7 @@ and a zero opening balance can be deleted.
 | `status` | Yes | `Active`, `Inactive`, `Blocked` |
 | `route` | No | `lahore-central`, `lahore-north`, `lahore-south`, `multan-road`, `intercity-gt`, `unassigned`; defaults to `unassigned` |
 | `ntn` | No | String |
-| `creditLimit` | Yes | Number >= 0 |
+| `creditLimit` | No | Finite, non-negative monetary value; defaults to `0` (No Limit Set); rounded to 2 decimals |
 | `paymentTerms` | Yes | `cod`, `7days`, `15days`, `30days`, `45days` |
 | `openingBalance` | No | Number >= 0; defaults to `0` |
 | `gracePeriod` | No | `none`, `3days`, `5days`, `7days`; defaults to `none` |
@@ -250,6 +258,14 @@ and a zero opening balance can be deleted.
 `remainingOpeningBalance + salesOutstanding`, where sales outstanding excludes
 opening-balance payments entirely.
 
+`availableCredit`, `creditExposurePercent`, `creditStatus`, `nearCreditLimit`,
+and `creditLimitExceeded` are also server-derived from `creditLimit` and the
+authoritative `outstanding`. `availableCredit` is
+`max(creditLimit - outstanding, 0)`. An exposure of 80% or more is `near` and an
+outstanding amount greater than a positive limit is `exceeded`; a `creditLimit`
+of `0` is `no-limit` and produces no credit-limit alerts. These values are
+calculations only: sales are never blocked or rejected by the credit limit.
+
 ## Error examples
 
 ```json
@@ -261,7 +277,7 @@ opening-balance payments entirely.
 ```
 
 ```json
-{ "message": "Trade credit limit is required" }
+{ "message": "Trade credit limit must be a finite, non-negative number" }
 ```
 
 ```json
