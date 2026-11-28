@@ -4,6 +4,12 @@ const SaleOrder = require("../models/SaleOrder");
 const { tenantFilter } = require("../utils/tenant");
 const { resolveActorName } = require("../utils/actor");
 const { withAuthoritativeCustomerFinancials } = require("../utils/financials");
+const {
+  recordOpeningBalancePayment,
+  OpeningBalancePaymentValidationError,
+  OpeningBalancePaymentConflictError,
+  OpeningBalancePaymentNotFoundError,
+} = require("../utils/opening-balance-payments");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -189,8 +195,14 @@ function buildCustomerChanges(body, req = null) {
 }
 
 function handleControllerError(error, res, next) {
-  if (error instanceof ValidationError) {
+  if (error instanceof ValidationError || error instanceof OpeningBalancePaymentValidationError) {
     return res.status(400).json({ message: error.message });
+  }
+  if (error instanceof OpeningBalancePaymentConflictError) {
+    return res.status(409).json({ message: error.message });
+  }
+  if (error instanceof OpeningBalancePaymentNotFoundError) {
+    return res.status(404).json({ message: error.message });
   }
   return next(error);
 }
@@ -335,6 +347,51 @@ async function updateCustomer(req, res, next) {
   }
 }
 
+async function recordCustomerOpeningBalancePayment(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const customer = await recordOpeningBalancePayment({
+      Model: Customer,
+      type: "customer",
+      req,
+      id,
+    });
+    return res.status(200).json({
+      message: "Opening balance payment recorded",
+      customer: await customerResponse(customer, req),
+    });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
+async function reverseCustomerOpeningBalancePayment(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    const customer = await recordOpeningBalancePayment({
+      Model: Customer,
+      type: "customer",
+      req,
+      id,
+      paymentId: req.params.paymentId,
+    });
+    return res.status(200).json({
+      message: "Opening balance payment reversed",
+      customer: await customerResponse(customer, req),
+    });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
 async function deleteCustomer(req, res, next) {
   try {
     const id = req.params.id;
@@ -381,5 +438,7 @@ module.exports = {
   getCustomerByCode,
   createCustomer,
   updateCustomer,
+  recordCustomerOpeningBalancePayment,
+  reverseCustomerOpeningBalancePayment,
   deleteCustomer,
 };

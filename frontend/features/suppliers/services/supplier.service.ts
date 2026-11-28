@@ -1,4 +1,5 @@
 import { apiFetch } from "../../../app/lib/api";
+import type { OpeningBalancePaymentInput } from "../../profiles/types";
 import { HUB_OPTIONS } from "../constants";
 import type {
   CreateSupplierInput,
@@ -55,6 +56,11 @@ function toSupplier(dto: SupplierDto): Supplier {
     ntn: dto.ntn || "",
     paymentTerms: dto.paymentTerms,
     openingBalance: Number(dto.openingBalance || 0),
+    openingBalancePaid: Number(dto.openingBalancePaid || 0),
+    remainingOpeningBalance: Number(dto.remainingOpeningBalance || 0),
+    openingBalancePayments: Array.isArray(dto.openingBalancePayments)
+      ? dto.openingBalancePayments
+      : [],
     graceDays: Number(dto.graceDays || 0),
     notes: dto.notes || "",
     createdBy: dto.createdBy || "—",
@@ -114,6 +120,57 @@ export async function updateSupplier(
   });
   const data = await readJson(response);
   assertOk(response, data, "Failed to update supplier");
+  return toSupplier(data.supplier as SupplierDto);
+}
+
+export async function recordSupplierOpeningBalancePayment(
+  id: string,
+  input: OpeningBalancePaymentInput
+): Promise<Supplier> {
+  const response = await apiFetch(
+    `/api/suppliers/${encodeURIComponent(id)}/opening-balance-payments`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": input.idempotencyKey,
+      },
+      body: JSON.stringify({
+        amount: input.amount,
+        method: input.method,
+        reference: input.reference,
+      }),
+    }
+  );
+  const data = await readJson(response);
+  assertOk(response, data, "Failed to record the opening balance payment");
+  return toSupplier(data.supplier as SupplierDto);
+}
+
+export async function reverseSupplierOpeningBalancePayment(
+  id: string,
+  paymentId: string,
+  input: OpeningBalancePaymentInput
+): Promise<Supplier> {
+  const response = await apiFetch(
+    `/api/suppliers/${encodeURIComponent(id)}/opening-balance-payments/${encodeURIComponent(
+      paymentId
+    )}/reversal`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": input.idempotencyKey,
+      },
+      body: JSON.stringify({
+        amount: input.amount,
+        method: input.method,
+        reference: input.reference,
+      }),
+    }
+  );
+  const data = await readJson(response);
+  assertOk(response, data, "Failed to reverse the opening balance payment");
   return toSupplier(data.supplier as SupplierDto);
 }
 

@@ -1,3 +1,5 @@
+import type { OpeningBalancePaymentRecord } from "../profiles/types";
+
 export type HubKey = "" | "karachi" | "lahore" | "faisalabad" | "multan" | "rawalpindi";
 export type PaymentTerms = "net-15" | "net-30" | "net-7" | "cod" | "advance";
 export type SupplierStatus = "Active" | "On Hold" | "Inactive";
@@ -24,6 +26,9 @@ export type Supplier = {
   ntn: string;
   paymentTerms: PaymentTerms;
   openingBalance: number;
+  openingBalancePaid: number;
+  remainingOpeningBalance: number;
+  openingBalancePayments: OpeningBalancePaymentRecord[];
   graceDays: number;
   notes: string;
   createdBy: string;
@@ -98,6 +103,9 @@ export type SupplierDto = {
   ntn: string;
   paymentTerms: PaymentTerms;
   openingBalance: number;
+  openingBalancePaid: number;
+  remainingOpeningBalance: number;
+  openingBalancePayments: OpeningBalancePaymentRecord[];
   graceDays: number;
   notes: string;
   status: SupplierStatus;

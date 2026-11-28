@@ -52,6 +52,13 @@ function resolveIdempotencyKey(req, { kind, documentId, amount }) {
   return `legacy_${crypto.createHash("sha256").update(basis).digest("hex").slice(0, 32)}`;
 }
 
+const OPENING_BALANCE_PAYMENT_METHODS = [
+  "Cash",
+  "Bank Transfer",
+  "Cheque",
+  "Online Transfer",
+];
+
 function buildPaymentRecord({
   amount,
   method = "Cash",
@@ -59,6 +66,8 @@ function buildPaymentRecord({
   idempotencyKey,
   createdBy = "System",
   paidAt = new Date(),
+  kind = "payment",
+  reversesPaymentId = "",
 }) {
   return {
     amount: roundMoney(amount),
@@ -67,6 +76,8 @@ function buildPaymentRecord({
     paidAt,
     createdBy: cleanString(createdBy) || "System",
     idempotencyKey: cleanString(idempotencyKey),
+    kind: kind === "reversal" ? "reversal" : "payment",
+    reversesPaymentId: cleanString(reversesPaymentId),
   };
 }
 
@@ -163,6 +174,46 @@ function ledgerPaid(doc, legacyPaid) {
   return roundMoney(legacyPaid);
 }
 
+function isOpeningBalancePaymentMethod(method) {
+  return OPENING_BALANCE_PAYMENT_METHODS.includes(cleanString(method));
+}
+
+/** Net opening-balance amount after append-only payment and reversal records. */
+function sumOpeningBalancePayments(payments) {
+  const rows = plainPayments({ payments });
+  const paid = rows.reduce(
+    (sum, row) => (cleanString(row.kind) === "reversal" ? sum : sum + (Number(row.amount) || 0)),
+    0
+  );
+  const reversed = rows.reduce(
+    (sum, row) => (cleanString(row.kind) === "reversal" ? sum + (Number(row.amount) || 0) : sum),
+    0
+  );
+  return roundMoney(Math.max(paid - reversed, 0));
+}
+
+function openingBalancePaymentById(payments, paymentId) {
+  const id = cleanString(paymentId);
+  if (!id) return null;
+  return (
+    plainPayments({ payments }).find(
+      (row) =>
+        cleanString(row._id) === id &&
+        cleanString(row.kind) !== "reversal"
+    ) || null
+  );
+}
+
+function reversalTotalFor(payments, paymentId) {
+  const id = cleanString(paymentId);
+  return roundMoney(
+    plainPayments({ payments }).reduce((sum, row) => {
+      if (cleanString(row.kind) !== "reversal") return sum;
+      return cleanString(row.reversesPaymentId) === id ? sum + (Number(row.amount) || 0) : sum;
+    }, 0)
+  );
+}
+
 module.exports = {
   roundMoney,
   parsePaymentAmount,
@@ -178,4 +229,9 @@ module.exports = {
   derivePurchasePaidAmount,
   buildLegacyBalancePayment,
   ledgerPaid,
+  OPENING_BALANCE_PAYMENT_METHODS,
+  isOpeningBalancePaymentMethod,
+  sumOpeningBalancePayments,
+  openingBalancePaymentById,
+  reversalTotalFor,
 };

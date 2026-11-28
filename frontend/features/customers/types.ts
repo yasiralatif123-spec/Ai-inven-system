@@ -1,3 +1,5 @@
+import type { OpeningBalancePaymentRecord } from "../profiles/types";
+
 export type CustomerStatus = "Active" | "Inactive" | "Blocked";
 
 export type CustomerType = "Wholesale" | "Retailer" | "Distributor" | "Other";
@@ -44,6 +46,9 @@ export type Customer = {
   creditLimit: number;
   paymentTerms: PaymentTerms;
   openingBalance: number;
+  openingBalancePaid: number;
+  remainingOpeningBalance: number;
+  openingBalancePayments: OpeningBalancePaymentRecord[];
   gracePeriod: GracePeriod;
   notes: string;
   orders: number;
@@ -125,6 +130,9 @@ export type CustomerDto = {
   creditLimit: number;
   paymentTerms: PaymentTerms;
   openingBalance: number;
+  openingBalancePaid: number;
+  remainingOpeningBalance: number;
+  openingBalancePayments: OpeningBalancePaymentRecord[];
   gracePeriod: GracePeriod;
   notes: string;
   orders: number;

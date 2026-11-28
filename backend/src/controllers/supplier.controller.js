@@ -4,6 +4,12 @@ const Purchase = require("../models/Purchase");
 const Supplier = require("../models/Supplier");
 const { tenantFilter, findOwned } = require("../utils/tenant");
 const { resolveActorName } = require("../utils/actor");
+const {
+  recordOpeningBalancePayment,
+  OpeningBalancePaymentValidationError,
+  OpeningBalancePaymentConflictError,
+  OpeningBalancePaymentNotFoundError,
+} = require("../utils/opening-balance-payments");
 
 function isTenantEnforced(req) {
   return req.tenantEnforced === true && Boolean(req.auth?.businessId);
@@ -198,8 +204,14 @@ async function buildSupplierChanges(body, options = {}, req = null) {
 }
 
 function handleControllerError(error, res, next) {
-  if (error instanceof ValidationError) {
+  if (error instanceof ValidationError || error instanceof OpeningBalancePaymentValidationError) {
     return res.status(400).json({ message: error.message });
+  }
+  if (error instanceof OpeningBalancePaymentConflictError) {
+    return res.status(409).json({ message: error.message });
+  }
+  if (error instanceof OpeningBalancePaymentNotFoundError) {
+    return res.status(404).json({ message: error.message });
   }
   return next(error);
 }
@@ -346,6 +358,51 @@ async function updateSupplier(req, res, next) {
   }
 }
 
+async function recordSupplierOpeningBalancePayment(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+
+    const supplier = await recordOpeningBalancePayment({
+      Model: Supplier,
+      type: "supplier",
+      req,
+      id,
+    });
+    return res.status(200).json({
+      message: "Opening balance payment recorded",
+      supplier,
+    });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
+async function reverseSupplierOpeningBalancePayment(req, res, next) {
+  try {
+    const id = req.params.id;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+
+    const supplier = await recordOpeningBalancePayment({
+      Model: Supplier,
+      type: "supplier",
+      req,
+      id,
+      paymentId: req.params.paymentId,
+    });
+    return res.status(200).json({
+      message: "Opening balance payment reversed",
+      supplier,
+    });
+  } catch (error) {
+    return handleControllerError(error, res, next);
+  }
+}
+
 async function deleteSupplier(req, res, next) {
   try {
     const id = req.params.id;
@@ -392,5 +449,7 @@ module.exports = {
   getSupplierByCode,
   createSupplier,
   updateSupplier,
+  recordSupplierOpeningBalancePayment,
+  reverseSupplierOpeningBalancePayment,
   deleteSupplier,
 };

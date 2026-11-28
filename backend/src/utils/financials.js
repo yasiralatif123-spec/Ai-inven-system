@@ -4,6 +4,7 @@ const Supplier = require("../models/Supplier");
 const SaleOrder = require("../models/SaleOrder");
 const Purchase = require("../models/Purchase");
 const { roundMoney } = require("./units");
+const { sumOpeningBalancePayments } = require("./payment-accounting");
 
 // Kept in sync with supplier.controller.js so payable notes stay consistent.
 const PAYMENT_TERMS_LABELS = {
@@ -17,6 +18,17 @@ const PAYMENT_TERMS_LABELS = {
 function nonNegativeMoney(value) {
   const rounded = roundMoney(value);
   return Number.isFinite(rounded) && rounded > 0 ? rounded : 0;
+}
+
+function openingBalanceFields(party) {
+  const paid = sumOpeningBalancePayments(party?.openingBalancePayments);
+  const remaining = nonNegativeMoney(
+    nonNegativeMoney(party?.openingBalance) - nonNegativeMoney(paid)
+  );
+  return {
+    openingBalancePaid: paid,
+    remainingOpeningBalance: remaining,
+  };
 }
 
 function toObjectId(value) {
@@ -98,11 +110,13 @@ async function aggregateCustomerFinancials({
 }
 
 function deriveCustomerFinancialSummary(customer, summary) {
+  const opening = openingBalanceFields(customer);
   return {
+    ...opening,
     orders: Math.max(0, Number(summary?.orders) || 0),
     totalPurchases: nonNegativeMoney(summary?.totalPurchases),
     outstanding: nonNegativeMoney(
-      nonNegativeMoney(customer?.openingBalance) + nonNegativeMoney(summary?.orderOutstanding)
+      opening.remainingOpeningBalance + nonNegativeMoney(summary?.orderOutstanding)
     ),
   };
 }
@@ -225,8 +239,9 @@ async function recalculateSupplierFinancials({
     const [summary] = await aggregate;
 
     const totalPurchases = nonNegativeMoney(summary?.totalPurchases);
+    const opening = openingBalanceFields(supplier);
     const outstanding = nonNegativeMoney(
-      nonNegativeMoney(supplier.openingBalance) + nonNegativeMoney(summary?.remaining)
+      opening.remainingOpeningBalance + nonNegativeMoney(summary?.remaining)
     );
     const payableNote =
       outstanding > 0
@@ -240,6 +255,7 @@ async function recalculateSupplierFinancials({
       supplierFilter,
       {
         $set: {
+          ...opening,
           totalPurchases,
           outstanding,
           payableNote,

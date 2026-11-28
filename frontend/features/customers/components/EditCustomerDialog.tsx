@@ -7,7 +7,12 @@ import {
   ROUTE_OPTIONS,
   STATUS_OPTIONS,
 } from "../constants";
-import { updateCustomer } from "../services/customer.service";
+import { OpeningBalancePaymentSection } from "../../profiles/OpeningBalancePaymentSection";
+import type { OpeningBalancePaymentInput } from "../../profiles/types";
+import {
+  recordCustomerOpeningBalancePayment,
+  updateCustomer,
+} from "../services/customer.service";
 import type {
   City,
   Customer,
@@ -71,6 +76,7 @@ function SelectShell({ children }: { children: ReactNode }) {
 
 export function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerDialogProps) {
   const [form, setForm] = useState<UpdateCustomerInput>(() => toInput(customer));
+  const [paymentTarget, setPaymentTarget] = useState(customer);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,6 +133,12 @@ export function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerD
       );
       setSaving(false);
     }
+  }
+
+  async function handleOpeningBalancePayment(input: OpeningBalancePaymentInput) {
+    const updated = await recordCustomerOpeningBalancePayment(customer.id, input);
+    setPaymentTarget(updated);
+    onSaved(updated);
   }
 
   return (
@@ -286,6 +298,14 @@ export function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerD
               </Field>
             </div>
           </section>
+
+          <OpeningBalancePaymentSection
+            openingBalance={paymentTarget.openingBalance}
+            openingBalancePaid={paymentTarget.openingBalancePaid}
+            remainingOpeningBalance={paymentTarget.remainingOpeningBalance}
+            payments={paymentTarget.openingBalancePayments}
+            onSubmit={handleOpeningBalancePayment}
+          />
 
           {error ? (
             <div className="flex items-center gap-2 rounded-lg border border-error/20 bg-error-container/50 px-3 py-2 font-body-dense text-body-dense text-error">

@@ -15,6 +15,14 @@ const paymentRecordSchema = new mongoose.Schema(
     paidAt: { type: Date, default: Date.now },
     createdBy: { type: String, default: "System", trim: true },
     idempotencyKey: { type: String, default: "", trim: true },
+    // Opening-balance ledgers are append-only. Reversals are positive records
+    // with a negative effect and link back to the original payment.
+    kind: {
+      type: String,
+      enum: ["payment", "reversal"],
+      default: "payment",
+    },
+    reversesPaymentId: { type: String, default: "", trim: true },
   },
   { _id: true }
 );

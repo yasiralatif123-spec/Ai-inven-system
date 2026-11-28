@@ -7,6 +7,8 @@ const {
   getSupplierByCode,
   createSupplier,
   updateSupplier,
+  recordSupplierOpeningBalancePayment,
+  reverseSupplierOpeningBalancePayment,
   deleteSupplier,
 } = require("../controllers/supplier.controller");
 
@@ -20,6 +22,8 @@ router.get("/code/:supplierCode", getSupplierByCode);
 router.get("/:id", getSupplierById);
 router.post("/", createSupplier);
 router.put("/:id", updateSupplier);
+router.post("/:id/opening-balance-payments", recordSupplierOpeningBalancePayment);
+router.post("/:id/opening-balance-payments/:paymentId/reversal", reverseSupplierOpeningBalancePayment);
 router.delete("/:id", deleteSupplier);
 
 module.exports = router;

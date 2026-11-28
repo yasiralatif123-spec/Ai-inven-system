@@ -6,7 +6,12 @@ import {
   HUB_OPTIONS,
   PAYMENT_TERM_OPTIONS,
 } from "../constants";
-import { updateSupplier } from "../services/supplier.service";
+import { OpeningBalancePaymentSection } from "../../profiles/OpeningBalancePaymentSection";
+import type { OpeningBalancePaymentInput } from "../../profiles/types";
+import {
+  recordSupplierOpeningBalancePayment,
+  updateSupplier,
+} from "../services/supplier.service";
 import { useSupplierProducts } from "../hooks/useSupplierProducts";
 import { ProductMultiSelect } from "./ProductMultiSelect";
 import type {
@@ -70,6 +75,7 @@ function SelectShell({ children }: { children: ReactNode }) {
 
 export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierDialogProps) {
   const [form, setForm] = useState<UpdateSupplierInput>(() => toInput(supplier));
+  const [paymentTarget, setPaymentTarget] = useState(supplier);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const {
@@ -151,6 +157,12 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
       );
       setSaving(false);
     }
+  }
+
+  async function handleOpeningBalancePayment(input: OpeningBalancePaymentInput) {
+    const updated = await recordSupplierOpeningBalancePayment(supplier.id, input);
+    setPaymentTarget(updated);
+    onSaved(updated);
   }
 
   return (
@@ -307,6 +319,14 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
               </Field>
             </div>
           </section>
+
+          <OpeningBalancePaymentSection
+            openingBalance={paymentTarget.openingBalance}
+            openingBalancePaid={paymentTarget.openingBalancePaid}
+            remainingOpeningBalance={paymentTarget.remainingOpeningBalance}
+            payments={paymentTarget.openingBalancePayments}
+            onSubmit={handleOpeningBalancePayment}
+          />
 
           {error ? (
             <div className="flex items-center gap-2 rounded-lg border border-error/20 bg-error-container/50 px-3 py-2 font-body-dense text-body-dense text-error">
