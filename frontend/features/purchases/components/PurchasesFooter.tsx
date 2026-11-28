@@ -80,9 +80,6 @@ export function PurchasesFooter({
 
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-outline-variant/60 bg-surface-container-lowest px-3 py-2.5 font-body-dense text-body-dense text-on-surface-variant">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="material-symbols-outlined text-[16px] text-primary">verified_user</span>
-          <span>Procurement ledger synced with FBR NTN withholding rules</span>
-          <span className="text-outline-variant">·</span>
           <span>
             Double-entry debit: <strong className="font-body-medium text-body-medium text-on-surface">Inventory In-Transit / Creditors</strong>
           </span>

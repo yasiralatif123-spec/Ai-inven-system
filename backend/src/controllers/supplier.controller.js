@@ -49,7 +49,6 @@ const PAYMENT_TERMS = {
   advance: "Advance",
 };
 
-const TAX_STATUSES = ["standard", "exempt", "non-filer"];
 const GRACE_DAYS = [0, 5, 10, 15];
 
 class ValidationError extends Error {
@@ -150,9 +149,6 @@ async function buildSupplierChanges(body, options = {}, req = null) {
   const hubKey = cleanString(body.hub);
   if (hubKey && !HUBS[hubKey]) throw new ValidationError("Invalid distribution hub");
 
-  const taxStatus = cleanString(body.taxStatus) || "standard";
-  if (!TAX_STATUSES.includes(taxStatus)) throw new ValidationError("Invalid tax status");
-
   const email = cleanString(body.email);
   if (email && !isValidEmail(email)) throw new ValidationError("Enter a valid email address");
 
@@ -184,7 +180,6 @@ async function buildSupplierChanges(body, options = {}, req = null) {
     email,
     hub: hub.label,
     region: hub.region,
-    taxStatus,
     address,
     ntn: cleanString(body.ntn),
     paymentTerms,

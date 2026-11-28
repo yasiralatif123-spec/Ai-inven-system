@@ -7,8 +7,9 @@ import { AppShell } from "../../components/AppShell";
 import { apiFetch } from "../../lib/api";
 import type { StockUnit } from "../../lib/units";
 import { BrandAutocomplete, type Brand } from "../../../features/brands";
-import { PRODUCT_CATEGORIES, STOCK_UNITS, TAX_BRACKETS, WAREHOUSES } from "../product-options";
+import { PRODUCT_CATEGORIES, STOCK_UNITS, WAREHOUSES } from "../product-options";
 import {
+  appendCanonicalPrices,
   canonicalPriceFromDisplay,
   displayPricesFromCanonical,
   type CanonicalPrices,
@@ -31,7 +32,6 @@ const initialForm = {
   wholesalePrice: "",
   retailPrice: "",
   priceUnit: "Piece" as StockUnit,
-  taxBracket: "Standard Sales Tax (18% FBR SRO)",
   uom: "Carton",
   openingStock: "0",
   reorderThreshold: "",
@@ -117,6 +117,7 @@ function AddProductForm() {
         if (Array.isArray(v)) v.forEach((entry) => fd.append(k, String(entry)));
         else fd.append(k, String(v));
       });
+      appendCanonicalPrices(fd, canonicalPrices);
       if (image) fd.append("image", image);
 
       const res = await apiFetch("/api/products", { method: "POST", body: fd });
@@ -227,8 +228,8 @@ function AddProductForm() {
           <div className="flex flex-col gap-5 rounded-xl border border-outline-variant/80 bg-surface-container-lowest p-6 shadow-panel">
             <div className="flex items-start justify-between border-b border-outline-variant pb-4">
               <div>
-                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-primary"></span><span className="font-label-caps text-label-caps uppercase tracking-wider">B. Pricing Tiers &amp; FBR Taxation</span></div>
-                <p className="mt-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">Cost, wholesale, retail, and tax regime</p>
+                <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-sm bg-primary"></span><span className="font-label-caps text-label-caps uppercase tracking-wider">B. Pricing Tiers</span></div>
+                <p className="mt-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">Cost, wholesale, and retail pricing</p>
               </div>
               <span className="rounded-lg bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">SEC #02</span>
             </div>
@@ -264,16 +265,10 @@ function AddProductForm() {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-1 items-center gap-4 rounded-xl border border-outline-variant bg-surface-container p-4 md:grid-cols-12">
-              <div className="md:col-span-7 flex flex-wrap items-center gap-2 font-mono-data text-mono-data">
+            <div className="rounded-xl border border-outline-variant bg-surface-container p-4">
+              <div className="flex flex-wrap items-center gap-2 font-mono-data text-mono-data">
                 <span className="rounded-lg border border-primary/20 bg-primary-fixed/20 px-3 py-1.5 font-semibold text-primary">Wholesale Margin: +{margins.wPct}% (Rs. {margins.wAmt.toLocaleString()} / Piece)</span>
                 <span className="rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-1.5">MSRP Spread: +{margins.rPct}%</span>
-              </div>
-              <div className="md:col-span-5 flex flex-col gap-1">
-                <label className="font-label-caps text-label-caps uppercase tracking-wider">FBR Sales Tax Regime</label>
-                <select value={form.taxBracket} onChange={(e) => set("taxBracket", e.target.value)} className="h-9 w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 font-body-default transition duration-200 hover:border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
-                  {TAX_BRACKETS.map((o)=><option key={o}>{o}</option>)}
-                </select>
               </div>
             </div>
           </div>

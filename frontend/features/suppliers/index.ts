@@ -24,6 +24,5 @@ export type {
   SupplierRegion,
   SupplierStatus,
   SupplierSummary,
-  TaxStatus,
   UpdateSupplierInput,
 } from "./types";

@@ -56,7 +56,6 @@ const saleOrderFinancialsSchema = new mongoose.Schema(
   {
     subtotal: { type: Number, default: 0, min: 0 },
     discount: { type: Number, default: 0, min: 0 },
-    tax: { type: Number, default: 0, min: 0 },
     freight: { type: Number, default: 0, min: 0 },
     total: { type: Number, required: true, min: 0 },
     paid: { type: Number, default: 0, min: 0 },

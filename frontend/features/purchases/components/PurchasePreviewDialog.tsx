@@ -152,10 +152,6 @@ export function PurchasePreviewDialog({
               <span className="text-error">- {formatRs(totals.discount)}</span>
             </div>
             <div className="flex items-center justify-between font-body-dense text-body-dense">
-              <span className="text-secondary">GST</span>
-              <span>{formatRs(totals.tax)}</span>
-            </div>
-            <div className="flex items-center justify-between font-body-dense text-body-dense">
               <span className="text-secondary">Freight</span>
               <span>{formatRs(totals.freight)}</span>
             </div>

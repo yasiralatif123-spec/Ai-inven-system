@@ -16,13 +16,11 @@ export type PurchaseLineItem = {
   basePrice?: number;
   unitPrice: number;
   discount: number;
-  taxRate: number;
 };
 
 export type PurchaseFinancials = {
   subtotal: number;
   discount: number;
-  tax: number;
   freight: number;
   total: number;
 };
@@ -61,7 +59,6 @@ export type CreatePurchasePayload = {
     basePrice?: number;
     unitPrice: number;
     discount: number;
-    taxRate: number;
   }>;
 };
 
@@ -108,8 +105,6 @@ export type PurchaseDto = {
     basePrice?: number;
     unitPrice: number;
     discount: number;
-    taxRate: number;
-    taxAmount: number;
     lineTotal: number;
   }>;
   financials: PurchaseFinancials;

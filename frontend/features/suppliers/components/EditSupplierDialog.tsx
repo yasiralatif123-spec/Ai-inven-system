@@ -5,7 +5,6 @@ import {
   GRACE_DAY_OPTIONS,
   HUB_OPTIONS,
   PAYMENT_TERM_OPTIONS,
-  TAX_STATUS_OPTIONS,
 } from "../constants";
 import { updateSupplier } from "../services/supplier.service";
 import { useSupplierProducts } from "../hooks/useSupplierProducts";
@@ -14,7 +13,6 @@ import type {
   HubKey,
   PaymentTerms,
   Supplier,
-  TaxStatus,
   UpdateSupplierInput,
 } from "../types";
 import { formatRs } from "../utils";
@@ -39,7 +37,6 @@ function toInput(supplier: Supplier): UpdateSupplierInput {
     phone: supplier.phone,
     email: supplier.email,
     hub: supplier.hubKey,
-    taxStatus: supplier.taxStatus,
     address: supplier.address,
     ntn: supplier.ntn,
     paymentTerms: supplier.paymentTerms,
@@ -225,21 +222,6 @@ export function EditSupplierDialog({ supplier, onClose, onSaved }: EditSupplierD
                 >
                   {HUB_OPTIONS.map((option) => (
                     <option key={option.value || "none"} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </SelectShell>
-            </Field>
-            <Field label="FBR Tax Status">
-              <SelectShell>
-                <select
-                  className={SELECT_CLASS}
-                  value={form.taxStatus}
-                  onChange={(event) => update("taxStatus", event.target.value as TaxStatus)}
-                >
-                  {TAX_STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}

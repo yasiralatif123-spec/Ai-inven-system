@@ -1,5 +1,11 @@
 const CANONICAL_UNITS = ["Piece", "Box", "Carton"];
 
+// Product prices are stored canonically per Piece. Display money stays at 2
+// decimals, but the canonical value needs extra precision so repeated unit
+// switching and transaction totals do not drift.
+const CANONICAL_PRICE_DECIMALS = 8;
+const CANONICAL_PRICE_SCALE = 10 ** CANONICAL_PRICE_DECIMALS;
+
 const PIECES_PER_UNIT = {
   piece: 1,
   pc: 1,
@@ -103,11 +109,39 @@ function roundMoney(value) {
   return Math.round((numeric + Number.EPSILON) * 100) / 100;
 }
 
+function roundCanonicalPrice(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return (
+    Math.round((numeric + Number.EPSILON) * CANONICAL_PRICE_SCALE) /
+    CANONICAL_PRICE_SCALE
+  );
+}
+
+/**
+ * Reads a canonical per-Piece price without forcing it to display money
+ * precision. Missing or malformed values return null so callers can reject
+ * them instead of silently turning them into zero.
+ */
+function parseCanonicalPrice(value) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= 0 ? roundCanonicalPrice(value) : null;
+  }
+  if (typeof value !== "string") return null;
+
+  const text = value.trim().replace(/,/g, "");
+  if (!text || !/^-?\d+(?:\.\d+)?$/.test(text)) return null;
+
+  const amount = Number(text);
+  return Number.isFinite(amount) && amount >= 0 ? roundCanonicalPrice(amount) : null;
+}
+
 function pricePerPiece(price, unit) {
   const factor = toPiecesPerUnit(unit);
   const amount = Number(price);
   if (!Number.isFinite(amount) || factor === null || factor <= 0) return null;
-  return roundMoney(amount / factor);
+  return roundCanonicalPrice(amount / factor);
 }
 
 function priceForUnit(pricePerPieceValue, unit) {
@@ -167,6 +201,7 @@ function parseStoredMoney(value) {
 
 module.exports = {
   CANONICAL_UNITS,
+  CANONICAL_PRICE_DECIMALS,
   PIECES_PER_UNIT,
   normalizeUnit,
   isSupportedUnit,
@@ -177,6 +212,8 @@ module.exports = {
   fromBasePieces,
   formatStock,
   roundMoney,
+  roundCanonicalPrice,
+  parseCanonicalPrice,
   pricePerPiece,
   priceForUnit,
   convertPrice,

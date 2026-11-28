@@ -5,8 +5,9 @@ import type { Product } from "../../../app/products/types";
 import {
   formatStockWithPieces,
   normalizeUnit,
-  parseMoneyInput,
+  parseCanonicalPrice,
   priceForUnit,
+  roundMoney,
   STOCK_UNITS,
   toBasePieces,
 } from "../../../app/lib/units";
@@ -81,7 +82,7 @@ function emptyItem(): EditableItem {
 }
 
 function canonicalSalePrice(product: Product): number {
-  return parseMoneyInput(product.wholesalePrice) ?? 0;
+  return parseCanonicalPrice(product.wholesalePrice) ?? 0;
 }
 
 function saleUnitPrice(product: Product, unit: string): number {
@@ -124,11 +125,17 @@ export function OrderFormDialog({
     error: productsError,
   } = useProductLookup();
 
-  const subtotal = items.reduce((sum, item) => {
-    const quantity = Number(item.quantity) || 0;
-    const unitPrice = Number(item.unitPrice) || 0;
-    return sum + Math.max(quantity, 0) * Math.max(unitPrice, 0);
-  }, 0);
+  const subtotal = roundMoney(
+    items.reduce((sum, item) => {
+      const quantity = Math.max(Number(item.quantity) || 0, 0);
+      const unitPrice = Math.max(Number(item.unitPrice) || 0, 0);
+      const basePrice = Math.max(Number(item.basePrice) || 0, 0);
+      if (item.priceBasis === "catalog" && basePrice > 0) {
+        return sum + basePrice * toBasePieces(quantity, item.unitLabel);
+      }
+      return sum + quantity * unitPrice;
+    }, 0)
+  );
   const discountValue = Math.max(Number(discount) || 0, 0);
   const freightValue = Math.max(Number(freight) || 0, 0);
   const total = Math.max(subtotal - discountValue, 0) + freightValue;

@@ -14,7 +14,6 @@ export type Product = {
   retailPrice?: number;
   /** Unit used when prices were entered; stored values are always per Piece. */
   priceUnit?: StockUnit;
-  taxBracket?: string;
   uom?: string;
   openingStock?: number;
   reorderThreshold?: number;

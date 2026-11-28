@@ -2,6 +2,11 @@ export type StockUnit = "Piece" | "Box" | "Carton";
 
 export const STOCK_UNITS: StockUnit[] = ["Carton", "Box", "Piece"];
 
+// Display money is rounded to 2 decimals. Canonical per-Piece prices keep
+// extra precision so unit switching and transaction totals never drift.
+export const CANONICAL_PRICE_DECIMALS = 8;
+const CANONICAL_PRICE_SCALE = 10 ** CANONICAL_PRICE_DECIMALS;
+
 export const PIECES_PER_UNIT: Record<StockUnit, number> = {
   Piece: 1,
   Box: 12,
@@ -51,6 +56,30 @@ export function roundMoney(value: unknown): number {
   return Math.round((numeric + Number.EPSILON) * 100) / 100;
 }
 
+export function roundCanonicalPrice(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 0;
+  return (
+    Math.round((numeric + Number.EPSILON) * CANONICAL_PRICE_SCALE) /
+    CANONICAL_PRICE_SCALE
+  );
+}
+
+/** Reads a canonical per-Piece price without forcing display money precision. */
+export function parseCanonicalPrice(value: unknown): number | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= 0 ? roundCanonicalPrice(value) : null;
+  }
+  if (typeof value !== "string") return null;
+
+  const text = value.trim().replace(/,/g, "");
+  if (!text || !/^-?\d+(?:\.\d+)?$/.test(text)) return null;
+
+  const amount = Number(text);
+  return Number.isFinite(amount) && amount >= 0 ? roundCanonicalPrice(amount) : null;
+}
+
 /** Parses a money input without turning malformed values into zero. */
 export function parseMoneyInput(value: unknown): number | null {
   if (value === undefined || value === null) return 0;
@@ -73,7 +102,7 @@ export function pricePerPiece(price: unknown, unit: unknown): number | null {
   if (!normalized || !Number.isFinite(amount)) return null;
   const factor = PIECES_PER_UNIT[normalized];
   if (factor <= 0) return null;
-  return roundMoney(amount / factor);
+  return roundCanonicalPrice(amount / factor);
 }
 
 export function priceForUnit(canonicalPerPiece: unknown, unit: unknown): number | null {

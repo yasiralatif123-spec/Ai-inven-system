@@ -1,5 +1,4 @@
 export type HubKey = "" | "karachi" | "lahore" | "faisalabad" | "multan" | "rawalpindi";
-export type TaxStatus = "standard" | "exempt" | "non-filer";
 export type PaymentTerms = "net-15" | "net-30" | "net-7" | "cod" | "advance";
 export type SupplierStatus = "Active" | "On Hold" | "Inactive";
 
@@ -21,7 +20,6 @@ export type Supplier = {
   region: SupplierRegion;
   phone: string;
   email: string;
-  taxStatus: TaxStatus;
   address: string;
   ntn: string;
   paymentTerms: PaymentTerms;
@@ -76,7 +74,6 @@ export type CreateSupplierInput = {
   phone: string;
   email: string;
   hub: HubKey;
-  taxStatus: TaxStatus;
   address: string;
   ntn: string;
   paymentTerms: PaymentTerms;
@@ -97,7 +94,6 @@ export type SupplierDto = {
   email: string;
   hub: string;
   region: string;
-  taxStatus: TaxStatus;
   address: string;
   ntn: string;
   paymentTerms: PaymentTerms;

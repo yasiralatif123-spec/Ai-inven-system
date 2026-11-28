@@ -13,13 +13,12 @@ import {
   GRACE_DAY_OPTIONS,
   HUB_OPTIONS,
   PAYMENT_TERM_OPTIONS,
-  TAX_STATUS_OPTIONS,
 } from "../constants";
 import {
   createSupplier,
   fetchNextSupplierCode,
 } from "../services/supplier.service";
-import type { CreateSupplierInput, HubKey, PaymentTerms, TaxStatus } from "../types";
+import type { CreateSupplierInput, HubKey, PaymentTerms } from "../types";
 import { useSupplierProducts } from "../hooks/useSupplierProducts";
 import { ProductMultiSelect } from "./ProductMultiSelect";
 
@@ -29,7 +28,6 @@ const EMPTY_FORM: CreateSupplierInput = {
   phone: "",
   email: "",
   hub: "",
-  taxStatus: "standard",
   address: "",
   ntn: "",
   paymentTerms: "net-15",
@@ -295,7 +293,7 @@ export function AddSupplierForm() {
                   Supplier / Company Name <span className="text-error">*</span>
                 </span>
               }
-              hint="Registered business name as appearing on sales tax invoices."
+              hint="Registered business name as appearing on supplier invoices."
             >
               <input
                 className={INPUT_CLASS}
@@ -393,32 +391,6 @@ export function AddSupplierForm() {
               </div>
             </Field>
 
-            <Field
-              label={
-                <>
-                  <span>Tax Exemption Status</span>
-                  <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
-                </>
-              }
-              hint="Applies automated withholding deductions at voucher posting."
-            >
-              <div className="relative flex items-center">
-                <select
-                  className={SELECT_CLASS}
-                  value={form.taxStatus}
-                  onChange={(event) => update("taxStatus", event.target.value as TaxStatus)}
-                >
-                  {TAX_STATUS_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined pointer-events-none absolute right-3 text-[18px] text-on-surface-variant">
-                  expand_more
-                </span>
-              </div>
-            </Field>
           </div>
 
           <Field
@@ -460,8 +432,8 @@ export function AddSupplierForm() {
 
         <SectionCard
           number="2"
-          title="Tax and Accounts"
-          description="FBR NTN registration, opening payable obligations, and settlement credit terms."
+          title="Accounts and Registration"
+          description="Registration details, opening payable obligations, and settlement credit terms."
           badge={
             <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm font-semibold text-primary">
               Ledger Code: {nextCode}
@@ -472,11 +444,11 @@ export function AddSupplierForm() {
             <Field
               label={
                 <>
-                  <span>Tax Information / NTN</span>
+                  <span>Registration / NTN</span>
                   <span className="font-mono-data-sm font-normal text-on-surface-variant">(Optional)</span>
                 </>
               }
-              hint="National Tax Number or Sales Tax Registration Number."
+              hint="Registration number used on supplier documents."
             >
               <input
                 className={`${INPUT_CLASS} font-mono-data`}

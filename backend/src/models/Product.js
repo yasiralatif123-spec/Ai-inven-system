@@ -29,7 +29,6 @@ const productSchema = new mongoose.Schema(
       enum: ["Piece", "Box", "Carton"],
       default: "Piece",
     },
-    taxBracket: { type: String, default: "" },
     uom: { type: String, default: "Piece" },
     openingStock: { type: Number, default: 0 },
     reorderThreshold: { type: Number, default: 0 },

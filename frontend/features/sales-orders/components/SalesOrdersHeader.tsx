@@ -23,23 +23,6 @@ export function SalesOrdersHeader({ onExport, onNewOrder }: SalesOrdersHeaderPro
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-outline-variant/70 bg-surface-container-low px-2.5 py-1.5">
-            <div className="flex items-center gap-1.5">
-              <span
-                className="material-symbols-outlined text-[16px] text-primary"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                verified
-              </span>
-              <span className="font-label-caps text-label-caps uppercase text-on-surface-variant">
-                FBR e-Invoicing:
-              </span>
-            </div>
-            <span className="font-mono-data-sm text-mono-data-sm font-medium text-on-surface">
-              Synced 4m ago
-            </span>
-          </div>
-
           <button
             type="button"
             onClick={onExport}

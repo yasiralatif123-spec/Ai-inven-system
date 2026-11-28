@@ -27,6 +27,7 @@ const {
   parseWholeQuantity,
   isSupportedUnit,
   priceForUnit,
+  parseCanonicalPrice,
   parseMoneyInput,
   parseStoredMoney,
   roundMoney,
@@ -166,6 +167,14 @@ function clamp(value, min, max) {
 
 function requireMoney(value, label) {
   const amount = parseMoneyInput(value);
+  if (amount === null) {
+    throw new ValidationError(`${label} must be a finite, non-negative number`);
+  }
+  return amount;
+}
+
+function requireCanonicalPrice(value, label) {
+  const amount = parseCanonicalPrice(value);
   if (amount === null) {
     throw new ValidationError(`${label} must be a finite, non-negative number`);
   }
@@ -362,7 +371,7 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
     }
 
     const catalogBasePrice = product
-      ? requireMoney(product.wholesalePrice, `Catalog price for ${product.title}`)
+      ? requireCanonicalPrice(product.wholesalePrice, `Catalog price for ${product.title}`)
       : null;
     const catalogUnitPrice = catalogBasePrice === null
       ? null
@@ -374,7 +383,7 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
         sameCatalogSnapshot(previousItem, product, requestedProductId, sku) &&
         normalizeUnit(previousItem.unitLabel) === unitLabel
     );
-    const savedBasePrice = keepSnapshot ? parseStoredMoney(previousItem.basePrice) : null;
+    const savedBasePrice = keepSnapshot ? parseCanonicalPrice(previousItem.basePrice) : null;
     const savedUnitPrice = keepSnapshot ? parseStoredMoney(previousItem.unitPrice) : null;
     const basePrice = product
       ? savedBasePrice !== null
@@ -399,7 +408,9 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
       unitPrice: effectiveUnitPrice,
       available: product ? Math.max(0, toNumber(product.openingStock)) : 0,
       stockDeducted: Boolean(product),
-      lineTotal: roundMoney(quantity * effectiveUnitPrice),
+      // Catalog lines use canonical per-Piece pricing; manual lines keep the
+      // submitted unit price. This keeps equivalent unit quantities consistent.
+      lineTotal: roundMoney(product ? basePrice * baseQuantity : quantity * effectiveUnitPrice),
     });
   }
 
@@ -410,7 +421,6 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
 
   const discount = clamp(requireMoney(body.discount, "Discount"), 0, subtotal);
   const freight = requireMoney(body.freight, "Freight");
-  const tax = Math.round(((subtotal - discount) * 18) / 118);
   const total = subtotal - discount + freight;
 
   let requestedPaid = 0;
@@ -510,7 +520,6 @@ async function buildOrderChanges(body, existingOrder = null, session = null, req
     financials: {
       subtotal,
       discount,
-      tax,
       freight,
       total,
       paid,

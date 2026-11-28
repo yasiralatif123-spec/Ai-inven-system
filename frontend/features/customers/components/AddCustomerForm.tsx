@@ -359,7 +359,7 @@ export function AddCustomerForm() {
                   Commercial Hub / City <span className="font-bold text-error">*</span>
                 </span>
               }
-              hint="Defines provincial sales tax computation & freight zoning"
+              hint="Defines routing and freight zoning for this account"
             >
               <SelectShell>
                 <select
@@ -414,10 +414,10 @@ export function AddCustomerForm() {
         <SectionCard
           number="2"
           title="Customer Classification & Operations"
-          description="Tier grouping, active account state, logistics route attribution, and tax indexing."
+          description="Tier grouping, active account state, and logistics route attribution."
           badge={
             <span className="rounded-md border border-outline-variant/70 bg-surface-container px-2.5 py-1 font-mono-data-sm text-mono-data-sm text-on-surface-variant">
-              Tier & Taxation Setup
+              Tier & Account Setup
             </span>
           }
         >
@@ -507,7 +507,7 @@ export function AddCustomerForm() {
               </SelectShell>
             </Field>
 
-            <Field label="FBR NTN / STRN Number" hint="Applied for withholding tax rate calculation">
+            <Field label="NTN / STRN Number" hint="Registration number used on customer documents.">
               <input
                 className={`${INPUT_CLASS} font-mono-data uppercase`}
                 value={form.ntn}

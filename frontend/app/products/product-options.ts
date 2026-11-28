@@ -7,13 +7,6 @@ export const PRODUCT_CATEGORIES = [
   "Personal Care",
 ] as const;
 
-export const TAX_BRACKETS = [
-  "Standard Sales Tax (18% FBR SRO)",
-  "Zero-Rated / Exempt (0%)",
-  "Reduced Concessionary Rate (10%)",
-  "3rd Schedule Retail Tax Item",
-] as const;
-
 export const STOCK_UNITS = ["Carton", "Box", "Piece"] as const;
 
 export const WAREHOUSES = [

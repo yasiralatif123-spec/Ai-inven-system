@@ -268,7 +268,7 @@ export function EditCustomerDialog({ customer, onClose, onSaved }: EditCustomerD
                 </select>
               </SelectShell>
             </Field>
-            <Field label="FBR NTN / STRN Number">
+            <Field label="NTN / STRN Number">
               <input
                 className={`${INPUT_CLASS} font-mono-data uppercase`}
                 value={form.ntn}

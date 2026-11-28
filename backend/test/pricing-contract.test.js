@@ -147,6 +147,111 @@ describe("unit-based pricing contract", () => {
       });
     });
 
+    test("stores canonical prices supplied by the product form", async () => {
+      const response = await request(app)
+        .post("/api/products")
+        .send(
+          productApiPayload({
+            priceUnit: "Carton",
+            uom: "Carton",
+            purchasePrice: 1000,
+            wholesalePrice: 1500,
+            retailPrice: 2000,
+            canonicalPrices: {
+              purchasePrice: 41.66666667,
+              wholesalePrice: 62.5,
+              retailPrice: 83.33333333,
+            },
+          })
+        );
+
+      expect(response.status).toBe(201);
+      expect(response.body.product.purchasePrice).toBeCloseTo(41.66666667, 8);
+      expect(response.body.product.wholesalePrice).toBe(62.5);
+      expect(response.body.product.retailPrice).toBeCloseTo(83.33333333, 8);
+
+      const saved = await Product.findById(response.body.product._id).lean();
+      expect(saved.purchasePrice).toBeCloseTo(41.66666667, 8);
+      expect(saved.wholesalePrice).toBe(62.5);
+      expect(saved.retailPrice).toBeCloseTo(83.33333333, 8);
+    });
+
+    test("saving after switching to a smaller unit keeps canonical prices", async () => {
+      const created = await request(app)
+        .post("/api/products")
+        .send(
+          productApiPayload({
+            priceUnit: "Carton",
+            uom: "Carton",
+            purchasePrice: 1000,
+            wholesalePrice: 1500,
+            retailPrice: 2000,
+            canonicalPrices: {
+              purchasePrice: 41.66666667,
+              wholesalePrice: 62.5,
+              retailPrice: 83.33333333,
+            },
+          })
+        );
+      expect(created.status).toBe(201);
+
+      // Piece displays are rounded for the user, but the form also sends the
+      // canonical values so saving must not overwrite them with 41.67 / 83.33.
+      const response = await request(app)
+        .put(`/api/products/${created.body.product._id}`)
+        .send(
+          productApiPayload({
+            priceUnit: "Piece",
+            uom: "Piece",
+            purchasePrice: 41.67,
+            wholesalePrice: 62.5,
+            retailPrice: 83.33,
+            canonicalPurchasePrice: 41.66666667,
+            canonicalWholesalePrice: 62.5,
+            canonicalRetailPrice: 83.33333333,
+          })
+        );
+
+      expect(response.status).toBe(200);
+      expect(response.body.product.priceUnit).toBe("Piece");
+      expect(response.body.product.purchasePrice).toBeCloseTo(41.66666667, 8);
+      expect(response.body.product.wholesalePrice).toBe(62.5);
+      expect(response.body.product.retailPrice).toBeCloseTo(83.33333333, 8);
+    });
+
+    test("legacy clients without canonical prices still convert display prices", async () => {
+      const response = await request(app)
+        .post("/api/products")
+        .send(
+          productApiPayload({
+            priceUnit: "Carton",
+            uom: "Carton",
+            purchasePrice: 240,
+            wholesalePrice: 360,
+            retailPrice: 480,
+          })
+        );
+
+      expect(response.status).toBe(201);
+      expect(response.body.product).toMatchObject({
+        purchasePrice: 10,
+        wholesalePrice: 15,
+        retailPrice: 20,
+      });
+    });
+
+    test("ignores legacy taxBracket payloads", async () => {
+      const response = await request(app)
+        .post("/api/products")
+        .send(productApiPayload({ taxBracket: "Standard Sales Tax (18% FBR SRO)" }));
+
+      expect(response.status).toBe(201);
+      expect(response.body.product).not.toHaveProperty("taxBracket");
+
+      const saved = await Product.findById(response.body.product._id).lean();
+      expect(saved).not.toHaveProperty("taxBracket");
+    });
+
     test.each([
       ["NaN", "NaN"],
       ["Infinity", "Infinity"],
@@ -219,6 +324,86 @@ describe("unit-based pricing contract", () => {
 
       const saved = await Product.findById(product._id);
       expect(saved.openingStock).toBe(76);
+    });
+
+    test("1 Carton and 24 Pieces produce the same catalog sale total", async () => {
+      const product = await createProduct({
+        wholesalePrice: 41.66666667,
+        uom: "Piece",
+        openingStock: 1000,
+      });
+
+      const carton = await request(app)
+        .post("/api/sale-orders")
+        .send(
+          salePayload(
+            [
+              {
+                name: product.title,
+                sku: product.sku,
+                productId: String(product._id),
+                quantity: 1,
+                unitLabel: "Carton",
+                unitPrice: 999,
+              },
+            ],
+            { discount: 100 }
+          )
+        );
+      const pieces = await request(app)
+        .post("/api/sale-orders")
+        .send(
+          salePayload(
+            [
+              {
+                name: product.title,
+                sku: product.sku,
+                productId: String(product._id),
+                quantity: 24,
+                unitLabel: "Piece",
+                unitPrice: 999,
+              },
+            ],
+            { discount: 100 }
+          )
+        );
+
+      expect(carton.status).toBe(201);
+      expect(pieces.status).toBe(201);
+      expect(carton.body.order.items[0].basePrice).toBeCloseTo(41.66666667, 8);
+      expect(carton.body.order.items[0].unitPrice).toBe(1000);
+      expect(pieces.body.order.items[0].unitPrice).toBe(41.67);
+      expect(carton.body.order.items[0].lineTotal).toBe(1000);
+      expect(pieces.body.order.items[0].lineTotal).toBe(1000);
+      expect(carton.body.order.financials.subtotal).toBe(1000);
+      expect(pieces.body.order.financials.subtotal).toBe(1000);
+      expect(carton.body.order.financials.total).toBe(900);
+      expect(pieces.body.order.financials.total).toBe(900);
+    });
+
+    test("omits tax from sale order financials", async () => {
+      const product = await createProduct({ wholesalePrice: 10, uom: "Piece" });
+      const response = await request(app)
+        .post("/api/sale-orders")
+        .send(
+          salePayload(
+            [
+              {
+                name: product.title,
+                sku: product.sku,
+                productId: String(product._id),
+                quantity: 2,
+                unitLabel: "Piece",
+                unitPrice: 999,
+              },
+            ],
+            { discount: 5, freight: 3 }
+          )
+        );
+
+      expect(response.status).toBe(201);
+      expect(response.body.order.financials).not.toHaveProperty("tax");
+      expect(response.body.order.financials.total).toBe(18);
     });
 
     test("quantity changes preserve the saved catalog snapshot", async () => {
@@ -445,6 +630,66 @@ describe("unit-based pricing contract", () => {
       expect(movements[0].quantity).toBe(48);
     });
 
+    test("1 Carton and 24 Pieces produce the same catalog purchase total", async () => {
+      const supplier = await createSupplier();
+      const product = await createProduct({
+        purchasePrice: 41.66666667,
+        uom: "Piece",
+        openingStock: 0,
+      });
+
+      const carton = await request(app)
+        .post("/api/purchases")
+        .send(
+          purchasePayload(
+            supplier,
+            [
+              {
+                name: product.title,
+                sku: product.sku,
+                productId: String(product._id),
+                quantity: 1,
+                unit: "Carton",
+                unitPrice: 999,
+                discount: 100,
+              },
+            ],
+            { freight: 5 }
+          )
+        );
+      const pieces = await request(app)
+        .post("/api/purchases")
+        .send(
+          purchasePayload(
+            supplier,
+            [
+              {
+                name: product.title,
+                sku: product.sku,
+                productId: String(product._id),
+                quantity: 24,
+                unit: "Piece",
+                unitPrice: 999,
+                discount: 100,
+              },
+            ],
+            { freight: 5 }
+          )
+        );
+
+      expect(carton.status).toBe(201);
+      expect(pieces.status).toBe(201);
+      expect(carton.body.purchase.items[0].basePrice).toBeCloseTo(41.66666667, 8);
+      expect(carton.body.purchase.items[0].unitPrice).toBe(1000);
+      expect(pieces.body.purchase.items[0].unitPrice).toBe(41.67);
+      expect(carton.body.purchase.items[0].lineTotal).toBe(900);
+      expect(pieces.body.purchase.items[0].lineTotal).toBe(900);
+      expect(carton.body.purchase.financials.subtotal).toBe(1000);
+      expect(pieces.body.purchase.financials.subtotal).toBe(1000);
+      expect(carton.body.purchase.financials.total).toBe(905);
+      expect(pieces.body.purchase.financials.total).toBe(905);
+    });
+
     test("manual purchase items keep their explicit price", async () => {
       const supplier = await createSupplier();
       const response = await request(app)
@@ -518,6 +763,49 @@ describe("unit-based pricing contract", () => {
       expect(updated.status).toBe(200);
       const [item] = updated.body.purchase.items;
       expect(item).toMatchObject({ basePrice: 10, unitPrice: 240 });
+    });
+
+    test("ignores legacy taxRate and computes tax-free totals", async () => {
+      const supplier = await createSupplier();
+      const product = await createProduct({ purchasePrice: 10, uom: "Piece" });
+      const response = await request(app)
+        .post("/api/purchases")
+        .send(
+          purchasePayload(
+            supplier,
+            [
+              {
+                name: product.title,
+                sku: product.sku,
+                productId: String(product._id),
+                quantity: 2,
+                unit: "Piece",
+                unitPrice: 999,
+                discount: 1,
+                taxRate: 18,
+              },
+            ],
+            { freight: 2 }
+          )
+        );
+
+      expect(response.status).toBe(201);
+      const purchase = response.body.purchase;
+      expect(purchase.financials).toMatchObject({
+        subtotal: 20,
+        discount: 1,
+        freight: 2,
+        total: 21,
+      });
+      expect(purchase.financials).not.toHaveProperty("tax");
+      expect(purchase.items[0]).not.toHaveProperty("taxRate");
+      expect(purchase.items[0]).not.toHaveProperty("taxAmount");
+      expect(purchase.items[0].lineTotal).toBe(19);
+
+      const saved = await Purchase.findById(purchase._id).lean();
+      expect(saved.financials).not.toHaveProperty("tax");
+      expect(saved.items[0]).not.toHaveProperty("taxRate");
+      expect(saved.items[0]).not.toHaveProperty("taxAmount");
     });
   });
 });

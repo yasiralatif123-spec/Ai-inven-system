@@ -90,9 +90,9 @@ export function CustomerAccountDossier({ customer, orders }: CustomerAccountDoss
           </div>
 
           <div className="flex items-center justify-between gap-2 border-t border-outline-variant pt-3">
-            <DetailRow label="FBR NTN / STRN" value={customer.ntn} mono />
+            <DetailRow label="NTN / STRN" value={customer.ntn} mono />
             <ProfileBadge tone={customer.ntn ? "success" : "neutral"}>
-              {customer.ntn ? "Active Filer" : "Not on file"}
+              {customer.ntn ? "NTN on file" : "Not on file"}
             </ProfileBadge>
           </div>
         </div>

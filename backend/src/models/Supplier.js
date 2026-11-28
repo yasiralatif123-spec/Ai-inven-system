@@ -15,11 +15,6 @@ const supplierSchema = new mongoose.Schema(
     email: { type: String, default: "", trim: true },
     hub: { type: String, default: "", trim: true },
     region: { type: String, default: "", trim: true },
-    taxStatus: {
-      type: String,
-      enum: ["standard", "exempt", "non-filer"],
-      default: "standard",
-    },
     address: { type: String, required: true, trim: true },
     ntn: { type: String, default: "", trim: true },
     paymentTerms: {

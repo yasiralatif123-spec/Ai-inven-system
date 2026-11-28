@@ -1,7 +1,7 @@
 import type { Product } from "../../app/products/types";
 import type { StockMovementDto } from "../../app/inventory/data";
 import { formatRs, toStockRows } from "../../app/inventory/utils";
-import { formatStockWithPieces, parseMoneyInput } from "../../app/lib/units";
+import { formatStockWithPieces, parseCanonicalPrice } from "../../app/lib/units";
 import type { SalesOrder } from "../sales-orders/types";
 import type { Supplier } from "../suppliers/types";
 import type {
@@ -226,7 +226,7 @@ export function getDashboardKpis(
     salesChangePct: percentChange(todaySales, yesterdaySales),
     stockValue: products.reduce((total, product) => {
       const stockPieces = safeAmount(product.openingStock);
-      return total + stockPieces * (parseMoneyInput(product.purchasePrice) ?? 0);
+      return total + stockPieces * (parseCanonicalPrice(product.purchasePrice) ?? 0);
     }, 0),
     lowStockCount: lowStock.length,
     urgentCount: lowStock.filter((row) => row.status === "critical").length,

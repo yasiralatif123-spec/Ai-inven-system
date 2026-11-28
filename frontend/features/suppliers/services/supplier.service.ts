@@ -51,7 +51,6 @@ function toSupplier(dto: SupplierDto): Supplier {
     region: (dto.region || "Karachi") as Supplier["region"],
     phone: dto.phone,
     email: dto.email || "",
-    taxStatus: dto.taxStatus,
     address: dto.address || "",
     ntn: dto.ntn || "",
     paymentTerms: dto.paymentTerms,
