@@ -209,8 +209,9 @@ export function PurchaseItemsTable({
                       <div className="flex flex-col items-end gap-1">
                         <input
                           type="number"
+                          inputMode="decimal"
                           min={0}
-                          step="1"
+                          step="0.01"
                           value={item.unitPrice}
                           onChange={(event) =>
                             onItemChange(item.rowId, {
@@ -229,8 +230,9 @@ export function PurchaseItemsTable({
                   <td className="px-3 py-4">
                     <input
                       type="number"
+                      inputMode="decimal"
                       min={0}
-                      step="1"
+                      step="0.01"
                       value={item.discount}
                       onChange={(event) =>
                         onItemChange(item.rowId, {

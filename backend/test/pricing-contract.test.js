@@ -381,6 +381,36 @@ describe("unit-based pricing contract", () => {
       expect(pieces.body.order.financials.total).toBe(900);
     });
 
+    test("accepts decimal unit prices on manual sale lines", async () => {
+      const response = await request(app)
+        .post("/api/sale-orders")
+        .send(
+          salePayload(
+            [
+              {
+                name: "Custom Service",
+                sku: "",
+                productId: "",
+                quantity: 1,
+                unitLabel: "Piece",
+                unitPrice: 62.5,
+              },
+            ],
+            { discount: 2.5, freight: 1.25 }
+          )
+        );
+
+      expect(response.status).toBe(201);
+      const [item] = response.body.order.items;
+      expect(item.priceBasis).toBe("manual");
+      expect(item.unitPrice).toBe(62.5);
+      expect(item.lineTotal).toBe(62.5);
+      expect(response.body.order.financials.subtotal).toBe(62.5);
+      expect(response.body.order.financials.discount).toBe(2.5);
+      expect(response.body.order.financials.freight).toBe(1.25);
+      expect(response.body.order.financials.total).toBe(61.25);
+    });
+
     test("omits tax from sale order financials", async () => {
       const product = await createProduct({ wholesalePrice: 10, uom: "Piece" });
       const response = await request(app)

@@ -462,8 +462,9 @@ export function OrderFormDialog({
                               value={item.unitPrice}
                               onChange={(event) => updateItem(index, { unitPrice: event.target.value })}
                               type="number"
+                              inputMode="decimal"
                               min="0"
-                              step="1"
+                              step="0.01"
                               placeholder="Unit price"
                               aria-label={`Item ${index + 1} unit price`}
                               className={`${NEW_ITEM_INPUT_CLASS} placeholder:text-on-surface-variant/70`}
@@ -571,8 +572,9 @@ export function OrderFormDialog({
               <span className={FIELD_LABEL_CLASS}>Amount Received</span>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
-                step="1"
+                step="0.01"
                 value={amountReceived}
                 onChange={(event) => setAmountReceived(event.target.value)}
                 disabled={paymentStatus !== "partial"}
@@ -583,8 +585,9 @@ export function OrderFormDialog({
               <span className={FIELD_LABEL_CLASS}>Discount</span>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
-                step="1"
+                step="0.01"
                 value={discount}
                 onChange={(event) => setDiscount(event.target.value)}
                 className={NEW_ITEM_INPUT_CLASS}
@@ -594,8 +597,9 @@ export function OrderFormDialog({
               <span className={FIELD_LABEL_CLASS}>Freight</span>
               <input
                 type="number"
+                inputMode="decimal"
                 min="0"
-                step="1"
+                step="0.01"
                 value={freight}
                 onChange={(event) => setFreight(event.target.value)}
                 className={NEW_ITEM_INPUT_CLASS}
