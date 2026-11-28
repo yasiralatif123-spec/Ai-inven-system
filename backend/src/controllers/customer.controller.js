@@ -351,8 +351,20 @@ async function deleteCustomer(req, res, next) {
       });
     }
 
-    const customer = await Customer.findOneAndDelete(scopedFilter(req, { _id: id }));
+    const customer = await Customer.findOne(scopedFilter(req, { _id: id }))
+      .select("openingBalance")
+      .lean();
     if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    if (Number(customer.openingBalance) > 0) {
+      return res.status(409).json({
+        message: "Customer has an opening balance and cannot be deleted",
+      });
+    }
+
+    const deleted = await Customer.findOneAndDelete(scopedFilter(req, { _id: id }));
+    if (!deleted) {
       return res.status(404).json({ message: "Customer not found" });
     }
 

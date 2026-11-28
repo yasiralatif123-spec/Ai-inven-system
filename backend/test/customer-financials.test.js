@@ -257,8 +257,21 @@ describe("customer financial integrity", () => {
     expect(await SaleOrder.findById(order._id)).not.toBeNull();
   });
 
-  test("customer without sale history can still be deleted", async () => {
-    const customer = await createCustomer();
+  test("customer with an opening balance but no sale history cannot be deleted", async () => {
+    const customer = await createCustomer({ openingBalance: 75 });
+
+    const response = await request(app).delete(`/api/customers/${customer._id}`);
+    expect(response.status).toBe(409);
+    expect(response.body.message).toMatch(/opening balance/i);
+
+    const saved = await customerFromDb(customer._id);
+    expect(saved.openingBalance).toBe(75);
+    expect(saved.outstanding).toBe(75);
+    expect(await SaleOrder.countDocuments()).toBe(0);
+  });
+
+  test("customer without sale history or opening balance can still be deleted", async () => {
+    const customer = await createCustomer({ openingBalance: 0 });
 
     const response = await request(app).delete(`/api/customers/${customer._id}`);
     expect(response.status).toBe(200);

@@ -274,8 +274,21 @@ describe("supplier financial integrity", () => {
     expect(await Purchase.findById(purchase._id)).not.toBeNull();
   });
 
-  test("supplier without purchase history can still be deleted", async () => {
-    const supplier = await createSupplier();
+  test("supplier with an opening balance but no purchase history cannot be deleted", async () => {
+    const supplier = await createSupplier({ openingBalance: 75 });
+
+    const response = await request(app).delete(`/api/suppliers/${supplier._id}`);
+    expect(response.status).toBe(409);
+    expect(response.body.message).toMatch(/opening balance/i);
+
+    const saved = await supplierFromDb(supplier._id);
+    expect(saved.openingBalance).toBe(75);
+    expect(saved.outstanding).toBe(75);
+    expect(await Purchase.countDocuments()).toBe(0);
+  });
+
+  test("supplier without purchase history or opening balance can still be deleted", async () => {
+    const supplier = await createSupplier({ openingBalance: 0 });
 
     const response = await request(app).delete(`/api/suppliers/${supplier._id}`);
     expect(response.status).toBe(200);

@@ -362,8 +362,20 @@ async function deleteSupplier(req, res, next) {
       });
     }
 
-    const supplier = await Supplier.findOneAndDelete(scopedFilter(req, { _id: id }));
+    const supplier = await Supplier.findOne(scopedFilter(req, { _id: id }))
+      .select("openingBalance")
+      .lean();
     if (!supplier) {
+      return res.status(404).json({ message: "Supplier not found" });
+    }
+    if (Number(supplier.openingBalance) > 0) {
+      return res.status(409).json({
+        message: "Supplier has an opening balance and cannot be deleted",
+      });
+    }
+
+    const deleted = await Supplier.findOneAndDelete(scopedFilter(req, { _id: id }));
+    if (!deleted) {
       return res.status(404).json({ message: "Supplier not found" });
     }
 

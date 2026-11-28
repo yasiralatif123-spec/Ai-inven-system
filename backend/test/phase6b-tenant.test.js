@@ -217,6 +217,27 @@ describe("Phase 6 Part B - supplier/customer/purchase/sale tenant enforcement", 
     expect(await Purchase.findById(purRes.body.purchase._id)).not.toBeNull();
   });
 
+  test("cross-tenant opening balances stay hidden and deletion by the other business is rejected", async () => {
+    const { cookieA, cookieB } = await seed();
+    const cusB = await createCustomer(cookieB, {
+      name: "CusBBalance",
+      businessName: "CusB Biz",
+      openingBalance: 500,
+    });
+    const supB = await createSupplier(cookieB, {
+      name: "SupBBalance",
+      openingBalance: 500,
+    });
+
+    await request(app).delete(`/api/customers/${cusB._id}`).set("Cookie", cookieA).expect(404);
+    await request(app).delete(`/api/suppliers/${supB._id}`).set("Cookie", cookieA).expect(404);
+
+    const savedCustomer = await Customer.findById(cusB._id).lean();
+    const savedSupplier = await Supplier.findById(supB._id).lean();
+    expect(savedCustomer).toMatchObject({ openingBalance: 500 });
+    expect(savedSupplier).toMatchObject({ openingBalance: 500 });
+  });
+
   test("numbers/codes generated per business and duplicates allowed across businesses; lists return own rows only", async () => {
     const { cookieA, cookieB } = await seed();
     const supA = await createSupplier(cookieA, { name: "SupA" });

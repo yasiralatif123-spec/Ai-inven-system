@@ -73,9 +73,9 @@
     "semantic_hash": "7461497c6ac6e3eb90d8b1aac3feb2f2"
   },
   "backend/src/controllers/customer.controller.js": {
-    "mtime": 1795854218.511953,
-    "seen": 1795854928.6399994,
-    "ast_hash": "79f4735c94a6c7edce3279eb289f19e6",
+    "mtime": 1795856695.6304436,
+    "seen": 1795856836.7532973,
+    "ast_hash": "755ff3827e8382d4691da36aa012a6da",
     "semantic_hash": ""
   },
   "backend/src/controllers/inventory.controller.js": {
@@ -115,9 +115,9 @@
     "semantic_hash": ""
   },
   "backend/src/controllers/supplier.controller.js": {
-    "mtime": 1795854218.5109546,
-    "seen": 1795854928.6399994,
-    "ast_hash": "2e3b21df4e5e6edc5b43bb078e0c1ba9",
+    "mtime": 1795856701.7780685,
+    "seen": 1795856836.7532973,
+    "ast_hash": "03a84fd0b1973c17089634fff1fda564",
     "semantic_hash": ""
   },
   "backend/src/controllers/user.controller.js": {
@@ -415,9 +415,9 @@
     "semantic_hash": "10325ba423921663e22215d40bc51f36"
   },
   "backend/test/customer-financials.test.js": {
-    "mtime": 1795854650.2461245,
-    "seen": 1795854928.6399994,
-    "ast_hash": "58d257b4474266c1828138467e08765c",
+    "mtime": 1795856707.1150856,
+    "seen": 1795856836.7532973,
+    "ast_hash": "944c161ce78db55c616c2ede7508cd56",
     "semantic_hash": ""
   },
   "backend/test/email.service.test.js": {
@@ -481,9 +481,9 @@
     "semantic_hash": ""
   },
   "backend/test/phase6b-tenant.test.js": {
-    "mtime": 1795854812.0585454,
-    "seen": 1795854928.6399994,
-    "ast_hash": "598d168aa433b855f7752a92dad47855",
+    "mtime": 1795856726.6537704,
+    "seen": 1795856836.7532973,
+    "ast_hash": "f1b7a958699b71c67f623da03ff0b2c9",
     "semantic_hash": ""
   },
   "backend/test/pricing-contract.test.js": {
@@ -529,9 +529,9 @@
     "semantic_hash": ""
   },
   "backend/test/supplier-financials.test.js": {
-    "mtime": 1795854667.3913836,
-    "seen": 1795854928.6399994,
-    "ast_hash": "4062bac9d8cea29d78567b8dbe34fef9",
+    "mtime": 1795856713.0045488,
+    "seen": 1795856836.7532973,
+    "ast_hash": "a8627950c7fa467347ee9b135cfb879f",
     "semantic_hash": ""
   },
   "backend/test/tenant.test.js": {
@@ -1706,9 +1706,9 @@
     "semantic_hash": "162bc9563ff4f301bf2baf535c4837b8"
   },
   "backend/docs/customers-api.md": {
-    "mtime": 1795854827.2357614,
-    "seen": 1795854928.6410382,
-    "ast_hash": "12cfda497400491cd47fe3163a506ec4",
+    "mtime": 1795856742.863667,
+    "seen": 1795856836.7532973,
+    "ast_hash": "7264445ed0dfd467824cf3e237d6416b",
     "semantic_hash": ""
   },
   "backend/docs/inventory-api.md": {
@@ -1730,9 +1730,9 @@
     "semantic_hash": ""
   },
   "backend/docs/suppliers-api.md": {
-    "mtime": 1795854839.8804336,
-    "seen": 1795854928.6410382,
-    "ast_hash": "92353e175af79a1c531285a2e0363906",
+    "mtime": 1795856753.3640146,
+    "seen": 1795856836.7532973,
+    "ast_hash": "f46141f25c7172dd2af505ffb85f4be1",
     "semantic_hash": ""
   },
   "backend/docs/tenancy.md": {

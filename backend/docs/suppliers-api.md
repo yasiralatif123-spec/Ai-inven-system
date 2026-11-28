@@ -126,8 +126,11 @@ IDs submitted in the request must still exist in the catalog.
 
 Deletes a supplier by Mongo `_id`. A supplier linked to any purchase order —
 including a cancelled order — cannot be deleted, so its purchase and embedded
-payment history stays intact. Suppliers without purchase history can still be
-deleted.
+payment history stays intact. A supplier with `openingBalance > 0` is also
+protected, even when it has no purchase history, because the opening balance is
+part of its payable history. In both cases the stored balance and financial
+records are left unchanged. Only suppliers with no purchase history and a zero
+opening balance can be deleted.
 
 **200 response**
 
@@ -141,10 +144,14 @@ deleted.
 { "message": "Supplier not found" }
 ```
 
-**409 response**
+**409 responses**
 
 ```json
 { "message": "Supplier has purchase/payment history and cannot be deleted" }
+```
+
+```json
+{ "message": "Supplier has an opening balance and cannot be deleted" }
 ```
 
 ## Create request
